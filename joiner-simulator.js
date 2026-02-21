@@ -1,8 +1,8 @@
-// joiner-simulator.js (patched)
+           // joiner-simulator.js (patched & tightened)
 // -------------------------------------------------
 // Simulates joiners, builds Telegram-style join stickers,
 // posts welcome messages, seeds history, and updates member counts.
-// Robust: avoids admin.jpg fallbacks, reduces avatar/name duplication,
+// Robust: avoids admin.jpg fallbacks, reduces avatar duplication,
 // non-blocking chunking, respects identity API when available.
 // -------------------------------------------------
 
@@ -27,35 +27,24 @@
   const usedJoinNames = new Set();
   let preGenPool = [];
 
-  // small helpers
   function randInt(min, max){ return Math.floor(Math.random() * (max - min + 1)) + min; }
   function safeMeta(){ return document.getElementById("tg-meta-line"); }
+
   function bumpMemberCount(n = 1){
     window.MEMBER_COUNT = Math.max(0, (window.MEMBER_COUNT || 0) + n);
     const m = safeMeta();
     if(m) m.textContent = `${(window.MEMBER_COUNT||0).toLocaleString()} members, ${(window.ONLINE_COUNT||0).toLocaleString()} online`;
   }
 
-  // Use identity API for avatar generation/fallbacks (safe checks)
-  function safeBuildAvatar(name, gender){
+  function safeBuildAvatar(name){
     try{
       if(window.identity && typeof window.identity.buildUniqueAvatar === "function"){
-        return window.identity.buildUniqueAvatar(name, gender);
-      }
-      if(window.identity && typeof window.identity.buildUniqueAvatar === "undefined" && window.identity.buildUniqueAvatar !== undefined){
-        // if older identity API uses different name
-        return window.identity.buildUniqueAvatar(name, gender);
+        return window.identity.buildUniqueAvatar(name);
       }
     }catch(e){}
-    // fallback deterministic ui-avatar (no admin.jpg fallback)
-    try{
-      return `https://ui-avatars.com/api/?name=${encodeURIComponent(name||"U")}&background=random&size=256`;
-    }catch(e){
-      return `https://ui-avatars.com/api/?name=U`;
-    }
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name||"U")}&background=random&size=256`;
   }
 
-  // Ensure joiner name uniqueness (local session-level)
   function uniqueNameCandidate(base){
     let candidate = base;
     let guard = 0;
@@ -68,41 +57,30 @@
   }
 
   function createJoinerFromIdentity(){
-    // Use identity persona where available and patch avatar if admin.jpg is used incorrectly
     if(window.identity && typeof window.identity.getRandomPersona === "function"){
       const pRaw = window.identity.getRandomPersona();
-      // clone to avoid mutating identity pool
       const p = Object.assign({}, pRaw);
-      // name uniqueness
       p.name = uniqueNameCandidate(String(p.name || ("User" + randInt(1000,9999))));
-      // ensure avatar is not the generic admin fallback
-      if(!p.avatar || (String(p.avatar).toLowerCase().includes("assets/admin.jpg") && !p.isAdmin)){
-        p.avatar = safeBuildAvatar(p.name, p.gender);
+      if(!p.avatar || String(p.avatar).toLowerCase().includes("assets/admin.jpg")){
+        p.avatar = safeBuildAvatar(p.name);
       }
       p.lastSeen = Date.now();
       p.isAdmin = !!p.isAdmin;
       return p;
     }
-
-    // fallback synthetic joiner
     const fName = uniqueNameCandidate("NewMember" + randInt(1000, 99999));
-    const f = { name: fName, avatar: `https://i.pravatar.cc/100?img=${randInt(1,90)}`, isAdmin:false };
-    // ensure pravatar doesn't equal admin.jpg (very unlikely) — if failure, use deterministic avatar
-    if(String(f.avatar).toLowerCase().includes("assets/admin.jpg")) f.avatar = safeBuildAvatar(f.name);
-    return f;
+    return { name: fName, avatar: safeBuildAvatar(fName), isAdmin:false };
   }
 
-  // pre-generate pool to avoid small-latency at join time
   function preGenerate(count){
     preGenPool = preGenPool || [];
-    const toCreate = Math.max(0, Math.min(1000, count - preGenPool.length)); // safety cap
+    const toCreate = Math.max(0, Math.min(1000, count - preGenPool.length));
     for(let i=0;i<toCreate;i++) preGenPool.push(createJoinerFromIdentity());
     return preGenPool.length;
   }
 
   function nextJoiner(){
-    if(preGenPool && preGenPool.length) return preGenPool.shift();
-    return createJoinerFromIdentity();
+    return preGenPool && preGenPool.length ? preGenPool.shift() : createJoinerFromIdentity();
   }
 
   function randomWelcomeText(persona){
@@ -114,12 +92,9 @@
       "Thanks for having me 😊",
       "Just joined, looking forward to the signals."
     ];
-    let v = variants[Math.floor(Math.random()*variants.length)];
-    if(persona && persona.sentiment === "bullish" && Math.random() < 0.4) v = "Ready to go long 🔥";
-    return v;
+    return variants[Math.floor(Math.random()*variants.length)];
   }
 
-  // create a Telegram-like join sticker element (clustered avatars + names)
   function createJoinStickerElement(joiners){
     const container = document.createElement("div");
     container.className = "tg-join-sticker";
@@ -130,23 +105,14 @@
     const maxAv = Math.min(cfg.stickerMaxAvatars, joiners.length);
     const shown = joiners.slice(0, maxAv);
 
-    shown.forEach((p, i) => {
+    shown.forEach(p => {
       const a = document.createElement("img");
-      // use persona avatar or safe fallback
-      a.src = p.avatar || safeBuildAvatar(p.name, p.gender);
+      a.src = p.avatar || safeBuildAvatar(p.name);
       a.alt = p.name || "user";
       a.className = "join-avatar";
       a.width = cfg.stickerAvatarSize;
       a.height = cfg.stickerAvatarSize;
-      a.onerror = function(){
-        // robust fallback: deterministic avatar from name
-        try{
-          this.onerror = null;
-          this.src = safeBuildAvatar(p.name, p.gender);
-        }catch(e){
-          this.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name||"U")}`;
-        }
-      };
+      a.onerror = () => { a.src = safeBuildAvatar(p.name); };
       cluster.appendChild(a);
     });
 
@@ -163,7 +129,8 @@
 
     const names = document.createElement("div");
     names.className = "join-names";
-    names.textContent = shown.map(p => p.name).join(", ") + (joiners.length > shown.length ? ` and ${joiners.length - shown.length} others` : "");
+    names.textContent = shown.map(p => p.name).join(", ") +
+      (joiners.length > shown.length ? ` and ${joiners.length - shown.length} others` : "");
     container.appendChild(names);
 
     const sub = document.createElement("div");
@@ -176,119 +143,84 @@
 
   function appendStickerToChat(stickerEl, timestamp){
     const chat = document.getElementById("tg-comments-container");
-    if(!chat){
-      console.warn("joiner-simulator: chat container missing - can't append sticker");
-      return null;
-    }
+    if(!chat) return;
     const wrapper = document.createElement("div");
     wrapper.className = "tg-join-wrapper";
-    wrapper.style.display = "flex";
-    wrapper.style.justifyContent = "center";
-    wrapper.style.padding = "6px 0";
     if(timestamp) wrapper.dataset.joinTimestamp = new Date(timestamp).toISOString();
     wrapper.appendChild(stickerEl);
-
-    // prefer TGRenderer if it provides a safe method to append a raw node (most don't) — append DOM directly
     chat.appendChild(wrapper);
-    // scroll to latest (smooth if supported)
-    try{ chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" }); }catch(e){ chat.scrollTop = chat.scrollHeight; }
-    return wrapper;
+    try{ chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" }); }
+    catch(e){ chat.scrollTop = chat.scrollHeight; }
   }
 
-  function postWelcomeAsBubbles(joiner, opts){
+  function postWelcomeAsBubbles(joiner){
     const persona = joiner;
     const text = randomWelcomeText(joiner);
     if(window.TGRenderer && typeof window.TGRenderer.showTyping === "function"){
-      try{ window.TGRenderer.showTyping(persona, 700 + Math.random()*500); }catch(e){}
+      window.TGRenderer.showTyping(persona, 700 + Math.random()*500);
     }
     setTimeout(()=>{
       if(window.TGRenderer && typeof window.TGRenderer.appendMessage === "function"){
-        try{ window.TGRenderer.appendMessage(persona, text, { timestamp: opts && opts.timestamp ? opts.timestamp : new Date(), type: "incoming" }); }catch(e){}
-      } else {
-        // fallback: create a simple DOM bubble so the visitor sees the welcome
-        const chat = document.getElementById("tg-comments-container");
-        if(chat){
-          const el = document.createElement("div");
-          el.className = "tg-bubble incoming";
-          el.dataset.id = `join_manual_${Date.now().toString(36)}${Math.floor(Math.random()*9999)}`;
-          el.innerHTML = `<div class="tg-bubble-avatar"><img src="${persona.avatar || safeBuildAvatar(persona.name)}" alt="${persona.name}"></div>
-                          <div class="tg-bubble-body"><div class="tg-bubble-sender">${persona.name}</div><div class="tg-bubble-text">${text}</div></div>`;
-          chat.appendChild(el);
-          try{ chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" }); }catch(e){ chat.scrollTop = chat.scrollHeight; }
-        }
+        window.TGRenderer.appendMessage(persona, text, { type: "incoming" });
       }
     }, 700 + Math.random()*500);
   }
 
   function postJoinerFlow(joiners, opts){
     opts = opts || {};
-    const timestamp = opts.timestamp || new Date();
     bumpMemberCount(joiners.length || 1);
 
-    // Large joins -> sticker + small personal welcomes
     if((joiners.length || 1) > 2){
       const stickerEl = createJoinStickerElement(joiners);
-      appendStickerToChat(stickerEl, timestamp);
+      appendStickerToChat(stickerEl);
 
-      // Optionally post as system messages if configured
       if(opts.welcomeAsSystem || cfg.welcomeAsSystem){
-        // use TGRenderer 'system' type for the join (if present)
-        try{
-          if(window.TGRenderer && typeof window.TGRenderer.appendMessage === "function"){
-            const sys = { name: "System", avatar: "assets/admin.jpg" };
-            window.TGRenderer.appendMessage(sys, `${joiners.length} new members joined`, { timestamp, type: "system" });
-          }
-        }catch(e){}
+        if(window.TGRenderer && typeof window.TGRenderer.appendMessage === "function"){
+          window.TGRenderer.appendMessage({ name: "System" },
+            `${joiners.length} new members joined`, { type: "system" });
+        }
       }
 
-      const sample = joiners.slice(0, Math.min(cfg.initialBurstPreview, joiners.length));
-      sample.forEach((p, idx) => {
-        setTimeout(()=> postWelcomeAsBubbles(p, { timestamp: new Date() }), 800 + idx*600 + Math.random()*300);
+      joiners.slice(0, cfg.initialBurstPreview).forEach((p, idx) => {
+        setTimeout(()=> postWelcomeAsBubbles(p), 800 + idx*600);
       });
     } else {
-      // small burst -> direct welcome messages
       joiners.forEach((p, idx) => {
         setTimeout(()=> {
           if(opts.welcomeAsSystem || cfg.welcomeAsSystem){
-            // prefer system append if requested
-            try{
-              if(window.TGRenderer && typeof window.TGRenderer.appendMessage === "function"){
-                window.TGRenderer.appendMessage({ name: "System" }, `${p.name} joined the group`, { timestamp: new Date(), type: "system" });
-                // small personal bubble after system message
-                setTimeout(()=> postWelcomeAsBubbles(p, { timestamp: new Date() }), 350 + Math.random()*250);
-                return;
-              }
-            }catch(e){}
+            if(window.TGRenderer && typeof window.TGRenderer.appendMessage === "function"){
+              window.TGRenderer.appendMessage({ name: "System" },
+                `${p.name} joined the group`, { type: "system" });
+              setTimeout(()=> postWelcomeAsBubbles(p), 350);
+              return;
+            }
           }
-          postWelcomeAsBubbles(p, { timestamp: new Date() });
-        }, idx*600 + Math.random()*200);
+          postWelcomeAsBubbles(p);
+        }, idx*600);
       });
     }
 
-    // small probability admin asks to verify via Contact Admin
     if(Math.random() < cfg.verifyMessageProbability){
-      const admin = (window.identity && window.identity.Admin) ? window.identity.Admin : { name: "Admin", avatar: "assets/admin.jpg" };
-      setTimeout(()=> {
+      const admin = (window.identity && window.identity.Admin) || { name: "Admin" };
+      setTimeout(()=>{
         if(window.TGRenderer && typeof window.TGRenderer.appendMessage === "function"){
-          try{ window.TGRenderer.appendMessage(admin, "Please verify via Contact Admin.", { timestamp: new Date(), type: "outgoing" }); }catch(e){}
+          window.TGRenderer.appendMessage(admin,
+            "Please verify via Contact Admin.", { type: "outgoing" });
         }
-      }, 1200 + (joiners.length * 200));
+      }, 1200);
     }
   }
 
-  // schedule repeated joiner bursts
   function scheduleNext(){
     if(!running) return;
-    const min = Math.max(1000, cfg.minIntervalMs || DEFAULTS.minIntervalMs);
-    const max = Math.max(min+1, cfg.maxIntervalMs || DEFAULTS.maxIntervalMs);
-    const base = Math.floor(min + Math.random() * (max - min));
-    const jitter = Math.floor(Math.random() * Math.min(60000, Math.floor(base * 0.25)));
-    const next = base + jitter;
+    const min = Math.max(1000, cfg.minIntervalMs);
+    const max = Math.max(min+1, cfg.maxIntervalMs);
+    const next = Math.floor(min + Math.random()*(max-min));
     _timer = setTimeout(()=>{
       const burst = randInt(cfg.burstMin, cfg.burstMax);
       const joiners = [];
       for(let i=0;i<burst;i++) joiners.push(nextJoiner());
-      try{ postJoinerFlow(joiners, { timestamp: new Date() }); }catch(e){ console.warn("joiner-simulator: postJoinerFlow failed", e); }
+      postJoinerFlow(joiners);
       scheduleNext();
     }, next);
   }
@@ -296,87 +228,32 @@
   function start(){
     if(running) return;
     running = true;
-    // small pre-generate safely bounded set
-    try{ preGenerate( Math.max(6, Math.min(80, cfg.initialBurstPreview || 8)) ); }catch(e){}
+    preGenerate(Math.max(6, cfg.initialBurstPreview));
     scheduleNext();
-    try{ localStorage.setItem(LS_KEY, JSON.stringify({ lastRun: Date.now() })); }catch(e){}
-    console.log("joiner-simulator started");
   }
 
   function stop(){
     if(_timer) clearTimeout(_timer);
     running = false;
-    console.log("joiner-simulator stopped");
   }
 
-  // immediate join now (non-blocking chunked if many)
   function joinNow(n){
-    n = Math.max(1, Math.floor(n || 1));
+    n = Math.max(1, n || 1);
     const CHUNK = 40;
     let done = 0;
     function doChunk(){
       const take = Math.min(CHUNK, n - done);
       const arr = [];
       for(let i=0;i<take;i++) arr.push(nextJoiner());
-      try{ postJoinerFlow(arr, { timestamp: new Date() }); }catch(e){ console.warn("joiner-simulator chunk post failed", e); }
+      postJoinerFlow(arr);
       done += take;
       if(done < n) setTimeout(doChunk, 120);
     }
     doChunk();
   }
 
-  // seed history in chunks to avoid freezing UI
-  function seedHistory(days = 90, perDay = 5){
-    days = Math.max(1, Math.floor(days));
-    perDay = Math.max(0, Math.floor(perDay));
-    const total = days * perDay;
-    if(total === 0) return Promise.resolve(0);
-    return new Promise(resolve => {
-      const CHUNK = 80;
-      let done = 0;
-      function doChunk(){
-        const take = Math.min(CHUNK, total - done);
-        for(let i=0;i<take;i++){
-          const idx = done + i;
-          const day = Math.floor(idx / perDay);
-          const timeInDay = Math.floor(Math.random() * 24 * 60 * 60 * 1000);
-          const ts = new Date(Date.now() - day * 24 * 60 * 60 * 1000 - timeInDay);
-          const j = nextJoiner();
-          try{ postJoinerFlow([j], { timestamp: ts, welcomeAsSystem: true }); }catch(e){ /* continue */ }
-        }
-        done += take;
-        if(done < total) setTimeout(doChunk, 120);
-        else resolve(total);
-      }
-      setTimeout(doChunk, 40);
-    });
-  }
-
-  function sanityCheck(){
-    return {
-      identity: !!(window.identity && typeof window.identity.getRandomPersona === "function"),
-      TGRenderer: !!(window.TGRenderer && typeof window.TGRenderer.appendMessage === "function"),
-      chat: !!document.getElementById("tg-comments-container"),
-      meta: !!document.getElementById("tg-meta-line")
-    };
-  }
-
-  // expose API
   window.joiner = window.joiner || {};
-  Object.assign(window.joiner, {
-    start,
-    stop,
-    joinNow,
-    seedHistory,
-    preGenerate,
-    get preGenPool(){ return preGenPool; },
-    sanityCheck,
-    config: cfg,
-    isRunning: () => running
-  });
+  Object.assign(window.joiner, { start, stop, joinNow, preGenerate, config: cfg });
+  setTimeout(()=> joinNow(cfg.initialBurstPreview || 3), 500);
 
-  // small preview burst to show activity on load (non-blocking)
-  setTimeout(()=>{ try{ joinNow(Math.max(1, (window.JOINER_CONFIG && window.JOINER_CONFIG.initialJoins) || 3)); }catch(e){} }, 500);
-
-  console.log("joiner-simulator ready");
-})();
+})();             
