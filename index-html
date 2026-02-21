@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Profit Hunters — Chat</title>
+  <title>🌐 Profit Hunters Chat</title>
 
-  <!-- Lucide icons (will be used by scripts & pin CTA) -->
+  <!-- Lucide icons (used by scripts & pin CTA) -->
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.276.0/dist/umd/lucide.min.js" defer></script>
 
   <!-- Theme detection helper -->
   <meta name="color-scheme" content="light dark">
 
-  <!-- Widget CSS (load next) -->
+  <!-- Widget CSS -->
   <link rel="stylesheet" href="widget.css">
 
   <style>
@@ -23,13 +23,13 @@
 <body>
 
   <!-- App Header -->
-  <header id="tg-header" class="tg-header">
+  <header id="tg-header" class="tg-header" role="banner">
     <div class="tg-header-left">
       <div class="tg-avatar">
         <img src="assets/group-avatar.jpg" alt="Profit Hunters" />
       </div>
       <div class="tg-meta">
-        <div id="tg-title" class="tg-title">Profit Hunters</div>
+        <div id="tg-title" class="tg-title">🌐 Profit Hunters Chat</div>
         <div id="tg-meta-line" class="tg-meta-line">— members, — online</div>
       </div>
     </div>
@@ -38,19 +38,19 @@
       <button id="tg-theme-toggle" class="tg-icon-btn" aria-label="Toggle theme" title="Toggle theme">
         <i data-lucide="moon"></i>
       </button>
-      <button id="tg-contact-admin-top" class="tg-ghost-btn contact-admin-btn" title="Contact admin">
+      <button id="tg-contact-admin-top" class="tg-ghost-btn contact-admin-btn" title="Contact admin" aria-label="Contact admin">
         <i data-lucide="phone"></i>
       </button>
     </div>
   </header>
 
-  <!-- Sticky pin banner (always visible as requested) -->
+  <!-- Sticky pin banner (always visible) -->
   <div id="tg-pin-banner" class="tg-pin-banner" role="region" aria-live="polite" aria-label="Pinned message">
-    <!-- Will be populated by app.js (showPinBanner) -->
+    <!-- Populated by app.js (showPinBanner) -->
   </div>
 
   <!-- Main chat area -->
-  <main class="tg-main">
+  <main class="tg-main" role="main">
     <div id="tg-comments-wrapper" class="tg-comments-wrapper">
       <div id="tg-comments-container" class="tg-comments-container" aria-live="polite" role="log">
         <!-- Message bubbles appended here by TGRenderer or BubbleRenderer -->
@@ -66,13 +66,13 @@
 
   <!-- Composer / Input bar -->
   <footer id="tg-composer" class="tg-composer" role="region" aria-label="Message composer">
-    <button id="tg-camera-btn" class="tg-icon-btn tg-camera-btn" title="Attach">
+    <button id="tg-camera-btn" class="tg-icon-btn tg-camera-btn" title="Attach" aria-label="Attach">
       <i data-lucide="camera"></i>
     </button>
 
     <div class="tg-input-wrap">
       <textarea id="tg-comment-input" class="tg-comment-input" rows="1" placeholder="Message @ProfitHunter" aria-label="Write a message"></textarea>
-      <!-- small typed-reply preview area (used by TGRenderer.showTyping) -->
+      <!-- typed-reply preview area (used by TGRenderer.showTyping) -->
       <div id="tg-typing-preview" class="tg-typing-preview hidden" aria-hidden="true"></div>
     </div>
 
@@ -81,40 +81,30 @@
     </button>
   </footer>
 
-  <!-- Context menu (idempotent that interactions.js expects) -->
+  <!-- Context menu (interactions.js expects this) -->
   <div id="tg-msg-context" class="tg-msg-context hidden" role="menu" aria-hidden="true"></div>
 
-  <!-- Optional small pin/banner modal (for desktop) -->
+  <!-- Optional pin modal (desktop) -->
   <div id="tg-pin-modal" class="tg-pin-modal hidden" role="dialog" aria-hidden="true"></div>
 
   <!-- Scripts: order matters -->
-  <!-- 1) Interaction helpers (requires DOM) -->
   <script src="interactions.js" defer></script>
-
-  <!-- 2) Joiner simulator -->
   <script src="joiner-simulator.js" defer></script>
-
-  <!-- 3) Realism engine (v13 recommended) -->
   <script src="realism-engine-v13.js" defer></script>
-
-  <!-- 4) Pin/banner + app glue -->
   <script src="app.js" defer></script>
 
-  <!-- small bootstrap to ensure lucide icons render once DOM is ready -->
+  <!-- Bootstrap icons + theme toggle hook -->
   <script>
     (function(){
       function initIcons(){ try{ if(window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons(); }catch(e){} }
       if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initIcons);
       else initIcons();
 
-      // quick theme toggle hookup (scripts can also read document.documentElement.dataset.theme)
       const themeToggle = document.getElementById('tg-theme-toggle');
       function applyTheme(t){
         document.documentElement.dataset.theme = t;
-        // keep a persistent flag so JS can read it
         try{ localStorage.setItem('abrox_theme', t); }catch(e){}
       }
-      // init from storage / prefers-color-scheme
       (function(){
         try{
           const stored = localStorage.getItem('abrox_theme');
@@ -132,7 +122,7 @@
         });
       }
 
-      // expose helpers for debugging
+      // expose UI helpers
       window.UI = window.UI || {};
       Object.assign(window.UI, {
         jumpIndicator: document.getElementById('tg-jump-indicator'),
