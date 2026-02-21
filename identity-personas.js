@@ -82,7 +82,7 @@
     {type:"dicebear",style:"adventurer-neutral"}, {type:"ui-avatars"}
   ];
 
-  // ================= MIXED AVATAR POOL (additional seeds) =================
+  // ================= MIXED AVATAR POOL =================
   const MIXED_AVATAR_POOL = [
     "https://i.pravatar.cc/300?img=3","https://i.pravatar.cc/300?img=5","https://i.pravatar.cc/300?img=7","https://i.pravatar.cc/300?img=9",
     "https://randomuser.me/api/portraits/men/21.jpg","https://randomuser.me/api/portraits/women/22.jpg",
@@ -102,6 +102,7 @@
   const SyntheticPool = [];
   const AVATAR_PERSIST_KEY = "abrox_used_avatars_v1";
   const UsedAvatarURLs = new Set();
+
   (function loadUsedAvs(){
     try{
       const raw = localStorage.getItem(AVATAR_PERSIST_KEY);
@@ -110,15 +111,20 @@
       if(Array.isArray(arr)) arr.forEach(u => UsedAvatarURLs.add(u));
     }catch(e){ console.warn("identity: loadUsedAvs failed", e); }
   })();
-  function saveUsedAvs(){ try{ localStorage.setItem(AVATAR_PERSIST_KEY, JSON.stringify(Array.from(UsedAvatarURLs))); }catch(e){ console.warn("identity: saveUsedAvs failed", e); } }
-  setInterval(saveUsedAvs, 1000*60*2); window.addEventListener("beforeunload", saveUsedAvs);
+
+  function saveUsedAvs(){
+    try{ localStorage.setItem(AVATAR_PERSIST_KEY, JSON.stringify(Array.from(UsedAvatarURLs))); }
+    catch(e){ console.warn("identity: saveUsedAvs failed", e); }
+  }
+  setInterval(saveUsedAvs, 1000*60*2);
+  window.addEventListener("beforeunload", saveUsedAvs);
 
   // ================= UTILITIES =================
   function random(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
   function maybe(p){ return Math.random() < p; }
   function rand(max=9999){ return Math.floor(Math.random()*max); }
 
-  // ================= NAME BUILDER (expanded) =================
+  // ================= NAME BUILDER =================
   const UsedNames = new Set();
   function buildUniqueName(gender){
     let base;
@@ -141,77 +147,61 @@
     return candidate;
   }
 
-  // ================= AVATAR BUILD HELPERS (robust) =================
-  // simple hash to 32-bit int
+  // ================= AVATAR BUILD HELPERS =================
   function hash32(str){
     let h = 2166136261 >>> 0;
     for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
     return (h >>> 0);
   }
-  // deterministic hex color from name
   function colorFromName(name){
     const h = hash32(String(name || "").toLowerCase());
-    // mix and clamp to avoid too-dark or too-light extremes
     const r = ((h & 0xFF0000) >>> 16) & 0xFF;
     const g = ((h & 0x00FF00) >>> 8) & 0xFF;
     const b = (h & 0x0000FF) & 0xFF;
-    // increase contrast a bit
     const rr = Math.min(220, Math.max(30, Math.floor((r + 30) * 0.9)));
     const gg = Math.min(220, Math.max(30, Math.floor((g + 30) * 0.9)));
     const bb = Math.min(220, Math.max(30, Math.floor((b + 30) * 0.9)));
     return ((rr << 16) | (gg << 8) | bb).toString(16).padStart(6, '0');
   }
-
   function makeDeterministicUiAvatar(name, size=256){
     const bg = colorFromName(name);
-    // use white text color
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name||"U")}&background=${bg}&color=fff&size=${size}`;
   }
-
   function makeDicebearUrl(style, seed, size=300){
-    // prefer svg/png rasterized endpoints; using svg is acceptable but some CDNs restrict CORS
     return `https://api.dicebear.com/6.x/${encodeURIComponent(style)}/svg?seed=${encodeURIComponent(seed)}&size=${size}`;
   }
 
-  // pick unique from an array (avoid admin.jpg)
   function pickUniqueFromArray(arr){
     if(!arr || !arr.length) return null;
-    // shuffle order
     const order = arr.slice().sort(()=>Math.random()-0.5);
     for(const candidateRaw of order){
       const candidate = String(candidateRaw).trim();
       if(!candidate) continue;
-      // explicitly avoid admin asset as generic fallback
       if(candidate.toLowerCase().includes("assets/admin.jpg")) continue;
       if(!UsedAvatarURLs.has(candidate)){
         UsedAvatarURLs.add(candidate);
         return candidate;
       }
     }
-    // if all used, return a deterministic fallback (do not return admin)
     const fallback = order[Math.floor(Math.random()*order.length)];
-    // ensure it's recorded and not admin
-    const chosen = (String(fallback).toLowerCase().includes("assets/admin.jpg")) ? makeDeterministicUiAvatar("User_"+rand(99999)) : fallback;
+    const chosen = (String(fallback).toLowerCase().includes("assets/admin.jpg"))
+      ? makeDeterministicUiAvatar("User_"+rand(99999))
+      : fallback;
     UsedAvatarURLs.add(chosen);
     return chosen;
   }
 
-  // build unique avatar: try pool -> deterministic dicebear / deterministic ui-avatar
-  function buildUniqueAvatar(name, gender){
-    // 1) try to pick unused from the mixed pool
+  function buildUniqueAvatar(name){
     const pick = pickUniqueFromArray(MIXED_AVATAR_POOL);
     if(pick) return pick;
 
-    // 2) try a deterministic dicebear (seed derived from name -> no random collisions)
     try{
-      const style = (random(AVATAR_SOURCES) && random(AVATAR_SOURCES).style) || random(["pixel-art","micah","identicon","bottts","adventurer"]);
-      // deterministic seed from name (stable across runs for same name)
-      const dbSeed = (name && String(name).trim().length) ? ('h' + hash32(name).toString(36)) : ('u' + Math.floor(Math.random()*999999).toString(36));
+      const style = (random(AVATAR_SOURCES) && random(AVATAR_SOURCES).style) || "pixel-art";
+      const dbSeed = (name && String(name).trim()) ? ('h' + hash32(name).toString(36)) : ('u' + rand(999999).toString(36));
       const db = makeDicebearUrl(style, dbSeed, 300);
       if(!UsedAvatarURLs.has(db)){ UsedAvatarURLs.add(db); return db; }
-    }catch(e){ /* ignore */ }
+    }catch(e){}
 
-    // 3) deterministic ui-avatar as final fallback (stable color by name)
     const ui = makeDeterministicUiAvatar(name, 256);
     if(!UsedAvatarURLs.has(ui)) UsedAvatarURLs.add(ui);
     return ui;
@@ -222,10 +212,9 @@
     const gender = maybe(0.5) ? "male" : "female";
     const country = random(COUNTRIES);
     const name = buildUniqueName(gender);
-    const avatar = buildUniqueAvatar(name, gender);
-    const persona = {
+    return {
       name,
-      avatar,
+      avatar: buildUniqueAvatar(name),
       isAdmin:false,
       gender,
       country,
@@ -238,44 +227,35 @@
       memory: [],
       sentiment: random(["bullish","neutral","bearish"])
     };
-    return persona;
   }
 
-  // ================= BUILD POOL (non-blocking) =================
+  // ================= BUILD POOL =================
   const INITIAL_SYNC = Math.min(400, Math.floor(TOTAL_PERSONAS * 0.25));
-  for(let i=0;i<INITIAL_SYNC;i++){ SyntheticPool.push(generateSyntheticPersona()); }
+  for(let i=0;i<INITIAL_SYNC;i++) SyntheticPool.push(generateSyntheticPersona());
+
   (function fillRemaining(){
     const batch = 300;
     function batchFill(){
       const toDo = Math.min(batch, TOTAL_PERSONAS - SyntheticPool.length);
-      for(let i=0;i<toDo;i++){ SyntheticPool.push(generateSyntheticPersona()); }
+      for(let i=0;i<toDo;i++) SyntheticPool.push(generateSyntheticPersona());
       if(SyntheticPool.length < TOTAL_PERSONAS) setTimeout(batchFill, 120);
       else console.log("identity-personas: SyntheticPool fully built:", SyntheticPool.length);
     }
     setTimeout(batchFill, 120);
   })();
 
-  // ================= HUMAN COMMENT ENGINE =================
-  function generateHumanComment(persona, baseText, targetName=null){
-    let text = baseText || (["Nice!", "Solid", "On it", "Got it"][Math.floor(Math.random()*4)]);
+  // ================= COMMENT ENGINE =================
+  function generateHumanComment(persona, baseText){
+    let text = baseText || "Nice!";
     if(maybe(0.6)){
-      const slangCount = rand(3)+1;
-      const s=[];
-      for(let i=0;i<slangCount;i++) s.push(random(SLANG[persona.region]||[]));
+      const s=[]; for(let i=0;i<rand(3)+1;i++) s.push(random(SLANG[persona.region]||[]));
       text = s.join(" ") + " " + text;
     }
-    if(persona.tone === "short") text = text.split(" ").slice(0,8).join(" ");
-    if(persona.tone === "long") text += " — honestly this looks strong if volume confirms.";
-    if(maybe(0.14)) text = text.replace(/\w{6,}/g, word => { if(maybe(0.22)){ const i = Math.max(1, Math.floor(Math.random()*(word.length-2))); return word.substring(0,i)+word[i+1]+word[i]+word.substring(i+2);} return word; });
+    if(persona.tone === "long") text += " — solid if volume confirms.";
     if(maybe(0.5)) text += " " + random(EMOJIS);
-    if(targetName && maybe(0.3)) text = "@" + targetName + " " + text;
-    persona.memory = persona.memory || [];
-    if(persona.memory.length > 300) persona.memory.shift();
-    persona.memory.push(text);
     return text;
   }
 
-  // ================= UTILITIES (last-seen) =================
   function getLastSeenStatus(persona){
     const diff = Date.now() - persona.lastSeen;
     if(diff < 300000) return "online";
@@ -284,9 +264,12 @@
     return "last seen long ago";
   }
 
-  function getRandomPersona(){ return SyntheticPool.length ? SyntheticPool[Math.floor(Math.random()*SyntheticPool.length)] : { name:"Guest", avatar: makeDeterministicUiAvatar("G") }; }
+  function getRandomPersona(){
+    return SyntheticPool.length
+      ? SyntheticPool[Math.floor(Math.random()*SyntheticPool.length)]
+      : { name:"Guest", avatar: makeDeterministicUiAvatar("G") };
+  }
 
-  // ================= EXPORTS =================
   window.identity = window.identity || {};
   Object.assign(window.identity, {
     Admin,
