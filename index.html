@@ -1,128 +1,87 @@
-         <!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🌐 Profit Hunters Chat</title>
-<link rel="stylesheet" href="widget.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Abrox – Profit Hunters Chat</title>
+
+  <link rel="stylesheet" href="widget.css" />
+
+  <script>
+    // Site configuration (edit only these values)
+    window.CONTACT_ADMIN_LINK = "https://t.me/ph_suppp";
+    window.MEMBER_COUNT = 1284;
+    window.ONLINE_COUNT = 128;
+
+    window.REALISM_CONFIG = {
+      TOTAL_PERSONAS: 1200,
+      INITIAL_POOL: 400,
+      POOL_MIN: 300,
+      POOL_MAX: 3000,
+      DEDUP_LIMIT: 200000,
+      MIN_INTERVAL_MS: 20000,
+      MAX_INTERVAL_MS: 60000,
+      REACTION_TICK_MS: 30000,
+      TREND_SPIKE_PROB: 0.02
+    };
+
+    window.JOINER_CONFIG = {
+      minIntervalMs: 1000*60*60*6,
+      maxIntervalMs: 1000*60*60*24,
+      initialJoins: 3,
+      welcomeMessage: "Welcome! Please use Contact Admin to verify."
+    };
+  </script>
 </head>
-
 <body>
-
-<div class="app">
-
-    <!-- HEADER -->
-    <header class="tg-header">
-        <div class="header-left">
-            <div class="back-btn">←</div>
-            <div class="group-avatar"></div>
-            <div class="group-info">
-                <div class="group-name">🌐 Profit Hunters Chat</div>
-                <div class="group-status">2128 members, 44 online</div>
-            </div>
+  <div id="tg-comments-app">
+    <header class="tg-header" role="banner">
+      <button id="tg-back" class="tg-back-btn" aria-label="Back"><i data-lucide="arrow-left"></i></button>
+      <div class="tg-header-center">
+        <img src="assets/logo.jpg" alt="Logo" class="tg-header-avatar" />
+        <div class="tg-header-info">
+          <div class="tg-title">🌐 Profit Hunters Chat</div>
+          <div class="tg-meta" id="tg-meta-line">1,284 members, 128 online</div>
         </div>
-        <div class="header-actions">
-            <span>⋮</span>
-        </div>
+      </div>
+      <button id="tg-options" class="tg-options-btn" aria-label="Options"><i data-lucide="more-vertical"></i></button>
     </header>
 
+    <div id="tg-pin-banner" class="tg-pin-banner hidden" role="region" aria-live="polite"></div>
 
-    <!-- PINNED MESSAGE -->
-    <div class="pinned-wrapper">
-        <div class="pin-bar"></div>
-        <div class="pinned-content">
-            <div class="pinned-label">Pinned Message</div>
-            <div class="pinned-text">
-                BEST FREE METADATA CLEANER for...
-            </div>
-        </div>
-        <div class="pinned-close">✕</div>
+    <main id="tg-comments-container" class="tg-comments-container" role="feed" aria-live="off"></main>
+
+    <div id="tg-jump-indicator" class="hidden" aria-hidden="true">
+      <i data-lucide="chevron-down"></i>
+      <span id="tg-jump-text">New messages</span>
     </div>
 
-
-    <!-- CHAT AREA -->
-    <main class="chat-container">
-
-        <!-- MESSAGE BLOCK -->
-        <div class="message-wrapper incoming">
-
-            <div class="avatar"></div>
-
-            <div class="message-bubble">
-
-                <div class="quote-strip"></div>
-
-                <div class="message-content">
-                    <p><strong>Ad Posting Plans</strong></p>
-
-                    <div class="plan-box">
-                        <div class="bullet"></div>
-                        <span>1 Day – $2.5</span>
-                    </div>
-
-                    <div class="plan-box">
-                        <div class="bullet"></div>
-                        <span>1 Week – $15</span>
-                    </div>
-
-                    <br>
-
-                    <p><strong>⚡ Why we are Different ?</strong></p>
-
-                    <div class="feature-box">
-                        <div class="bullet"></div>
-                        <span>No Acc is Needed [All setup is ours]</span>
-                    </div>
-
-                    <div class="feature-box">
-                        <div class="bullet"></div>
-                        <span>Change Ad Anytime</span>
-                    </div>
-
-                    <div class="feature-box">
-                        <div class="bullet"></div>
-                        <span>Set any Profile Picture, Name & Bio</span>
-                    </div>
-
-                    <div class="feature-box">
-                        <div class="bullet"></div>
-                        <span>Post Upto 4 Ads With Single Acc</span>
-                    </div>
-
-                    <div class="feature-box">
-                        <div class="bullet"></div>
-                        <span>Get all Group Replies of your Ads Alert Directly On Your Account</span>
-                    </div>
-
-                    <br>
-
-                    <p>⬆ More posts = more eyes = more conversions.</p>
-
-                    <p>📩 Contact @IRakkun | @bot_kun69 ✔</p>
-
-                </div>
-
-                <div class="message-meta">
-                    <span class="time">5:51 PM</span>
-                </div>
-
-            </div>
-        </div>
-
-    </main>
-
-
-    <!-- INPUT BAR -->
-    <div class="input-wrapper">
-        <div class="input-inner">
-            <div class="emoji-btn">😊</div>
-            <input type="text" placeholder="Message">
-            <div class="attach-btn">📎</div>
-            <div class="camera-btn">📷</div>
-        </div>
+    <div class="tg-input-wrapper" role="form" aria-label="Send a message">
+      <div class="tg-input-bar glass">
+        <button id="tg-emoji-btn" class="tg-icon-btn" aria-label="Emoji"><i data-lucide="smile"></i></button>
+        <input type="text" id="tg-comment-input" class="tg-comment-input" placeholder="Message…" autocomplete="off" />
+        <button id="tg-camera-btn" class="tg-icon-btn" aria-label="Camera"><i data-lucide="camera"></i></button>
+        <button id="tg-send-btn" class="tg-send-btn hidden" aria-label="Send message"><i data-lucide="send"></i></button>
+      </div>
     </div>
+  </div>
 
-</div>
+  <!-- icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
 
+  <!-- scripts (order matters) -->
+  <script src="identity-personas.js"></script>
+  <script src="bubble-renderer.js"></script>
+  <script src="joiner-simulator.js"></script>
+  <script src="realism-engine-v11.js"></script>
+  <script src="interactions.js"></script>
+  <script src="app.js"></script>
+
+  <script>
+    // guard: only call if lucide loaded
+    if (window.lucide && typeof window.lucide.createIcons === "function") {
+      window.lucide.createIcons();
+    }
+  </script>
 </body>
 </html>
