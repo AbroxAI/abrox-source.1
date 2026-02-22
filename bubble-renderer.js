@@ -1,4 +1,9 @@
-// bubble-renderer.js – Telegram-style renderer (tail & spacing tuned)
+// bubble-renderer.js (telegram-patch validated)
+// - avatar diameter 40px
+// - curved nub (no triangle)
+// - glass-safe shadows
+// - reply targeting + highlight
+// - returns stable message id
 (function(){
   'use strict';
 
@@ -14,160 +19,277 @@
     }
 
     const AVATAR_DIAM = 40;
-    const BUBBLE_RADIUS = 18;
-    const GAP = 14; // matches CSS tail spacing
-    const TAIL_SIZE = 18;
+    const BUBBLE_RADIUS = 16;
+    const INCOMING_BG = '#182533';
+    const OUTGOING_BG = '#2b6df6';
+    const INCOMING_TEXT = '#e6eef8';
 
-    let lastDay = null;
-    let unseen = 0;
+    let lastMessageDateKey = null;
+    let unseenCount = 0;
     const MESSAGE_MAP = new Map();
 
-    function formatTime(d){
-      try{ return new Date(d).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+    function formatTime(date){
+      try{ return new Date(date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
       catch(e){ return ''; }
     }
-
-    function formatDay(d){
-      const t = new Date(d);
-      return `${t.getFullYear()}-${t.getMonth()+1}-${t.getDate()}`;
+    function formatDateKey(date){
+      const d = new Date(date);
+      return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
     }
 
-    function insertDate(d){
-      const key = formatDay(d);
-      if(key === lastDay) return;
-      lastDay = key;
+    function insertDateSticker(dateObj){
+      const key = formatDateKey(dateObj);
+      if(key === lastMessageDateKey) return;
+      lastMessageDateKey = key;
 
       const sticker = document.createElement('div');
       sticker.className = 'tg-date-sticker';
-      sticker.textContent = new Date(d).toLocaleDateString([], {
+      const d = new Date(dateObj);
+      sticker.textContent = d.toLocaleDateString([], {
         year:'numeric', month:'short', day:'numeric'
       });
       container.appendChild(sticker);
     }
 
-    function showJump(){ jumpIndicator?.classList.remove('hidden'); }
-    function hideJump(){ jumpIndicator?.classList.add('hidden'); unseen = 0; }
-    function updateJump(){
-      if(jumpText) jumpText.textContent = unseen > 1 ? `New messages · ${unseen}` : `New messages`;
-    }
-    jumpIndicator?.addEventListener('click', ()=>{ container.scrollTop = container.scrollHeight; hideJump(); });
-    container.addEventListener('scroll', ()=>{
-      const bottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-      bottom > 120 ? showJump() : hideJump();
-    });
-
-    function showTyping(persona, duration=1400){
-      const id = 'typing_' + Date.now();
-      const bubble = createBubble(persona, '', { id, type:'incoming', isTyping:true });
-      const dots = bubble.querySelector('.tg-bubble-text');
-      if(dots) dots.innerHTML = '● ● ●';
-      container.appendChild(bubble);
-      container.scrollTop = container.scrollHeight;
-      setTimeout(()=> bubble.remove(), Math.max(700, duration));
-    }
-
-    function createBubble(persona, text, opts={}){
+    function createBubbleElement(persona, text, opts={}){
+      const timestamp = opts.timestamp || new Date();
       const type = opts.type === 'outgoing' ? 'outgoing' : 'incoming';
-      const id = opts.id || `m_${Date.now()}_${Math.random()}`;
-      const ts = opts.timestamp || new Date();
-      insertDate(ts);
+      const replyToText = opts.replyToText || null;
+      const replyToId = opts.replyToId || null;
+      const image = opts.image || null;
+      const caption = opts.caption || null;
+      const id = opts.id || ('m_' + Date.now() + '_' + Math.floor(Math.random()*9999));
+
+      insertDateSticker(timestamp);
 
       const wrapper = document.createElement('div');
       wrapper.className = `tg-bubble ${type}`;
       wrapper.dataset.id = id;
       wrapper.style.maxWidth = '78%';
+      wrapper.style.marginBottom = '14px';
+      wrapper.style.position = 'relative';
 
+      // avatar
       const avatar = document.createElement('img');
       avatar.className = 'tg-bubble-avatar';
-      avatar.src = persona?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name||'U')}&size=${AVATAR_DIAM}`;
       avatar.alt = persona?.name || 'user';
-      avatar.onerror = ()=> avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name||'U')}&size=${AVATAR_DIAM}`;
+      avatar.src = persona?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
+      avatar.style.width = avatar.style.height = AVATAR_DIAM + 'px';
+      avatar.style.borderRadius = '50%';
+      avatar.style.objectFit = 'cover';
+      avatar.onerror = () => {
+        avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
+      };
 
+      // content
       const content = document.createElement('div');
       content.className = 'tg-bubble-content';
       content.style.borderRadius = BUBBLE_RADIUS + 'px';
       content.style.padding = '10px 14px';
-      content.style.position = 'relative';
+      content.style.fontSize = '14px';
       content.style.lineHeight = '1.35';
+      content.style.wordBreak = 'break-word';
+      content.style.position = 'relative';
+      content.style.boxShadow = '0 6px 18px rgba(0,0,0,0.18)';
 
       if(type === 'incoming'){
-        content.style.background = '#182533';
-        content.style.color = '#e6eef8';
+        content.style.background = INCOMING_BG;
+        content.style.color = INCOMING_TEXT;
       } else {
-        content.style.background = '#2b6df6';
+        content.style.background = OUTGOING_BG;
         content.style.color = '#fff';
       }
 
-      if(opts.replyToText){
+      // curved nub (Telegram-style)
+      const nub = document.createElement('div');
+      nub.style.position = 'absolute';
+      nub.style.width = '16px';
+      nub.style.height = '16px';
+      nub.style.bottom = '4px';
+
+      if(type === 'incoming'){
+        nub.style.left = '-20px';
+        nub.style.background = INCOMING_BG;
+        nub.style.borderRadius = '6px 0 18px 6px';
+        nub.style.transform = 'rotate(-26deg)';
+      } else {
+        nub.style.right = '-20px';
+        nub.style.background = OUTGOING_BG;
+        nub.style.borderRadius = '0 6px 6px 18px';
+        nub.style.transform = 'rotate(26deg)';
+      }
+      nub.style.boxShadow = `0 2px 0 0 ${type === 'incoming' ? INCOMING_BG : OUTGOING_BG}`;
+
+      content.appendChild(nub);
+
+      // reply preview (click scroll)
+      if(replyToText || replyToId){
         const rp = document.createElement('div');
         rp.className = 'tg-reply-preview';
-        rp.textContent = opts.replyToText;
+        rp.textContent = replyToText ? (replyToText.length > 120 ? replyToText.slice(0,117)+'...' : replyToText) : 'Reply';
+        rp.addEventListener('click', () => {
+          if(replyToId && MESSAGE_MAP.has(replyToId)){
+            const target = MESSAGE_MAP.get(replyToId).el;
+            target.scrollIntoView({behavior:'smooth', block:'center'});
+            target.classList.add('tg-highlight');
+            setTimeout(()=> target.classList.remove('tg-highlight'), 2600);
+            return;
+          }
+        });
         content.appendChild(rp);
       }
 
+      // sender
       const sender = document.createElement('div');
       sender.className = 'tg-bubble-sender';
       sender.textContent = persona?.name || 'User';
       content.appendChild(sender);
 
-      if(opts.image){
+      // image
+      if(image){
         const img = document.createElement('img');
         img.className = 'tg-bubble-image';
-        img.src = opts.image;
-        img.onerror = ()=> img.style.display = 'none';
+        img.src = image;
+        img.style.maxWidth = '100%';
+        img.style.borderRadius = '12px';
+        img.onerror = () => { img.style.display = 'none'; };
         content.appendChild(img);
       }
 
-      const body = document.createElement('div');
-      body.className = 'tg-bubble-text';
-      body.textContent = text || '';
-      content.appendChild(body);
+      // text
+      const textEl = document.createElement('div');
+      textEl.className = 'tg-bubble-text';
+      textEl.textContent = text || '';
+      content.appendChild(textEl);
 
+      if(caption){
+        const cap = document.createElement('div');
+        cap.className = 'tg-bubble-text';
+        cap.style.marginTop = '6px';
+        cap.textContent = caption;
+        content.appendChild(cap);
+      }
+
+      // meta
       const meta = document.createElement('div');
       meta.className = 'tg-bubble-meta';
-      meta.textContent = formatTime(ts);
+      meta.style.marginTop = '8px';
+      meta.style.display = 'flex';
+      meta.style.gap = '8px';
+      meta.style.fontSize = '11px';
+
+      const time = document.createElement('span');
+      time.textContent = formatTime(timestamp);
+      meta.appendChild(time);
+
+      if(type === 'outgoing'){
+        const seen = document.createElement('div');
+        seen.className = 'seen';
+        const count = window.__abrox_seen_map?.[id] || 1;
+        seen.innerHTML = `<i data-lucide="eye"></i> ${count}`;
+        meta.appendChild(seen);
+      }
       content.appendChild(meta);
 
-      wrapper.style.gap = GAP + 'px';
-
+      // assembly (avatar + content)
       if(type === 'incoming'){
         wrapper.appendChild(avatar);
         wrapper.appendChild(content);
+        wrapper.style.justifyContent = 'flex-start';
       } else {
         wrapper.style.flexDirection = 'row-reverse';
         wrapper.appendChild(avatar);
         wrapper.appendChild(content);
+        wrapper.style.justifyContent = 'flex-end';
       }
 
-      wrapper.style.opacity = '0';
-      requestAnimationFrame(()=>{
-        wrapper.style.transition = 'all 220ms ease';
-        wrapper.style.opacity = '1';
+      wrapper.addEventListener('contextmenu', (e)=>{
+        e.preventDefault();
+        document.dispatchEvent(new CustomEvent('messageContext',{
+          detail:{ id, persona, text }
+        }));
       });
 
-      return wrapper;
+      return { wrapper, id, text, persona, timestamp };
     }
 
     function appendMessage(persona, text, opts={}){
-      const id = opts.id || `m_${Date.now()}`;
-      const el = createBubble(persona, text, opts);
+      const id = opts.id || ('m_' + Date.now() + '_' + Math.floor(Math.random()*9999));
+      opts.id = id;
+
+      const created = createBubbleElement(persona, text, opts);
+      if(!created) return null;
+
+      const el = created.wrapper;
       container.appendChild(el);
+      MESSAGE_MAP.set(id,{ el, text: created.text, persona: created.persona, timestamp: created.timestamp });
 
-      MESSAGE_MAP.set(id, { el, text, persona, timestamp: opts.timestamp });
+      const atBottom = (container.scrollTop + container.clientHeight) > (container.scrollHeight - 120);
+      if(atBottom){
+        container.scrollTop = container.scrollHeight;
+      } else {
+        unseenCount++;
+      }
 
-      const atBottom = (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 120);
-      if(atBottom) container.scrollTop = container.scrollHeight;
-      else { unseen++; updateJump(); showJump(); }
+      if(window.lucide?.createIcons){
+        try{ window.lucide.createIcons(); }catch(e){}
+      }
 
       return id;
     }
 
-    // expose renderer
-    window.TGRenderer = window.TGRenderer || {};
-    window.TGRenderer.appendMessage = (p,t,o)=> appendMessage(p||{}, String(t||''), o||{});
-    window.TGRenderer.showTyping = (p,d)=> showTyping(p||{name:'Someone'}, d);
+    function showTypingIndicator(persona, duration=1400){
+      const el = createBubbleElement(persona, '', { type:'incoming', isTyping:true });
+      const wrapper = el.wrapper;
+      const dots = document.createElement('div');
+      dots.className = 'tg-bubble-text';
+      dots.innerHTML = '<span>●</span><span>●</span><span>●</span>';
+      wrapper.querySelector('.tg-bubble-content').appendChild(dots);
 
-    console.log('bubble-renderer tuned (curved tail & spacing)');
+      container.appendChild(wrapper);
+      container.scrollTop = container.scrollHeight;
+      setTimeout(()=> wrapper.remove(), Math.max(700, duration));
+    }
+
+    // jump indicator
+    function updateJump(){
+      if(jumpText) jumpText.textContent = unseenCount > 1 ? `New messages · ${unseenCount}` : 'New messages';
+    }
+    function showJump(){ jumpIndicator?.classList.remove('hidden'); }
+    function hideJump(){ jumpIndicator?.classList.add('hidden'); unseenCount = 0; updateJump(); }
+
+    jumpIndicator?.addEventListener('click', ()=>{
+      container.scrollTop = container.scrollHeight;
+      hideJump();
+    });
+
+    container.addEventListener('scroll', ()=>{
+      const bottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      bottom > 100 ? showJump() : hideJump();
+    });
+
+    // expose renderer
+    window.TGRenderer = {
+      appendMessage:(p,t,o)=> appendMessage(p||{}, String(t||''), o||{}),
+      showTyping:(p,d)=> showTypingIndicator(p||{name:'Someone'}, d)
+    };
+
+    window.BubbleRenderer = {
+      renderMessages:(arr)=>{
+        if(!Array.isArray(arr)) return;
+        arr.forEach(m=>{
+          appendMessage({name:m.name, avatar:m.avatar}, m.text, {
+            id:m.id,
+            timestamp:m.time ? new Date(m.time) : new Date(),
+            type:m.isOwn ? 'outgoing' : 'incoming',
+            image:m.image,
+            caption:m.caption
+          });
+        });
+      }
+    };
+
+    console.log('bubble-renderer validated');
   }
 
   document.readyState === 'loading'
