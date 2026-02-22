@@ -1,10 +1,4 @@
-// bubble-renderer.js (telegram-patch – header typing + jump fix)
-// - no chat dot bubble
-// - header typing updates meta line
-// - new message pill count refresh
-// - avatar 40px
-// - curved nub (no triangle)
-// - reply targeting & highlight
+// bubble-renderer.js (integrated typing + unread + Telegram style)
 
 (function(){
   'use strict';
@@ -29,11 +23,15 @@
     let lastMessageDateKey = null;
     let unseenCount = 0;
     const MESSAGE_MAP = new Map();
-    const typingNames = [];
+
+    // typing aggregation
+    const typingSet = new Set();
+    const typingTimeouts = new Map();
 
     function formatTime(date){
-      try{ return new Date(date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
-      catch(e){ return ''; }
+      try{
+        return new Date(date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      }catch(e){ return ''; }
     }
 
     function formatDateKey(date){
@@ -77,7 +75,8 @@
       const avatar = document.createElement('img');
       avatar.className = 'tg-bubble-avatar';
       avatar.alt = persona?.name || 'user';
-      avatar.src = persona?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
+      avatar.src = persona?.avatar ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
       avatar.style.width = avatar.style.height = AVATAR_DIAM + 'px';
       avatar.style.borderRadius = '50%';
       avatar.style.objectFit = 'cover';
@@ -108,7 +107,10 @@
       if(replyToText || replyToId){
         const rp = document.createElement('div');
         rp.className = 'tg-reply-preview';
-        rp.textContent = replyToText ? (replyToText.length > 120 ? replyToText.slice(0,117)+'...' : replyToText) : 'Reply';
+        rp.textContent = replyToText
+          ? (replyToText.length > 120 ? replyToText.slice(0,117)+'...' : replyToText)
+          : 'Reply';
+
         rp.addEventListener('click', () => {
           if(replyToId && MESSAGE_MAP.has(replyToId)){
             const target = MESSAGE_MAP.get(replyToId).el;
@@ -117,6 +119,7 @@
             setTimeout(()=> target.classList.remove('tg-highlight'), 2600);
           }
         });
+
         content.appendChild(rp);
       }
 
@@ -211,7 +214,9 @@
         timestamp: created.timestamp
       });
 
-      const atBottom = (container.scrollTop + container.clientHeight) > (container.scrollHeight - 120);
+      const atBottom =
+        (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 120);
+
       if(atBottom){
         container.scrollTop = container.scrollHeight;
         hideJump();
@@ -228,11 +233,13 @@
       return id;
     }
 
-    // jump indicator
+    // unread pill
     function updateJump(){
-      if(jumpText) jumpText.textContent = unseenCount > 1
-        ? `New messages · ${unseenCount}`
-        : 'New messages';
+      if(jumpText){
+        jumpText.textContent = unseenCount > 1
+          ? `New messages · ${unseenCount}`
+          : 'New messages';
+      }
     }
     function showJump(){ jumpIndicator?.classList.remove('hidden'); }
     function hideJump(){ jumpIndicator?.classList.add('hidden'); unseenCount = 0; updateJump(); }
@@ -247,40 +254,47 @@
       bottom > 100 ? showJump() : hideJump();
     });
 
-    // header typing (single or multiple names)
+    // header typing (multi-user aggregate)
     document.addEventListener('headerTyping', (ev)=>{
       try{
         const name = ev.detail?.name || 'Someone';
-        typingNames.push(name);
+
+        typingSet.add(name);
+        if(typingTimeouts.has(name)) clearTimeout(typingTimeouts.get(name));
 
         if(metaLine){
           metaLine.style.opacity = '0.95';
-          metaLine.textContent =
-            typingNames.length > 2
-              ? `${typingNames.slice(0,2).join(', ')} and others are typing...`
-              : (typingNames.join(' ') + (typingNames.length > 1 ? ' are typing...' : ' is typing...'));
+          if(typingSet.size > 2){
+            metaLine.textContent =
+              `${Array.from(typingSet).slice(0,2).join(', ')} and others are typing...`;
+          } else {
+            metaLine.textContent =
+              Array.from(typingSet).join(' ') +
+              (typingSet.size > 1 ? ' are typing...' : ' is typing...');
+          }
         }
 
-        setTimeout(()=>{
-          typingNames.shift();
+        typingTimeouts.set(name, setTimeout(()=>{
+          typingSet.delete(name);
+          typingTimeouts.delete(name);
+
           if(metaLine){
             metaLine.textContent =
               `${(window.MEMBER_COUNT||0).toLocaleString()} members, ${(window.ONLINE_COUNT||0).toLocaleString()} online`;
             metaLine.style.opacity = '';
           }
-        }, 1600 + Math.random()*1200);
+        }, 1600 + Math.random()*1200));
+
       }catch(e){}
     });
 
-    // expose renderer
+    // renderer API
     window.TGRenderer = {
       appendMessage:(p,t,o)=> appendMessage(p||{}, String(t||''), o||{}),
-      showTyping:(p,d)=>{
-        try{
-          document.dispatchEvent(new CustomEvent('headerTyping',{
-            detail:{ name:(p&&p.name)?p.name:'Someone' }
-          }));
-        }catch(e){}
+      showTyping:(p)=>{
+        document.dispatchEvent(new CustomEvent('headerTyping',{
+          detail:{ name:(p&&p.name)?p.name:'Someone' }
+        }));
       }
     };
 
@@ -299,7 +313,7 @@
       }
     };
 
-    console.log('bubble-renderer updated (header typing + jump fix)');
+    console.log('bubble-renderer fully integrated');
   }
 
   document.readyState === 'loading'
