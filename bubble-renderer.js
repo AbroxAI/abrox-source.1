@@ -1,10 +1,11 @@
-// bubble-renderer.js (telegram-patch validated)
-// - avatar diameter 40px
-// - curved nub (Telegram-style, no triangle)
-// - glass-safe shadows
-// - reply targeting + highlight
-// - jump indicator + unseen count
-// - returns stable message id
+// bubble-renderer.js (telegram-patch – header typing + jump fix)
+// - no chat dot bubble
+// - header typing updates meta line
+// - new message pill count refresh
+// - avatar 40px
+// - curved nub (no triangle)
+// - reply targeting & highlight
+
 (function(){
   'use strict';
 
@@ -28,11 +29,13 @@
     let lastMessageDateKey = null;
     let unseenCount = 0;
     const MESSAGE_MAP = new Map();
+    const typingNames = [];
 
     function formatTime(date){
       try{ return new Date(date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
       catch(e){ return ''; }
     }
+
     function formatDateKey(date){
       const d = new Date(date);
       return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
@@ -74,8 +77,7 @@
       const avatar = document.createElement('img');
       avatar.className = 'tg-bubble-avatar';
       avatar.alt = persona?.name || 'user';
-      avatar.src = persona?.avatar ||
-        `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
+      avatar.src = persona?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
       avatar.style.width = avatar.style.height = AVATAR_DIAM + 'px';
       avatar.style.borderRadius = '50%';
       avatar.style.objectFit = 'cover';
@@ -102,43 +104,17 @@
         content.style.color = '#fff';
       }
 
-      // curved nub (Telegram-style)
-      const nub = document.createElement('div');
-      nub.style.position = 'absolute';
-      nub.style.width = '16px';
-      nub.style.height = '16px';
-      nub.style.bottom = '4px';
-
-      if(type === 'incoming'){
-        nub.style.left = '-20px';
-        nub.style.background = INCOMING_BG;
-        nub.style.borderRadius = '6px 0 18px 6px';
-        nub.style.transform = 'rotate(-26deg)';
-      } else {
-        nub.style.right = '-20px';
-        nub.style.background = OUTGOING_BG;
-        nub.style.borderRadius = '0 6px 6px 18px';
-        nub.style.transform = 'rotate(26deg)';
-      }
-      nub.style.boxShadow = `0 2px 0 0 ${type === 'incoming' ? INCOMING_BG : OUTGOING_BG}`;
-
-      content.appendChild(nub);
-
-      // reply preview (click scroll)
+      // reply preview
       if(replyToText || replyToId){
         const rp = document.createElement('div');
         rp.className = 'tg-reply-preview';
-        rp.textContent = replyToText
-          ? (replyToText.length > 120 ? replyToText.slice(0,117)+'...' : replyToText)
-          : 'Reply';
-
+        rp.textContent = replyToText ? (replyToText.length > 120 ? replyToText.slice(0,117)+'...' : replyToText) : 'Reply';
         rp.addEventListener('click', () => {
           if(replyToId && MESSAGE_MAP.has(replyToId)){
             const target = MESSAGE_MAP.get(replyToId).el;
             target.scrollIntoView({behavior:'smooth', block:'center'});
             target.classList.add('tg-highlight');
             setTimeout(()=> target.classList.remove('tg-highlight'), 2600);
-            return;
           }
         });
         content.appendChild(rp);
@@ -194,9 +170,10 @@
         seen.innerHTML = `<i data-lucide="eye"></i> ${count}`;
         meta.appendChild(seen);
       }
+
       content.appendChild(meta);
 
-      // assembly (avatar + content)
+      // assembly
       if(type === 'incoming'){
         wrapper.appendChild(avatar);
         wrapper.appendChild(content);
@@ -234,14 +211,14 @@
         timestamp: created.timestamp
       });
 
-      const atBottom =
-        (container.scrollTop + container.clientHeight) >
-        (container.scrollHeight - 120);
-
+      const atBottom = (container.scrollTop + container.clientHeight) > (container.scrollHeight - 120);
       if(atBottom){
         container.scrollTop = container.scrollHeight;
+        hideJump();
       } else {
         unseenCount++;
+        updateJump();
+        showJump();
       }
 
       if(window.lucide?.createIcons){
@@ -251,23 +228,11 @@
       return id;
     }
 
-    function showTypingIndicator(persona, duration=1400){
-      const el = createBubbleElement(persona, '', { type:'incoming', isTyping:true });
-      const wrapper = el.wrapper;
-      const dots = document.createElement('div');
-      dots.className = 'tg-bubble-text';
-      dots.innerHTML = '<span>●</span><span>●</span><span>●</span>';
-      wrapper.querySelector('.tg-bubble-content').appendChild(dots);
-
-      container.appendChild(wrapper);
-      container.scrollTop = container.scrollHeight;
-      setTimeout(()=> wrapper.remove(), Math.max(700, duration));
-    }
-
     // jump indicator
     function updateJump(){
-      if(jumpText) jumpText.textContent =
-        unseenCount > 1 ? `New messages · ${unseenCount}` : 'New messages';
+      if(jumpText) jumpText.textContent = unseenCount > 1
+        ? `New messages · ${unseenCount}`
+        : 'New messages';
     }
     function showJump(){ jumpIndicator?.classList.remove('hidden'); }
     function hideJump(){ jumpIndicator?.classList.add('hidden'); unseenCount = 0; updateJump(); }
@@ -278,15 +243,45 @@
     });
 
     container.addEventListener('scroll', ()=>{
-      const bottom =
-        container.scrollHeight - container.scrollTop - container.clientHeight;
+      const bottom = container.scrollHeight - container.scrollTop - container.clientHeight;
       bottom > 100 ? showJump() : hideJump();
+    });
+
+    // header typing (single or multiple names)
+    document.addEventListener('headerTyping', (ev)=>{
+      try{
+        const name = ev.detail?.name || 'Someone';
+        typingNames.push(name);
+
+        if(metaLine){
+          metaLine.style.opacity = '0.95';
+          metaLine.textContent =
+            typingNames.length > 2
+              ? `${typingNames.slice(0,2).join(', ')} and others are typing...`
+              : (typingNames.join(' ') + (typingNames.length > 1 ? ' are typing...' : ' is typing...'));
+        }
+
+        setTimeout(()=>{
+          typingNames.shift();
+          if(metaLine){
+            metaLine.textContent =
+              `${(window.MEMBER_COUNT||0).toLocaleString()} members, ${(window.ONLINE_COUNT||0).toLocaleString()} online`;
+            metaLine.style.opacity = '';
+          }
+        }, 1600 + Math.random()*1200);
+      }catch(e){}
     });
 
     // expose renderer
     window.TGRenderer = {
       appendMessage:(p,t,o)=> appendMessage(p||{}, String(t||''), o||{}),
-      showTyping:(p,d)=> showTypingIndicator(p||{name:'Someone'}, d)
+      showTyping:(p,d)=>{
+        try{
+          document.dispatchEvent(new CustomEvent('headerTyping',{
+            detail:{ name:(p&&p.name)?p.name:'Someone' }
+          }));
+        }catch(e){}
+      }
     };
 
     window.BubbleRenderer = {
@@ -304,7 +299,7 @@
       }
     };
 
-    console.log('bubble-renderer initialized');
+    console.log('bubble-renderer updated (header typing + jump fix)');
   }
 
   document.readyState === 'loading'
