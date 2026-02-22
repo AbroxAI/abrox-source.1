@@ -1,4 +1,4 @@
-/* widget.css (Telegram replica – tail fixed and offset) */
+/* widget.css (Telegram replica – updated tail & spacing) */
 
 /* variables */
 :root{
@@ -35,7 +35,7 @@ html,body{
   overflow:hidden;
 }
 
-/* header (glass style) */
+/* header */
 .tg-header{
   display:flex;
   align-items:center;
@@ -62,15 +62,8 @@ html,body{
   border-radius:50%;
   object-fit:cover;
 }
-.tg-title{
-  font-size:15px;
-  font-weight:700;
-}
-.tg-meta{
-  font-size:12px;
-  color:var(--tg-muted);
-  margin-top:2px;
-}
+.tg-title{font-size:15px;font-weight:700;}
+.tg-meta{font-size:12px;color:var(--tg-muted);margin-top:2px;}
 
 /* pin banner */
 .tg-pin-banner{
@@ -92,10 +85,7 @@ html,body{
   opacity:0;
   transition:all 320ms;
 }
-.tg-pin-banner.show{
-  transform:translateY(0);
-  opacity:1;
-}
+.tg-pin-banner.show{transform:translateY(0);opacity:1;}
 .tg-pin-banner img{
   width:40px;
   height:40px;
@@ -140,7 +130,7 @@ html,body{
 .tg-bubble{
   display:flex;
   align-items:flex-start;
-  gap:8px;
+  gap:12px; /* increased gap so tail is farther from avatar */
   margin-bottom:14px;
   max-width:78%;
   position:relative;
@@ -157,6 +147,8 @@ html,body{
   object-fit:cover;
   flex-shrink:0;
 }
+
+/* bubble content */
 .tg-bubble-content{
   padding:10px 14px;
   border-radius:16px;
@@ -180,30 +172,30 @@ html,body{
   color:#fff;
 }
 
-/* curved tail (telegram style, offset farther) */
+/* curved tail (no triangle) */
 .tg-bubble-content::after{
   content:"";
   position:absolute;
-  width:14px;
-  height:14px;
+  width:16px;
+  height:16px;
   bottom:4px;
 }
 
-/* incoming tail */
+/* incoming tail (curved, pointing toward bubble) */
 .tg-bubble.incoming .tg-bubble-content::after{
-  left:-14px;
+  left:-18px;            /* farther from avatar */
   background:#182533;
-  border-radius:4px 0 16px 4px;
-  transform:rotate(-25deg);
+  border-radius:6px 0 18px 6px;
+  transform:rotate(-28deg);
   box-shadow:0 2px 0 0 #182533;
 }
 
-/* outgoing tail */
+/* outgoing tail (curved, pointing away) */
 .tg-bubble.outgoing .tg-bubble-content::after{
-  right:-14px;
+  right:-18px;           /* farther from avatar */
   background:#2b6df6;
-  border-radius:0 4px 4px 16px;
-  transform:rotate(25deg);
+  border-radius:0 6px 6px 18px;
+  transform:rotate(28deg);
   box-shadow:0 2px 0 0 #2b6df6;
 }
 
@@ -214,7 +206,7 @@ html,body{
   margin-bottom:6px;
 }
 
-/* meta */
+/* meta row */
 .tg-bubble-meta{
   display:flex;
   align-items:center;
