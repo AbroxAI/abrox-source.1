@@ -1,4 +1,4 @@
-/* widget.css — refined Telegram replica (2026 tune) */
+/* widget.css – Telegram replica refined (glass & tail tuning) */
 
 /* variables */
 :root{
@@ -14,9 +14,7 @@
 }
 
 /* base */
-*{
-  box-sizing:border-box;
-}
+*{ box-sizing:border-box; }
 html,body{
   height:100dvh;
   margin:0;
@@ -42,8 +40,8 @@ html,body{
   justify-content:space-between;
   height:var(--tg-header-height);
   padding:0 14px;
-  background:rgba(23,33,43,0.78);
-  backdrop-filter:blur(16px);
+  background:rgba(23,33,43,0.88);
+  backdrop-filter:blur(14px);
   position:sticky;
   top:0;
   z-index:60;
@@ -72,7 +70,7 @@ html,body{
   margin-top:2px;
 }
 
-/* icon buttons (white, no box) */
+/* icons (white, no boxes) */
 .tg-back-btn,
 .tg-options-btn{
   background:none;
@@ -87,14 +85,14 @@ html,body{
   height:22px;
 }
 
-/* pin banner (closer to header, glass) */
+/* pin banner (glass style, closer to header) */
 .tg-pin-banner{
   display:flex;
   align-items:center;
   gap:12px;
   padding:10px 14px;
   background:rgba(23,33,43,0.55);
-  backdrop-filter:blur(14px);
+  backdrop-filter:blur(12px);
   border-radius:18px;
   color:var(--tg-text);
   font-size:13px;
@@ -103,7 +101,7 @@ html,body{
   z-index:55;
   max-width:92%;
   margin:6px auto;
-  transform:translateY(-8px);
+  transform:translateY(-6px);
   opacity:0;
   transition:all 320ms;
 }
@@ -173,7 +171,7 @@ html,body{
   flex-shrink:0;
 }
 
-/* bubble content (glass feel) */
+/* bubble content (glass-like shadow) */
 .tg-bubble-content{
   padding:10px 14px;
   border-radius:16px;
@@ -186,19 +184,19 @@ html,body{
   box-shadow:0 6px 18px rgba(0,0,0,0.18);
 }
 
-/* incoming */
+/* incoming bubble */
 .tg-bubble.incoming .tg-bubble-content{
   background:#182533;
   color:var(--tg-text);
 }
 
-/* outgoing */
+/* outgoing bubble */
 .tg-bubble.outgoing .tg-bubble-content{
   background:#2b6df6;
   color:#fff;
 }
 
-/* curved Telegram-style nub (no triangle) */
+/* curved tail (no triangle) */
 .tg-bubble-content::after{
   content:"";
   position:absolute;
@@ -207,18 +205,18 @@ html,body{
   bottom:4px;
 }
 
-/* incoming nub */
+/* incoming tail (curved & offset) */
 .tg-bubble.incoming .tg-bubble-content::after{
-  left:-20px;                /* farther from avatar */
+  left:-20px; /* farther from avatar */
   background:#182533;
   border-radius:6px 0 18px 6px;
   transform:rotate(-26deg);
   box-shadow:0 2px 0 0 #182533;
 }
 
-/* outgoing nub */
+/* outgoing tail (curved & offset) */
 .tg-bubble.outgoing .tg-bubble-content::after{
-  right:-20px;
+  right:-20px; /* farther from avatar */
   background:#2b6df6;
   border-radius:0 6px 6px 18px;
   transform:rotate(26deg);
@@ -353,8 +351,8 @@ html,body{
   flex-direction:column;
   align-items:center;
   margin:12px auto;
-  background:rgba(23,33,43,0.65);
-  backdrop-filter:blur(10px);
+  background:rgba(23,33,43,0.55);
+  backdrop-filter:blur(12px);
   border-radius:14px;
   padding:10px 12px;
   max-width:86%;
