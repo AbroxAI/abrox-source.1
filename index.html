@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="widget.css" />
 
   <script>
-    // Site configuration (edit only these values)
+    // site configuration (edit only these values)
     window.CONTACT_ADMIN_LINK = "https://t.me/ph_suppp";
     window.MEMBER_COUNT = 1284;
     window.ONLINE_COUNT = 128;
@@ -36,15 +36,22 @@
 <body>
   <div id="tg-comments-app">
     <header class="tg-header" role="banner">
-      <button id="tg-back" class="tg-back-btn" aria-label="Back"><i data-lucide="arrow-left"></i></button>
+      <button id="tg-back" class="tg-back-btn" aria-label="Back">
+        <i data-lucide="arrow-left"></i>
+      </button>
+
       <div class="tg-header-center">
         <img src="assets/logo.jpg" alt="Logo" class="tg-header-avatar" />
+
         <div class="tg-header-info">
           <div class="tg-title">🌐 Profit Hunters Chat</div>
           <div class="tg-meta" id="tg-meta-line">1,284 members, 128 online</div>
         </div>
       </div>
-      <button id="tg-options" class="tg-options-btn" aria-label="Options"><i data-lucide="more-vertical"></i></button>
+
+      <button id="tg-options" class="tg-options-btn" aria-label="Options">
+        <i data-lucide="more-vertical"></i>
+      </button>
     </header>
 
     <div id="tg-pin-banner" class="tg-pin-banner hidden" role="region" aria-live="polite"></div>
@@ -58,10 +65,26 @@
 
     <div class="tg-input-wrapper" role="form" aria-label="Send a message">
       <div class="tg-input-bar glass">
-        <button id="tg-emoji-btn" class="tg-icon-btn" aria-label="Emoji"><i data-lucide="smile"></i></button>
-        <input type="text" id="tg-comment-input" class="tg-comment-input" placeholder="Message…" autocomplete="off" />
-        <button id="tg-camera-btn" class="tg-icon-btn" aria-label="Camera"><i data-lucide="camera"></i></button>
-        <button id="tg-send-btn" class="tg-send-btn hidden" aria-label="Send message"><i data-lucide="send"></i></button>
+
+        <button id="tg-emoji-btn" class="tg-icon-btn" aria-label="Emoji">
+          <i data-lucide="smile"></i>
+        </button>
+
+        <input
+          type="text"
+          id="tg-comment-input"
+          class="tg-comment-input"
+          placeholder="Message…"
+          autocomplete="off"
+        />
+
+        <button id="tg-camera-btn" class="tg-icon-btn" aria-label="Camera">
+          <i data-lucide="camera"></i>
+        </button>
+
+        <button id="tg-send-btn" class="tg-send-btn hidden" aria-label="Send message">
+          <i data-lucide="send"></i>
+        </button>
       </div>
     </div>
   </div>
