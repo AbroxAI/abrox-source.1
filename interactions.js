@@ -3,6 +3,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("tg-comment-input");
   const sendBtn = document.getElementById("tg-send-btn");
+  const cameraBtn = document.getElementById("tg-camera-btn");
   const metaLine = document.getElementById("tg-meta-line");
 
   const contactAdminLink =
@@ -21,7 +22,14 @@ document.addEventListener("DOMContentLoaded", () => {
   function toggleSendButton() {
     if (!input || !sendBtn) return;
     const hasText = input.value.trim().length > 0;
+
+    // send visible only when typing
     sendBtn.classList.toggle("hidden", !hasText);
+
+    // camera hidden while typing
+    if (cameraBtn) {
+      cameraBtn.classList.toggle("hidden", hasText);
+    }
   }
 
   if (input) input.addEventListener("input", toggleSendButton);
@@ -167,8 +175,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ? window.identity.getRandomPersona()
       : {
           name: "User",
-          avatar:
-            "https://ui-avatars.com/api/?name=U",
+          avatar: "https://ui-avatars.com/api/?name=U",
         };
 
     setTimeout(() => {
