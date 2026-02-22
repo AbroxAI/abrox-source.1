@@ -1,4 +1,4 @@
-// interactions.js (camera/send toggle hardened)
+// interactions.js (camera/send toggle & Telegram-friendly logic)
 
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("tg-comment-input");
@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
       `${(window.ONLINE_COUNT || 128).toLocaleString()} online`;
   }
 
+  // toggle: show send when text exists, hide camera
   function updateToggle() {
     if (!input) return;
     const hasText = input.value.trim().length > 0;
@@ -28,9 +29,9 @@ document.addEventListener("DOMContentLoaded", () => {
     input.addEventListener("keyup", updateToggle);
     input.addEventListener("change", updateToggle);
   }
-
   updateToggle();
 
+  // send message logic
   function doSendMessage(replyToId = null) {
     if (!input) return;
     const text = input.value.trim();
@@ -94,6 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // contact admin handler
   document.addEventListener("click", (e) => {
     const btn = e.target.closest && e.target.closest(".contact-admin-btn");
     if (!btn) return;
@@ -101,6 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
   });
 
+  // message context -> auto reply hook
   document.addEventListener("messageContext", (ev) => {
     const info = ev.detail;
 
