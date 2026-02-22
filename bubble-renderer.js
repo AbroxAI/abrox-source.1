@@ -1,9 +1,9 @@
-// bubble-renderer.js (telegram-patch validated)
+// bubble-renderer.js (telegram-patch validated & refined)
 // - avatar diameter 40px
 // - curved nub (no triangle)
-// - glass-safe shadows
+// - header typing dispatch
 // - reply targeting + highlight
-// - returns stable message id
+// - jump pill / unseen count
 (function(){
   'use strict';
 
@@ -44,12 +44,20 @@
 
       const sticker = document.createElement('div');
       sticker.className = 'tg-date-sticker';
-      const d = new Date(dateObj);
-      sticker.textContent = d.toLocaleDateString([], {
+      sticker.textContent = new Date(dateObj).toLocaleDateString([], {
         year:'numeric', month:'short', day:'numeric'
       });
       container.appendChild(sticker);
     }
+
+    // HEADER TYPING LISTENER (restores indicator)
+    document.addEventListener('headerTyping', (ev) => {
+      try{
+        if(metaLine){
+          metaLine.textContent = `${ev.detail.name} is typing...`;
+        }
+      }catch(e){}
+    });
 
     function createBubbleElement(persona, text, opts={}){
       const timestamp = opts.timestamp || new Date();
@@ -73,7 +81,8 @@
       const avatar = document.createElement('img');
       avatar.className = 'tg-bubble-avatar';
       avatar.alt = persona?.name || 'user';
-      avatar.src = persona?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
+      avatar.src = persona?.avatar ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
       avatar.style.width = avatar.style.height = AVATAR_DIAM + 'px';
       avatar.style.borderRadius = '50%';
       avatar.style.objectFit = 'cover';
@@ -119,21 +128,21 @@
         nub.style.transform = 'rotate(26deg)';
       }
       nub.style.boxShadow = `0 2px 0 0 ${type === 'incoming' ? INCOMING_BG : OUTGOING_BG}`;
-
       content.appendChild(nub);
 
       // reply preview (click scroll)
       if(replyToText || replyToId){
         const rp = document.createElement('div');
         rp.className = 'tg-reply-preview';
-        rp.textContent = replyToText ? (replyToText.length > 120 ? replyToText.slice(0,117)+'...' : replyToText) : 'Reply';
+        rp.textContent = replyToText ?
+          (replyToText.length > 120 ? replyToText.slice(0,117)+'...' : replyToText)
+          : 'Reply';
         rp.addEventListener('click', () => {
           if(replyToId && MESSAGE_MAP.has(replyToId)){
             const target = MESSAGE_MAP.get(replyToId).el;
             target.scrollIntoView({behavior:'smooth', block:'center'});
             target.classList.add('tg-highlight');
             setTimeout(()=> target.classList.remove('tg-highlight'), 2600);
-            return;
           }
         });
         content.appendChild(rp);
@@ -222,9 +231,17 @@
 
       const el = created.wrapper;
       container.appendChild(el);
-      MESSAGE_MAP.set(id,{ el, text: created.text, persona: created.persona, timestamp: created.timestamp });
+      MESSAGE_MAP.set(id,{
+        el,
+        text: created.text,
+        persona: created.persona,
+        timestamp: created.timestamp
+      });
 
-      const atBottom = (container.scrollTop + container.clientHeight) > (container.scrollHeight - 120);
+      const atBottom =
+        (container.scrollTop + container.clientHeight) >
+        (container.scrollHeight - 120);
+
       if(atBottom){
         container.scrollTop = container.scrollHeight;
       } else {
@@ -239,21 +256,28 @@
     }
 
     function showTypingIndicator(persona, duration=1400){
-      const el = createBubbleElement(persona, '', { type:'incoming', isTyping:true });
-      const wrapper = el.wrapper;
+      // dispatch header typing event
+      document.dispatchEvent(new CustomEvent('headerTyping',{
+        detail:{ name: persona?.name || 'Someone' }
+      }));
+
+      const wrapper = createBubbleElement(persona, '', { type:'incoming' }).wrapper;
       const dots = document.createElement('div');
       dots.className = 'tg-bubble-text';
       dots.innerHTML = '<span>●</span><span>●</span><span>●</span>';
-      wrapper.querySelector('.tg-bubble-content').appendChild(dots);
 
+      wrapper.querySelector('.tg-bubble-content').appendChild(dots);
       container.appendChild(wrapper);
       container.scrollTop = container.scrollHeight;
+
       setTimeout(()=> wrapper.remove(), Math.max(700, duration));
     }
 
     // jump indicator
     function updateJump(){
-      if(jumpText) jumpText.textContent = unseenCount > 1 ? `New messages · ${unseenCount}` : 'New messages';
+      if(jumpText)
+        jumpText.textContent =
+          unseenCount > 1 ? `New messages · ${unseenCount}` : 'New messages';
     }
     function showJump(){ jumpIndicator?.classList.remove('hidden'); }
     function hideJump(){ jumpIndicator?.classList.add('hidden'); unseenCount = 0; updateJump(); }
@@ -264,7 +288,11 @@
     });
 
     container.addEventListener('scroll', ()=>{
-      const bottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      const bottom =
+        container.scrollHeight -
+        container.scrollTop -
+        container.clientHeight;
+
       bottom > 100 ? showJump() : hideJump();
     });
 
@@ -289,7 +317,7 @@
       }
     };
 
-    console.log('bubble-renderer validated');
+    console.log('bubble-renderer refined');
   }
 
   document.readyState === 'loading'
