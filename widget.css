@@ -1,4 +1,4 @@
-/* widget.css — refined Telegram replica (2026 tune) */
+/* widget.css — polished Telegram replica (2026 style) */
 
 /* variables */
 :root{
@@ -155,7 +155,7 @@ html,body{
 .tg-bubble{
   display:flex;
   align-items:flex-start;
-  gap:12px; /* tail farther from avatar */
+  gap:12px;
   margin-bottom:14px;
   max-width:78%;
   position:relative;
@@ -209,7 +209,7 @@ html,body{
 
 /* incoming nub */
 .tg-bubble.incoming .tg-bubble-content::after{
-  left:-20px;                /* farther from avatar */
+  left:-20px;
   background:#182533;
   border-radius:6px 0 18px 6px;
   transform:rotate(-26deg);
