@@ -1,4 +1,4 @@
-/* widget.css (Telegram replica – tail further from avatar) */
+/* widget.css (Telegram replica update – tail farther from avatar) */
 
 /* variables */
 :root{
@@ -72,7 +72,7 @@ html,body{
   margin-top:2px;
 }
 
-/* icons (white, no boxes) */
+/* back & options (white icons, no boxes) */
 .tg-back-btn,
 .tg-options-btn{
   background:none;
@@ -151,11 +151,11 @@ html,body{
   color:var(--tg-muted);
 }
 
-/* bubble */
+/* bubble (Telegram style) */
 .tg-bubble{
   display:flex;
   align-items:flex-start;
-  gap:12px; /* increased gap so tail isn’t glued to avatar */
+  gap:16px; /* more space between avatar and bubble */
   margin-bottom:14px;
   max-width:78%;
   position:relative;
@@ -190,41 +190,34 @@ html,body{
   background:#182533;
   color:var(--tg-text);
 }
+/* tail farther from avatar */
+.tg-bubble.incoming .tg-bubble-content::after{
+  content:"";
+  position:absolute;
+  left:-14px;
+  bottom:4px;
+  width:20px;
+  height:20px;
+  background:#182533;
+  border-bottom-right-radius:16px;
+  transform:rotate(45deg);
+}
 
 /* outgoing bubble */
 .tg-bubble.outgoing .tg-bubble-content{
   background:#2b6df6;
   color:#fff;
 }
-
-/* ===== 2026 TELEGRAM CURVED TAILS (further offset) ===== */
-.tg-bubble-content{
-  position:relative;
-}
-
-/* incoming curved tail (farther from avatar) */
-.tg-bubble.incoming .tg-bubble-content::after{
-  content:"";
-  position:absolute;
-  left:-10px;   /* moved further out */
-  bottom:2px;
-  width:18px;
-  height:18px;
-  background:#182533;
-  border-bottom-right-radius:14px;
-  transform:rotate(45deg);
-}
-
-/* outgoing curved tail (farther out) */
+/* outgoing tail farther out */
 .tg-bubble.outgoing .tg-bubble-content::after{
   content:"";
   position:absolute;
-  right:-10px;
-  bottom:2px;
-  width:18px;
-  height:18px;
+  right:-14px;
+  bottom:4px;
+  width:20px;
+  height:20px;
   background:#2b6df6;
-  border-bottom-left-radius:14px;
+  border-bottom-left-radius:16px;
   transform:rotate(-45deg);
 }
 
