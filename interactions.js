@@ -1,4 +1,5 @@
-// interactions.js (camera/send toggle hardened)
+// interactions.js (camera/send toggle + header typing)
+// polished and validated
 
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("tg-comment-input");
@@ -9,12 +10,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.__abrox_seen_map = window.__abrox_seen_map || {};
 
+  // header meta
   if (metaLine) {
     metaLine.textContent =
       `${(window.MEMBER_COUNT || 1284).toLocaleString()} members, ` +
       `${(window.ONLINE_COUNT || 128).toLocaleString()} online`;
   }
 
+  // toggle camera vs send
   function updateToggle() {
     if (!input) return;
     const hasText = input.value.trim().length > 0;
@@ -28,7 +31,6 @@ document.addEventListener("DOMContentLoaded", () => {
     input.addEventListener("keyup", updateToggle);
     input.addEventListener("change", updateToggle);
   }
-
   updateToggle();
 
   function doSendMessage(replyToId = null) {
@@ -94,6 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // contact admin buttons
   document.addEventListener("click", (e) => {
     const btn = e.target.closest && e.target.closest(".contact-admin-btn");
     if (!btn) return;
@@ -101,6 +104,25 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
   });
 
+  // header typing indicator (condensed)
+  document.addEventListener("headerTyping", (ev) => {
+    try {
+      if (!metaLine) return;
+      const name = ev.detail?.name || "Someone";
+
+      metaLine.style.opacity = "0.9";
+      metaLine.textContent = `${name} is typing...`;
+
+      setTimeout(() => {
+        metaLine.textContent =
+          `${(window.MEMBER_COUNT || 0).toLocaleString()} members, ` +
+          `${(window.ONLINE_COUNT || 0).toLocaleString()} online`;
+        metaLine.style.opacity = "";
+      }, 1200 + Math.random() * 1200);
+    } catch (e) {}
+  });
+
+  // auto reply handler
   document.addEventListener("messageContext", (ev) => {
     const info = ev.detail;
 
