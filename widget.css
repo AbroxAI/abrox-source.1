@@ -1,4 +1,4 @@
-/* widget.css (Telegram replica refined) */
+/* widget.css (Telegram replica – tail further from avatar) */
 
 /* variables */
 :root{
@@ -14,8 +14,9 @@
 }
 
 /* base */
-*{ box-sizing:border-box; }
-
+*{
+  box-sizing:border-box;
+}
 html,body{
   height:100dvh;
   margin:0;
@@ -24,7 +25,6 @@ html,body{
   font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;
   -webkit-font-smoothing:antialiased;
 }
-
 .hidden{display:none!important}
 
 /* layout */
@@ -35,7 +35,7 @@ html,body{
   overflow:hidden;
 }
 
-/* header */
+/* header (glass style) */
 .tg-header{
   display:flex;
   align-items:center;
@@ -48,7 +48,6 @@ html,body{
   top:0;
   z-index:60;
 }
-
 .tg-header-center{
   display:flex;
   align-items:center;
@@ -57,17 +56,23 @@ html,body{
   margin:0 12px;
   min-width:0;
 }
-
 .tg-header-avatar{
   width:var(--tg-avatar-size);
   height:var(--tg-avatar-size);
   border-radius:50%;
   object-fit:cover;
 }
+.tg-title{
+  font-size:15px;
+  font-weight:700;
+}
+.tg-meta{
+  font-size:12px;
+  color:var(--tg-muted);
+  margin-top:2px;
+}
 
-.tg-title{ font-size:15px; font-weight:700; }
-.tg-meta{ font-size:12px; color:var(--tg-muted); margin-top:2px; }
-
+/* icons (white, no boxes) */
 .tg-back-btn,
 .tg-options-btn{
   background:none;
@@ -76,11 +81,56 @@ html,body{
   padding:6px;
   cursor:pointer;
 }
-
 .tg-back-btn i,
 .tg-options-btn i{
   width:22px;
   height:22px;
+}
+
+/* pin banner */
+.tg-pin-banner{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 14px;
+  background:rgba(23,33,43,0.65);
+  backdrop-filter:blur(10px);
+  border-radius:18px;
+  color:var(--tg-text);
+  font-size:13px;
+  position:sticky;
+  top:calc(var(--tg-header-height) + 6px);
+  z-index:55;
+  max-width:92%;
+  margin:10px auto;
+  transform:translateY(-8px);
+  opacity:0;
+  transition:all 320ms;
+}
+.tg-pin-banner.show{
+  transform:translateY(0);
+  opacity:1;
+}
+.tg-pin-banner img{
+  width:40px;
+  height:40px;
+  border-radius:10px;
+  object-fit:cover;
+}
+.tg-pin-banner .pin-text{
+  flex:1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.tg-pin-banner .contact-admin-btn{
+  height:34px;
+  border-radius:18px;
+  padding:6px 14px;
+  background:var(--tg-accent);
+  color:#fff;
+  border:none;
+  font-weight:600;
 }
 
 /* comments container */
@@ -90,7 +140,6 @@ html,body{
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
 }
-
 .tg-date-sticker{
   display:block;
   width:max-content;
@@ -102,24 +151,20 @@ html,body{
   color:var(--tg-muted);
 }
 
-/* bubble wrapper */
+/* bubble */
 .tg-bubble{
   display:flex;
   align-items:flex-start;
-  gap:8px;
+  gap:12px; /* increased gap so tail isn’t glued to avatar */
   margin-bottom:14px;
   max-width:78%;
   position:relative;
 }
-
-.tg-bubble.incoming{ justify-content:flex-start; }
-
+.tg-bubble.incoming{justify-content:flex-start;}
 .tg-bubble.outgoing{
   flex-direction:row-reverse;
   margin-left:auto;
 }
-
-/* avatar */
 .tg-bubble-avatar{
   width:40px;
   height:40px;
@@ -128,7 +173,7 @@ html,body{
   flex-shrink:0;
 }
 
-/* bubble content */
+/* content box */
 .tg-bubble-content{
   padding:10px 14px;
   border-radius:16px;
@@ -146,46 +191,51 @@ html,body{
   color:var(--tg-text);
 }
 
-/* incoming tail */
-.tg-bubble.incoming .tg-bubble-content:before{
-  content:"";
-  position:absolute;
-  left:-10px;
-  bottom:8px;
-  width:0;
-  height:0;
-  border-top:7px solid transparent;
-  border-bottom:7px solid transparent;
-  border-right:10px solid #182533;
-}
-
 /* outgoing bubble */
 .tg-bubble.outgoing .tg-bubble-content{
   background:#2b6df6;
   color:#fff;
 }
 
-/* outgoing tail */
-.tg-bubble.outgoing .tg-bubble-content:before{
+/* ===== 2026 TELEGRAM CURVED TAILS (further offset) ===== */
+.tg-bubble-content{
+  position:relative;
+}
+
+/* incoming curved tail (farther from avatar) */
+.tg-bubble.incoming .tg-bubble-content::after{
+  content:"";
+  position:absolute;
+  left:-10px;   /* moved further out */
+  bottom:2px;
+  width:18px;
+  height:18px;
+  background:#182533;
+  border-bottom-right-radius:14px;
+  transform:rotate(45deg);
+}
+
+/* outgoing curved tail (farther out) */
+.tg-bubble.outgoing .tg-bubble-content::after{
   content:"";
   position:absolute;
   right:-10px;
-  bottom:8px;
-  width:0;
-  height:0;
-  border-top:7px solid transparent;
-  border-bottom:7px solid transparent;
-  border-left:10px solid #2b6df6;
+  bottom:2px;
+  width:18px;
+  height:18px;
+  background:#2b6df6;
+  border-bottom-left-radius:14px;
+  transform:rotate(-45deg);
 }
 
-/* sender */
+/* sender name */
 .tg-bubble-sender{
   font-size:13px;
   font-weight:600;
   margin-bottom:6px;
 }
 
-/* meta */
+/* meta row */
 .tg-bubble-meta{
   display:flex;
   align-items:center;
@@ -195,7 +245,7 @@ html,body{
   color:rgba(255,255,255,0.6);
 }
 
-/* images */
+/* image attachment */
 .tg-bubble-image{
   display:block;
   max-width:280px;
@@ -219,7 +269,7 @@ html,body{
   cursor:pointer;
 }
 
-/* input */
+/* input (glass) */
 .tg-input-wrapper{
   padding:8px 12px;
   position:sticky;
@@ -228,7 +278,6 @@ html,body{
   display:flex;
   justify-content:center;
 }
-
 .tg-input-bar{
   display:flex;
   align-items:center;
@@ -241,10 +290,10 @@ html,body{
   backdrop-filter:blur(12px);
   padding:0 12px;
 }
-
 .tg-comment-input{
   flex:1;
   height:100%;
+  border-radius:var(--tg-input-radius);
   border:none;
   padding:0 12px;
   background:transparent;
@@ -252,7 +301,6 @@ html,body{
   font-size:14px;
   outline:none;
 }
-
 .tg-send-btn{
   width:36px;
   height:36px;
@@ -265,7 +313,6 @@ html,body{
   justify-content:center;
   cursor:pointer;
 }
-
 .tg-icon-btn{
   background:none;
   border:none;
@@ -274,19 +321,75 @@ html,body{
   color:var(--tg-muted);
 }
 
+/* jump indicator */
+#tg-jump-indicator{
+  position:fixed;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:calc(var(--tg-input-height) + 64px);
+  background:var(--tg-accent);
+  color:#fff;
+  padding:6px 12px;
+  border-radius:18px;
+  font-size:13px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  z-index:999;
+}
+#tg-jump-indicator.hidden{display:none}
+
 /* highlight */
 .tg-highlight{
   outline:2px solid var(--gold);
   animation:highlightFade 2600ms ease forwards;
 }
-
 @keyframes highlightFade{
   0%{opacity:1}
   80%{opacity:1}
   100%{opacity:0.2; outline:0;}
 }
 
+/* join sticker */
+.tg-join-sticker{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  margin:12px auto;
+  background:rgba(23,33,43,0.65);
+  backdrop-filter:blur(10px);
+  border-radius:14px;
+  padding:10px 12px;
+  max-width:86%;
+}
+.tg-join-sticker .join-cluster{
+  display:flex;
+  gap:6px;
+  margin-bottom:8px;
+}
+.tg-join-sticker .join-cluster img{
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  object-fit:cover;
+  margin-left:-12px;
+}
+.tg-join-sticker .join-names{
+  font-size:13px;
+  font-weight:600;
+}
+.tg-join-sticker .join-sub{
+  font-size:12px;
+  opacity:.85;
+}
+
 /* responsive */
 @media (max-width:520px){
   .tg-bubble{max-width:86%;}
+  .tg-join-sticker{padding:8px 10px;}
+  .tg-join-sticker .join-cluster img{
+    width:36px;
+    height:36px;
+    margin-left:-10px;
+  }
 }
