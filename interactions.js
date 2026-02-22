@@ -1,4 +1,4 @@
-// interactions.js (camera/send toggle hardened + admin contact + autoReply)
+// interactions.js (camera/send toggle hardened)
 
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("tg-comment-input");
