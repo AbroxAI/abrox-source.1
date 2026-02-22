@@ -181,12 +181,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =====================================================
-     START REALISM ENGINE (FIXED CALL)
+     START REALISM ENGINE (FIXED)
   ===================================================== */
 
-  if(window.realism){
+  if(window.realism?.simulateRandomCrowdV11){
     setTimeout(()=>{
-      window.realism.simulate();
+      window.realism.simulateRandomCrowdV11();
     }, 600);
   } else {
     console.warn("realism engine not available (window.realism).");
