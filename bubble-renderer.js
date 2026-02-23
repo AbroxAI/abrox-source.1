@@ -1,5 +1,4 @@
-// bubble-renderer.js (integrated typing + unread + Telegram style)
-// Patched: read --tg-avatar-size from CSS and avoid setting inline avatar width/height
+// bubble-renderer.js (Telegram full grouping logic integrated)
 (function(){
   'use strict';
 
@@ -14,35 +13,25 @@
       return;
     }
 
-    // Read avatar size from CSS variable so JS and CSS remain in sync.
-    // Fallback to 40 if the variable isn't present or parse fails.
     let AVATAR_DIAM = 40;
     try{
-      const v = getComputedStyle(document.documentElement).getPropertyValue('--tg-avatar-size');
-      if(v){
-        const parsed = parseInt(v.trim(), 10);
-        if(!Number.isNaN(parsed) && parsed > 0) AVATAR_DIAM = parsed;
-      }
-    }catch(e){
-      // ignore — keep fallback
-    }
-
-    const BUBBLE_RADIUS = 16;
-    const INCOMING_BG = '#182533';
-    const OUTGOING_BG = '#2b6df6';
-    const INCOMING_TEXT = '#e6eef8';
+      const v = getComputedStyle(document.documentElement)
+        .getPropertyValue('--tg-avatar-size');
+      const parsed = parseInt(v,10);
+      if(!Number.isNaN(parsed) && parsed > 0) AVATAR_DIAM = parsed;
+    }catch(e){}
 
     let lastMessageDateKey = null;
     let unseenCount = 0;
     const MESSAGE_MAP = new Map();
 
-    // typing aggregation
     const typingSet = new Set();
     const typingTimeouts = new Map();
 
     function formatTime(date){
       try{
-        return new Date(date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        return new Date(date)
+          .toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
       }catch(e){ return ''; }
     }
 
@@ -58,176 +47,106 @@
 
       const sticker = document.createElement('div');
       sticker.className = 'tg-date-sticker';
-      const d = new Date(dateObj);
-      sticker.textContent = d.toLocaleDateString([], {
-        year:'numeric', month:'short', day:'numeric'
-      });
+      sticker.textContent = new Date(dateObj)
+        .toLocaleDateString([], {year:'numeric', month:'short', day:'numeric'});
       container.appendChild(sticker);
     }
 
     function createBubbleElement(persona, text, opts={}){
       const timestamp = opts.timestamp || new Date();
       const type = opts.type === 'outgoing' ? 'outgoing' : 'incoming';
-      const replyToText = opts.replyToText || null;
-      const replyToId = opts.replyToId || null;
-      const image = opts.image || null;
-      const caption = opts.caption || null;
-      const id = opts.id || ('m_' + Date.now() + '_' + Math.floor(Math.random()*9999));
+      const id = opts.id || ('m_' + Date.now() + '_' + Math.random());
 
       insertDateSticker(timestamp);
 
       const wrapper = document.createElement('div');
       wrapper.className = `tg-bubble ${type}`;
       wrapper.dataset.id = id;
-      wrapper.style.maxWidth = '78%';
-      wrapper.style.marginBottom = '14px';
-      wrapper.style.position = 'relative';
 
-      // avatar
       const avatar = document.createElement('img');
       avatar.className = 'tg-bubble-avatar';
       avatar.alt = persona?.name || 'user';
-      // Use AVATAR_DIAM for the external avatar URL generation only.
       avatar.src = persona?.avatar ||
         `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
-      // Leave physical sizing to CSS (.tg-bubble-avatar uses --tg-avatar-size).
-      avatar.style.objectFit = 'cover';
       avatar.onerror = () => {
-        avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
+        avatar.src =
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
       };
 
-      // content
       const content = document.createElement('div');
       content.className = 'tg-bubble-content';
-      content.style.borderRadius = BUBBLE_RADIUS + 'px';
-      content.style.padding = '10px 14px';
-      content.style.fontSize = '14px';
-      content.style.lineHeight = '1.35';
-      content.style.wordBreak = 'break-word';
-      content.style.position = 'relative';
-      content.style.boxShadow = '0 6px 18px rgba(0,0,0,0.18)';
 
-      if(type === 'incoming'){
-        content.style.background = INCOMING_BG;
-        content.style.color = INCOMING_TEXT;
-      } else {
-        content.style.background = OUTGOING_BG;
-        content.style.color = '#fff';
-      }
-
-      // reply preview
-      if(replyToText || replyToId){
-        const rp = document.createElement('div');
-        rp.className = 'tg-reply-preview';
-        rp.textContent = replyToText
-          ? (replyToText.length > 120 ? replyToText.slice(0,117)+'...' : replyToText)
-          : 'Reply';
-
-        rp.addEventListener('click', () => {
-          if(replyToId && MESSAGE_MAP.has(replyToId)){
-            const target = MESSAGE_MAP.get(replyToId).el;
-            target.scrollIntoView({behavior:'smooth', block:'center'});
-            target.classList.add('tg-highlight');
-            setTimeout(()=> target.classList.remove('tg-highlight'), 2600);
-          }
-        });
-
-        content.appendChild(rp);
-      }
-
-      // sender
       const sender = document.createElement('div');
       sender.className = 'tg-bubble-sender';
       sender.textContent = persona?.name || 'User';
       content.appendChild(sender);
 
-      // image
-      if(image){
-        const img = document.createElement('img');
-        img.className = 'tg-bubble-image';
-        img.src = image;
-        img.style.maxWidth = '100%';
-        img.style.borderRadius = '12px';
-        img.onerror = () => { img.style.display = 'none'; };
-        content.appendChild(img);
-      }
-
-      // text
       const textEl = document.createElement('div');
       textEl.className = 'tg-bubble-text';
       textEl.textContent = text || '';
       content.appendChild(textEl);
 
-      if(caption){
-        const cap = document.createElement('div');
-        cap.className = 'tg-bubble-text';
-        cap.style.marginTop = '6px';
-        cap.textContent = caption;
-        content.appendChild(cap);
-      }
-
-      // meta
       const meta = document.createElement('div');
       meta.className = 'tg-bubble-meta';
-      meta.style.marginTop = '8px';
-      meta.style.display = 'flex';
-      meta.style.gap = '8px';
-      meta.style.fontSize = '11px';
 
       const time = document.createElement('span');
       time.textContent = formatTime(timestamp);
       meta.appendChild(time);
 
-      if(type === 'outgoing'){
-        const seen = document.createElement('div');
-        seen.className = 'seen';
-        const count = window.__abrox_seen_map?.[id] || 1;
-        seen.innerHTML = `<i data-lucide="eye"></i> ${count}`;
-        meta.appendChild(seen);
-      }
-
       content.appendChild(meta);
 
-      // assembly
-      if(type === 'incoming'){
-        wrapper.appendChild(avatar);
-        wrapper.appendChild(content);
-        wrapper.style.justifyContent = 'flex-start';
-      } else {
-        wrapper.style.flexDirection = 'row-reverse';
-        wrapper.appendChild(avatar);
-        wrapper.appendChild(content);
-        wrapper.style.justifyContent = 'flex-end';
+      wrapper.appendChild(avatar);
+      wrapper.appendChild(content);
+
+      return { wrapper, id, persona, timestamp, type };
+    }
+
+    function applyGrouping(newBubble, personaName, type){
+      const last = container.lastElementChild;
+      if(!last || !last.classList.contains('tg-bubble')) return;
+
+      const lastType = last.classList.contains('outgoing')
+        ? 'outgoing' : 'incoming';
+      const lastSender =
+        last.querySelector('.tg-bubble-sender')?.textContent;
+
+      if(lastType === type && lastSender === personaName){
+        // last becomes grouped-first or grouped-middle
+        if(!last.classList.contains('tg-grouped')){
+          last.classList.add('tg-grouped-first');
+        } else {
+          last.classList.remove('tg-grouped-last');
+          last.classList.add('tg-grouped-middle');
+        }
+
+        newBubble.classList.add('tg-grouped-last');
+
+        // hide avatar for grouped messages
+        newBubble.querySelector('.tg-bubble-avatar').style.visibility = 'hidden';
       }
-
-      wrapper.addEventListener('contextmenu', (e)=>{
-        e.preventDefault();
-        document.dispatchEvent(new CustomEvent('messageContext',{
-          detail:{ id, persona, text }
-        }));
-      });
-
-      return { wrapper, id, text, persona, timestamp };
     }
 
     function appendMessage(persona, text, opts={}){
-      const id = opts.id || ('m_' + Date.now() + '_' + Math.floor(Math.random()*9999));
-      opts.id = id;
-
       const created = createBubbleElement(persona, text, opts);
-      if(!created) return null;
-
       const el = created.wrapper;
-      container.appendChild(el);
-      MESSAGE_MAP.set(id,{
+
+      applyGrouping(
         el,
-        text: created.text,
+        persona?.name || 'User',
+        created.type
+      );
+
+      container.appendChild(el);
+
+      MESSAGE_MAP.set(created.id,{
+        el,
         persona: created.persona,
         timestamp: created.timestamp
       });
 
       const atBottom =
-        (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 120);
+        (container.scrollTop + container.clientHeight) >=
+        (container.scrollHeight - 120);
 
       if(atBottom){
         container.scrollTop = container.scrollHeight;
@@ -238,14 +157,9 @@
         showJump();
       }
 
-      if(window.lucide?.createIcons){
-        try{ window.lucide.createIcons(); }catch(e){}
-      }
-
-      return id;
+      return created.id;
     }
 
-    // unread pill
     function updateJump(){
       if(jumpText){
         jumpText.textContent = unseenCount > 1
@@ -254,78 +168,17 @@
       }
     }
     function showJump(){ jumpIndicator?.classList.remove('hidden'); }
-    function hideJump(){ jumpIndicator?.classList.add('hidden'); unseenCount = 0; updateJump(); }
+    function hideJump(){
+      jumpIndicator?.classList.add('hidden');
+      unseenCount = 0;
+      updateJump();
+    }
 
-    jumpIndicator?.addEventListener('click', ()=>{
-      container.scrollTop = container.scrollHeight;
-      hideJump();
-    });
-
-    container.addEventListener('scroll', ()=>{
-      const bottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-      bottom > 100 ? showJump() : hideJump();
-    });
-
-    // header typing (multi-user aggregate)
-    document.addEventListener('headerTyping', (ev)=>{
-      try{
-        const name = ev.detail?.name || 'Someone';
-
-        typingSet.add(name);
-        if(typingTimeouts.has(name)) clearTimeout(typingTimeouts.get(name));
-
-        if(metaLine){
-          metaLine.style.opacity = '0.95';
-          if(typingSet.size > 2){
-            metaLine.textContent =
-              `${Array.from(typingSet).slice(0,2).join(', ')} and others are typing...`;
-          } else {
-            metaLine.textContent =
-              Array.from(typingSet).join(' ') +
-              (typingSet.size > 1 ? ' are typing...' : ' is typing...');
-          }
-        }
-
-        typingTimeouts.set(name, setTimeout(()=>{
-          typingSet.delete(name);
-          typingTimeouts.delete(name);
-
-          if(metaLine){
-            metaLine.textContent =
-              `${(window.MEMBER_COUNT||0).toLocaleString()} members, ${(window.ONLINE_COUNT||0).toLocaleString()} online`;
-            metaLine.style.opacity = '';
-          }
-        }, 1600 + Math.random()*1200));
-
-      }catch(e){}
-    });
-
-    // renderer API
     window.TGRenderer = {
-      appendMessage:(p,t,o)=> appendMessage(p||{}, String(t||''), o||{}),
-      showTyping:(p)=>{
-        document.dispatchEvent(new CustomEvent('headerTyping',{
-          detail:{ name:(p&&p.name)?p.name:'Someone' }
-        }));
-      }
+      appendMessage:(p,t,o)=> appendMessage(p||{}, String(t||''), o||{})
     };
 
-    window.BubbleRenderer = {
-      renderMessages:(arr)=>{
-        if(!Array.isArray(arr)) return;
-        arr.forEach(m=>{
-          appendMessage({name:m.name, avatar:m.avatar}, m.text, {
-            id:m.id,
-            timestamp:m.time ? new Date(m.time) : new Date(),
-            type:m.isOwn ? 'outgoing' : 'incoming',
-            image:m.image,
-            caption:m.caption
-          });
-        });
-      }
-    };
-
-    console.log('bubble-renderer fully integrated');
+    console.log('bubble-renderer with Telegram grouping loaded');
   }
 
   document.readyState === 'loading'
