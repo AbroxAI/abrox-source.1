@@ -40,11 +40,11 @@ html,body{
 .tg-title{ font-size:15px; font-weight:700; }
 .tg-meta{ font-size:12px; color:var(--tg-muted); margin-top:2px; }
 
-/* icon buttons */
+/* icon buttons (white, no box) */
 .tg-back-btn, .tg-options-btn{ background:none; border:none; color:#fff; padding:6px; cursor:pointer; }
 .tg-back-btn i, .tg-options-btn i{ width:22px; height:22px; }
 
-/* pin banner */
+/* pin banner (closer to header, glass) */
 .tg-pin-banner{
   display:flex; align-items:center; gap:12px; padding:10px 14px;
   background:rgba(23,33,43,0.55); backdrop-filter:blur(14px); border-radius:18px;
@@ -69,18 +69,18 @@ html,body{
 /* bubble */
 .tg-bubble{
   display:flex; align-items:flex-start;
-  gap:18px;
+  gap:18px; /* increased so tail sits farther from avatar */
   margin-bottom:14px; max-width:78%; position:relative;
 }
 .tg-bubble.incoming{ justify-content:flex-start; }
 .tg-bubble.outgoing{ flex-direction:row-reverse; margin-left:auto; }
 .tg-bubble-avatar{ width:40px; height:40px; border-radius:50%; object-fit:cover; flex-shrink:0; }
 
-/* bubble content */
+/* bubble content (glass feel) */
 .tg-bubble-content{
   padding:10px 14px; border-radius:16px; font-size:14px; line-height:1.35; word-break:break-word;
   position:relative; max-width:100%; transition:all .18s ease; box-shadow:0 6px 18px rgba(0,0,0,0.18);
-  overflow: visible;
+  overflow: visible; /* allow SVG nub outside */
   z-index: 1;
 }
 
@@ -89,36 +89,30 @@ html,body{
 /* outgoing */
 .tg-bubble.outgoing .tg-bubble-content{ background:#2b6df6; color:#fff; }
 
-/* ---------- Telegram-accurate SVG tail (final replica) ---------- */
+/* ---------- SVG-backed curved nub (drop-in replacement) ---------- */
 .tg-bubble-content::after{
-  content:"";
-  position:absolute;
-  width:22px;
-  height:18px;
-  bottom:2px;              /* lower anchor like Telegram */
-  background-repeat:no-repeat;
-  background-size:contain;
-  pointer-events:none;
-  z-index:0;
+  content: "";
+  position: absolute;
+  width: 28px;    /* svg width */
+  height: 20px;   /* svg height */
+  bottom: 6px;    /* vertical placement */
+  background-repeat: no-repeat;
+  background-size: contain;
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* incoming (left) */
 .tg-bubble.incoming .tg-bubble-content::after{
-  left:-18px;
-  background-image:url("data:image/svg+xml;utf8,\
-  <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 18'>\
-  <path d='M22 15 C15 11 7 9 0 0 L0 18 C7 12 15 14 22 15 Z' fill='%23182533'/>\
-  </svg>");
+  left: -20px; /* offset from bubble — tweak ±2-4px if needed */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 20'><path d='M28 10 C20 2 8 2 0 10 C8 18 20 18 28 10 Z' fill='%23182533'/></svg>");
 }
 
 /* outgoing (right) */
 .tg-bubble.outgoing .tg-bubble-content::after{
-  right:-18px;
-  background-image:url("data:image/svg+xml;utf8,\
-  <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 18'>\
-  <path d='M22 15 C15 11 7 9 0 0 L0 18 C7 12 15 14 22 15 Z' fill='%232b6df6'/>\
-  </svg>");
-  transform:scaleX(-1);
+  right: -20px; /* offset from bubble — tweak ±2-4px if needed */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 20'><path d='M28 10 C20 2 8 2 0 10 C8 18 20 18 28 10 Z' fill='%232b6df6'/></svg>");
+  transform: scaleX(-1);
 }
 /* ------------------------------------------------------------------ */
 
@@ -130,7 +124,7 @@ html,body{
   border-radius:8px; margin-bottom:8px; font-size:12px; color:var(--tg-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;
 }
 
-/* input */
+/* input (glass style) */
 .tg-input-wrapper{ padding:8px 12px; position:sticky; bottom:8px; z-index:60; display:flex; justify-content:center; }
 .tg-input-bar{
   display:flex; align-items:center; gap:8px; width:100%; max-width:640px; height:var(--tg-input-height);
