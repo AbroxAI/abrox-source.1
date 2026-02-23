@@ -1,4 +1,4 @@
-/* widget.css — Telegram replica with full grouping support */
+/* widget.css — Telegram replica with full grouping + correct SVG tail */
 
 /* variables */
 :root{
@@ -69,28 +69,29 @@ html,body{
   padding:10px 14px; border-radius:18px; font-size:14px; line-height:1.35;
   word-break:break-word; position:relative; max-width:100%;
   box-shadow:0 4px 12px rgba(0,0,0,0.18);
+  background:#182533; color:var(--tg-text);
 }
 
 /* incoming/outgoing colors */
 .tg-bubble.incoming .tg-bubble-content{ background:#182533; color:#e6eef8; }
 .tg-bubble.outgoing .tg-bubble-content{ background:#2b6df6; color:#fff; }
 
-/* SVG tail */
+/* ---------- Correct Telegram SVG tail ---------- */
 .tg-bubble-content::after{
-  content:""; position:absolute; width:16px; height:18px; bottom:2px;
+  content:""; position:absolute; width:12px; height:14px; bottom:4px;
   background:currentColor; pointer-events:none;
   -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat;
   mask-size:contain; mask-repeat:no-repeat;
 }
 .tg-bubble.incoming .tg-bubble-content::after{
-  left:-7px;
-  -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
-  mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
+  left:-6px;
+  -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 14'><path d='M12 0 L0 7 L12 14 Z' fill='black'/></svg>");
+  mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 14'><path d='M12 0 L0 7 L12 14 Z' fill='black'/></svg>");
 }
 .tg-bubble.outgoing .tg-bubble-content::after{
-  right:-7px; transform:scaleX(-1);
-  -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
-  mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
+  right:-6px; transform:scaleX(-1);
+  -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 14'><path d='M12 0 L0 7 L12 14 Z' fill='black'/></svg>");
+  mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 14'><path d='M12 0 L0 7 L12 14 Z' fill='black'/></svg>");
 }
 
 /* reply preview */
@@ -121,69 +122,16 @@ html,body{
 .tg-bubble.tg-grouped-middle .tg-bubble-avatar,
 .tg-bubble.tg-grouped-last .tg-bubble-avatar{ visibility:hidden; }
 
-/* input wrapper (glass style) */
-.tg-input-wrapper {
-  padding:8px 12px;
-  position:sticky;
-  bottom:8px;
-  display:flex;
-  justify-content:center;
-  z-index:60;
+/* input */
+.tg-input-wrapper{ padding:8px 12px; position:sticky; bottom:8px; display:flex; justify-content:center; }
+.tg-input-bar{
+  display:flex; align-items:center; gap:8px; width:100%; max-width:640px; height:var(--tg-input-height);
+  border-radius:var(--tg-input-radius); background:rgba(23,33,43,0.55);
+  backdrop-filter:blur(14px); padding:0 12px;
 }
-
-/* input bar container */
-.tg-input-bar {
-  display:flex;
-  align-items:center;
-  gap:8px;
-  width:100%;
-  max-width:640px;
-  height:var(--tg-input-height);
-  border-radius:var(--tg-input-radius);
-  background:rgba(23,33,43,0.55);
-  backdrop-filter:blur(14px);
-  padding:0 8px;
-  box-sizing:border-box;
-}
-
-/* text input */
-.tg-comment-input {
-  flex:1;
-  height:100%;
-  border:none;
-  background:transparent;
-  color:var(--tg-text);
-  font-size:14px;
-  outline:none;
-}
-
-/* icon buttons inside input (emoji, camera, send) */
-.tg-icon-btn, .tg-send-btn {
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:transparent;
-  border:none;
-  color:var(--tg-text);
-  padding:6px;
-  cursor:pointer;
-}
-
-/* send button special background */
-.tg-send-btn {
-  background:var(--tg-accent);
-  color:#fff;
-  border-radius:50%;
-  width:36px;
-  height:36px;
-}
-
-/* icon sizing (Lucide SVG icons) */
-.tg-icon-btn svg, .tg-send-btn svg {
-  width:22px;
-  height:22px;
-  fill:currentColor;
-}
+.tg-comment-input{ flex:1; height:100%; border:none; background:transparent; color:var(--tg-text); font-size:14px; outline:none; }
+.tg-send-btn{ width:36px; height:36px; border-radius:50%; background:var(--tg-accent); color:#fff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.tg-icon-btn{ background:none; border:none; padding:6px; cursor:pointer; color:var(--tg-muted); }
 
 /* responsive */
 @media (max-width:520px){
