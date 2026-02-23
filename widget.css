@@ -1,4 +1,4 @@
-/* widget.css — Telegram replica with full grouping support */
+/* widget.css — Telegram replica with full grouping & dynamic tail */
 
 /* variables */
 :root{
@@ -13,6 +13,7 @@
   --gold:#ffd166;
 
   --tg-gap: calc(var(--tg-avatar-size) * 0.6);
+  --tg-tail-offset: 12px; /* fallback if JS doesn't set it */
 }
 
 /* base */
@@ -76,20 +77,25 @@ html,body{
 .tg-bubble.incoming .tg-bubble-content{ background:#182533; color:#e6eef8; }
 .tg-bubble.outgoing .tg-bubble-content{ background:#2b6df6; color:#fff; }
 
-/* SVG tail (mask-based) */
+/* ---------- dynamic tail ---------- */
 .tg-bubble-content::after{
   content:""; position:absolute; width:16px; height:18px; bottom:2px;
   background:currentColor; pointer-events:none;
   -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat;
   mask-size:contain; mask-repeat:no-repeat;
 }
+
+/* incoming */
 .tg-bubble.incoming .tg-bubble-content::after{
-  left:-7px;
+  left: var(--tg-tail-offset);
   -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
   mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
 }
+
+/* outgoing */
 .tg-bubble.outgoing .tg-bubble-content::after{
-  right:-7px; transform:scaleX(-1);
+  right: var(--tg-tail-offset);
+  transform: scaleX(-1);
   -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
   mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
 }
@@ -126,8 +132,8 @@ html,body{
 .tg-input-wrapper{ padding:8px 12px; position:sticky; bottom:8px; display:flex; justify-content:center; }
 .tg-input-bar{ display:flex; align-items:center; gap:8px; width:100%; max-width:640px; height:var(--tg-input-height); border-radius:var(--tg-input-radius); background:rgba(23,33,43,0.55); backdrop-filter:blur(14px); padding:0 12px; }
 .tg-comment-input{ flex:1; height:100%; border:none; background:transparent; color:var(--tg-text); font-size:14px; outline:none; }
-.tg-send-btn{ width:36px; height:36px; border-radius:50%; background:var(--tg-accent); color:#fff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; }
-.tg-icon-btn{ background:none; border:none; padding:6px; cursor:pointer; color:var(--tg-muted); }
+.tg-send-btn, .tg-icon-btn{ display:flex; align-items:center; justify-content:center; cursor:pointer; background:none; border:none; color:var(--tg-text); }
+.tg-send-btn{ width:36px; height:36px; border-radius:50%; background:var(--tg-accent); color:#fff; }
 
 /* responsive */
 @media (max-width:520px){
