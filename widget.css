@@ -1,4 +1,4 @@
-/* widget.css — Telegram replica with SVG tail, adaptive avatar/tail spacing, grouped bubbles, and full input bar styles */
+/* widget.css — Telegram replica with fixed SVG tail (`b`) and avatars always visible */
 
 /* variables */
 :root{
@@ -12,6 +12,7 @@
   --tg-input-radius:24px;
   --gold:#ffd166;
 
+  /* adaptive values derived from avatar size */
   --tg-gap: calc(var(--tg-avatar-size) * 0.7);
   --tg-nub-offset: calc(-1 * (var(--tg-gap) - 6px));
 }
@@ -78,6 +79,7 @@ html,body{
 }
 .tg-bubble.incoming{ justify-content:flex-start; }
 .tg-bubble.outgoing{ flex-direction:row-reverse; margin-left:auto; }
+
 .tg-bubble-avatar{
   width:var(--tg-avatar-size);
   height:var(--tg-avatar-size);
@@ -92,15 +94,14 @@ html,body{
 .tg-bubble-content{
   padding:10px 14px; border-radius:16px; font-size:14px; line-height:1.35; word-break:break-word;
   position:relative; max-width:100%; transition:all .18s ease; box-shadow:0 6px 18px rgba(0,0,0,0.18);
-  overflow: visible;
+  overflow: visible; /* allow SVG nub outside */
   z-index: 1;
 }
 
-/* background colors */
 .tg-bubble.incoming .tg-bubble-content{ background:#182533; color:var(--tg-text); }
 .tg-bubble.outgoing .tg-bubble-content{ background:#2b6df6; color:#fff; }
 
-/* SVG-backed nub */
+/* SVG-backed curved tail (fixed `b`) */
 .tg-bubble-content::after{
   content: "";
   position: absolute;
@@ -122,6 +123,7 @@ html,body{
   transform: scaleX(-1);
 }
 
+/* bubble sender/meta */
 .tg-bubble-sender{ font-size:13px; font-weight:600; margin-bottom:6px; }
 .tg-bubble-meta{ display:flex; align-items:center; gap:8px; margin-top:8px; font-size:11px; color:rgba(255,255,255,0.6); }
 .tg-bubble-image{ display:block; max-width:280px; border-radius:12px; margin-bottom:8px; object-fit:cover; }
@@ -130,7 +132,7 @@ html,body{
   border-radius:8px; margin-bottom:8px; font-size:12px; color:var(--tg-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;
 }
 
-/* input (glass style) */
+/* input bar */
 .tg-input-wrapper{ padding:8px 12px; position:sticky; bottom:8px; z-index:60; display:flex; justify-content:center; }
 .tg-input-bar{
   display:flex; align-items:center; gap:8px; width:100%; max-width:640px; height:var(--tg-input-height);
@@ -169,42 +171,3 @@ html,body{
   .tg-join-sticker{ padding:8px 10px; }
   .tg-join-sticker .join-cluster img{ width:36px; height:36px; margin-left:-10px; }
 }
-
-/* ---------- Telegram-style grouping adjustments ---------- */
-/* hide avatar for middle/last grouped messages */
-.tg-bubble.tg-grouped-middle .tg-bubble-avatar,
-.tg-bubble.tg-grouped-last.incoming .tg-bubble-avatar,
-.tg-bubble.tg-grouped-last.outgoing .tg-bubble-avatar {
-  visibility: hidden;
-  width: 0;
-  margin: 0;
-  padding: 0;
-}
-/* adjust bubble gap for grouped messages */
-.tg-bubble.tg-grouped-middle .tg-bubble-content,
-.tg-bubble.tg-grouped-last .tg-bubble-content {
-  margin-left: calc(var(--tg-gap) / 2);
-}
-.tg-bubble.outgoing.tg-grouped-middle .tg-bubble-content,
-.tg-bubble.outgoing.tg-grouped-last .tg-bubble-content {
-  margin-left: calc(var(--tg-gap) / 2);
-  margin-right: 0;
-}
-/* tail visibility */
-.tg-bubble.tg-grouped-first .tg-bubble-content::after { display: block; }
-.tg-bubble.tg-grouped-middle .tg-bubble-content::after { display: none; }
-.tg-bubble.tg-grouped-last .tg-bubble-content::after { display: block; }
-/* smooth radius adjustment */
-.tg-bubble.tg-grouped-middle .tg-bubble-content {
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
-}
-.tg-bubble.tg-grouped-last .tg-bubble-content {
-  border-bottom-left-radius: 16px;
-  border-bottom-right-radius: 16px;
-}
-/* small vertical spacing for grouped messages */
-.tg-bubble.tg-grouped-middle,
-.tg-bubble.tg-grouped-last { margin-bottom: 2px; }
