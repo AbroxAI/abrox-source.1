@@ -17,7 +17,7 @@
      - nub offset is derived so the SVG nub sits visually attached to bubble but clear of avatar
   */
   --tg-gap: calc(var(--tg-avatar-size) * 0.7);            /* default: 40px * 0.7 = 28px */
-  --tg-nub-offset: calc(-1 * (var(--tg-gap) - 4px));     /* default: -(28 - 4) = -24px */
+  --tg-nub-offset: calc(-1 * (var(--tg-gap) - 6px));     /* default: -(28 - 6) = -22px */
 
   /* fallback friendly values for older engines */
   /* browsers will use the fallback in the property (e.g. gap: var(--tg-gap, 28px)) */
@@ -78,13 +78,22 @@ html,body{
 
 /* bubble */
 .tg-bubble{
-  display:flex; align-items:flex-start;
+  display:flex;
+  align-items:center;                /* changed: center aligns bubble vertically to avatar */
   gap: var(--tg-gap, 28px); /* adaptive gap; fallback 28px */
   margin-bottom:14px; max-width:78%; position:relative;
 }
 .tg-bubble.incoming{ justify-content:flex-start; }
 .tg-bubble.outgoing{ flex-direction:row-reverse; margin-left:auto; }
-.tg-bubble-avatar{ width:var(--tg-avatar-size); height:var(--tg-avatar-size); border-radius:50%; object-fit:cover; flex-shrink:0; }
+.tg-bubble-avatar{
+  width:var(--tg-avatar-size);
+  height:var(--tg-avatar-size);
+  border-radius:50%;
+  object-fit:cover;
+  flex-shrink:0;
+  margin:0;            /* ensure no external margins interfere */
+  display:block;
+}
 
 /* bubble content (glass feel) */
 .tg-bubble-content{
@@ -105,7 +114,7 @@ html,body{
   position: absolute;
   width: 28px;    /* svg width */
   height: 20px;   /* svg height */
-  bottom: 6px;    /* vertical placement */
+  top: calc(50% - 10px);  /* center the nub vertically on the bubble */
   background-repeat: no-repeat;
   background-size: contain;
   pointer-events: none;
