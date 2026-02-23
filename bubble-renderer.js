@@ -1,4 +1,4 @@
-// bubble-renderer.js — Fixed Telegram-style bubble + mask-based tail (`b`) + avatars always visible
+// bubble-renderer.js — Fixed Telegram-style bubble + correct SVG tail + avatars always visible
 (function(){
   'use strict';
 
@@ -162,7 +162,7 @@
 
       content.appendChild(meta);
 
-      // assembly — avatars always visible
+      // assemble bubble — avatars always visible
       if(type==='incoming'){
         wrapper.appendChild(avatar);
         wrapper.appendChild(content);
@@ -174,7 +174,6 @@
         wrapper.style.justifyContent = 'flex-end';
       }
 
-      // context menu
       wrapper.addEventListener('contextmenu', (e)=>{
         e.preventDefault();
         document.dispatchEvent(new CustomEvent('messageContext',{
@@ -295,7 +294,7 @@
       }
     };
 
-    console.log('bubble-renderer fully fixed — avatars visible, mask-based SVG tail applied');
+    console.log('bubble-renderer fully fixed — avatars visible, correct SVG tail');
   }
 
   document.readyState === 'loading'
