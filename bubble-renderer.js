@@ -1,5 +1,5 @@
 // bubble-renderer.js (integrated typing + unread + Telegram style)
-
+// Patched: read --tg-avatar-size from CSS and avoid setting inline avatar width/height
 (function(){
   'use strict';
 
@@ -14,7 +14,19 @@
       return;
     }
 
-    const AVATAR_DIAM = 40;
+    // Read avatar size from CSS variable so JS and CSS remain in sync.
+    // Fallback to 40 if the variable isn't present or parse fails.
+    let AVATAR_DIAM = 40;
+    try{
+      const v = getComputedStyle(document.documentElement).getPropertyValue('--tg-avatar-size');
+      if(v){
+        const parsed = parseInt(v.trim(), 10);
+        if(!Number.isNaN(parsed) && parsed > 0) AVATAR_DIAM = parsed;
+      }
+    }catch(e){
+      // ignore — keep fallback
+    }
+
     const BUBBLE_RADIUS = 16;
     const INCOMING_BG = '#182533';
     const OUTGOING_BG = '#2b6df6';
@@ -75,10 +87,10 @@
       const avatar = document.createElement('img');
       avatar.className = 'tg-bubble-avatar';
       avatar.alt = persona?.name || 'user';
+      // Use AVATAR_DIAM for the external avatar URL generation only.
       avatar.src = persona?.avatar ||
         `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
-      avatar.style.width = avatar.style.height = AVATAR_DIAM + 'px';
-      avatar.style.borderRadius = '50%';
+      // Leave physical sizing to CSS (.tg-bubble-avatar uses --tg-avatar-size).
       avatar.style.objectFit = 'cover';
       avatar.onerror = () => {
         avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
