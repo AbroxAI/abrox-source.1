@@ -1,4 +1,4 @@
-// bubble-renderer.js — Telegram-style grouped bubbles + typing + unread + SVG tail
+// bubble-renderer.js — Fixed Telegram-style bubble + SVG tail (`b`) + avatars always visible
 (function(){
   'use strict';
 
@@ -60,54 +60,6 @@
       container.appendChild(sticker);
     }
 
-    // Determine grouped position (first/middle/last)
-    function updateGrouping(){
-      const bubbles = Array.from(container.querySelectorAll('.tg-bubble'));
-      let prevType = null;
-      let groupStart = 0;
-
-      for(let i=0;i<bubbles.length;i++){
-        const b = bubbles[i];
-        const type = b.classList.contains('outgoing') ? 'outgoing' : 'incoming';
-
-        // reset group classes
-        b.classList.remove('tg-grouped-first','tg-grouped-middle','tg-grouped-last');
-
-        if(prevType === type){
-          // continue group
-          for(let j=groupStart;j<=i;j++){
-            if(j===groupStart) bubbles[j].classList.add('tg-grouped-first');
-            else if(j<i) bubbles[j].classList.add('tg-grouped-middle');
-            else bubbles[j].classList.add('tg-grouped-last');
-          }
-        } else {
-          // previous group ended
-          if(i>0 && prevType!==null){
-            const last = i-1;
-            const first = groupStart;
-            for(let j=first;j<=last;j++){
-              if(j===first) bubbles[j].classList.add('tg-grouped-first');
-              else if(j<last) bubbles[j].classList.add('tg-grouped-middle');
-              else bubbles[j].classList.add('tg-grouped-last');
-            }
-          }
-          groupStart = i;
-        }
-        prevType = type;
-      }
-
-      // finalize last group
-      if(groupStart < bubbles.length){
-        const last = bubbles.length-1;
-        const first = groupStart;
-        for(let j=first;j<=last;j++){
-          if(j===first) bubbles[j].classList.add('tg-grouped-first');
-          else if(j<last) bubbles[j].classList.add('tg-grouped-middle');
-          else bubbles[j].classList.add('tg-grouped-last');
-        }
-      }
-    }
-
     function createBubbleElement(persona, text, opts={}){
       const timestamp = opts.timestamp || new Date();
       const type = opts.type === 'outgoing' ? 'outgoing' : 'incoming';
@@ -122,7 +74,6 @@
       const wrapper = document.createElement('div');
       wrapper.className = `tg-bubble ${type}`;
       wrapper.dataset.id = id;
-      wrapper.style.position = 'relative';
 
       // avatar
       const avatar = document.createElement('img');
@@ -212,14 +163,16 @@
 
       content.appendChild(meta);
 
-      // assembly
+      // assembly — avatars always visible, no leaf tail
       if(type==='incoming'){
         wrapper.appendChild(avatar);
         wrapper.appendChild(content);
+        wrapper.style.justifyContent = 'flex-start';
       } else {
         wrapper.style.flexDirection = 'row-reverse';
         wrapper.appendChild(avatar);
         wrapper.appendChild(content);
+        wrapper.style.justifyContent = 'flex-end';
       }
 
       wrapper.addEventListener('contextmenu', (e)=>{
@@ -247,8 +200,6 @@
         persona: created.persona,
         timestamp: created.timestamp
       });
-
-      updateGrouping();
 
       const atBottom =
         (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 120);
@@ -344,7 +295,7 @@
       }
     };
 
-    console.log('bubble-renderer fully integrated with grouping');
+    console.log('bubble-renderer fully fixed — avatars visible, correct SVG tail');
   }
 
   document.readyState === 'loading'
