@@ -1,4 +1,4 @@
-/* widget.css — Telegram replica with full grouping & dynamic tail */
+/* widget.css — Telegram replica with full grouping + correct tail */
 
 /* variables */
 :root{
@@ -12,8 +12,8 @@
   --tg-input-radius:24px;
   --gold:#ffd166;
 
+  /* adaptive values */
   --tg-gap: calc(var(--tg-avatar-size) * 0.6);
-  --tg-tail-offset: 12px; /* fallback if JS doesn't set it */
 }
 
 /* base */
@@ -43,7 +43,15 @@ html,body{
 .tg-title{ font-size:15px; font-weight:700; }
 .tg-meta{ font-size:12px; color:var(--tg-muted); margin-top:2px; }
 
-/* comments */
+/* header buttons (back + options) */
+.tg-back-btn, .tg-options-btn{
+  background:none; border:none; color:#fff; padding:6px; cursor:pointer;
+}
+.tg-back-btn i, .tg-options-btn i{
+  width:22px; height:22px;
+}
+
+/* comments container */
 .tg-comments-container{ flex:1 1 auto; padding:12px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
 .tg-date-sticker{
   display:block; width:max-content; margin:12px auto; background:rgba(255,255,255,0.04);
@@ -70,34 +78,28 @@ html,body{
   padding:10px 14px; border-radius:18px; font-size:14px; line-height:1.35;
   word-break:break-word; position:relative; max-width:100%;
   box-shadow:0 4px 12px rgba(0,0,0,0.18);
-  background:#182533; color:var(--tg-text);
 }
 
 /* incoming/outgoing colors */
 .tg-bubble.incoming .tg-bubble-content{ background:#182533; color:#e6eef8; }
 .tg-bubble.outgoing .tg-bubble-content{ background:#2b6df6; color:#fff; }
 
-/* ---------- dynamic tail ---------- */
+/* ---------- Correct Telegram-style tail ---------- */
 .tg-bubble-content::after{
   content:""; position:absolute; width:16px; height:18px; bottom:2px;
   background:currentColor; pointer-events:none;
   -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat;
   mask-size:contain; mask-repeat:no-repeat;
 }
-
-/* incoming */
 .tg-bubble.incoming .tg-bubble-content::after{
-  left: var(--tg-tail-offset);
-  -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
-  mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
+  left:-7px;
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
 }
-
-/* outgoing */
 .tg-bubble.outgoing .tg-bubble-content::after{
-  right: var(--tg-tail-offset);
-  transform: scaleX(-1);
-  -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
-  mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
+  right:-7px; transform: scaleX(-1);
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
 }
 
 /* reply preview */
@@ -128,12 +130,23 @@ html,body{
 .tg-bubble.tg-grouped-middle .tg-bubble-avatar,
 .tg-bubble.tg-grouped-last .tg-bubble-avatar{ visibility:hidden; }
 
-/* input */
-.tg-input-wrapper{ padding:8px 12px; position:sticky; bottom:8px; display:flex; justify-content:center; }
+/* input bar */
+.tg-input-wrapper{ padding:8px 12px; position:sticky; bottom:8px; display:flex; justify-content:center; z-index:60; }
 .tg-input-bar{ display:flex; align-items:center; gap:8px; width:100%; max-width:640px; height:var(--tg-input-height); border-radius:var(--tg-input-radius); background:rgba(23,33,43,0.55); backdrop-filter:blur(14px); padding:0 12px; }
 .tg-comment-input{ flex:1; height:100%; border:none; background:transparent; color:var(--tg-text); font-size:14px; outline:none; }
-.tg-send-btn, .tg-icon-btn{ display:flex; align-items:center; justify-content:center; cursor:pointer; background:none; border:none; color:var(--tg-text); }
-.tg-send-btn{ width:36px; height:36px; border-radius:50%; background:var(--tg-accent); color:#fff; }
+.tg-send-btn{ width:36px; height:36px; border-radius:50%; background:var(--tg-accent); color:#fff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.tg-icon-btn{ display:flex; align-items:center; justify-content:center; cursor:pointer; background:none; border:none; color:var(--tg-text); }
+
+/* jump indicator */
+#tg-jump-indicator{
+  position:fixed; left:50%; transform:translateX(-50%); bottom:calc(var(--tg-input-height) + 64px);
+  background:var(--tg-accent); color:#fff; padding:6px 12px; border-radius:18px; font-size:13px; display:flex; align-items:center; gap:8px; z-index:999;
+}
+#tg-jump-indicator.hidden{display:none}
+
+/* highlight */
+.tg-highlight{ outline:2px solid var(--gold); animation:highlightFade 2600ms ease forwards; }
+@keyframes highlightFade{ 0%{opacity:1} 80%{opacity:1} 100%{opacity:0.2; outline:0;} }
 
 /* responsive */
 @media (max-width:520px){
