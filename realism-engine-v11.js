@@ -1,10 +1,10 @@
-// realism-engine-v11.patched.joiner-reactive.js
-// ULTRA-REALISM ENGINE V11 — FULL POOLS + HARDENED + TRUE Reply + JOINER REACTIVE
+// realism-engine-v11.js
+// ULTRA-REALISM ENGINE V11 — FULL POOLS RESTORED + HARDENED + TRUE Reply Support + JOINER REACTIVE
 
 (function(){
 
 /* =====================================================
-   FULL ORIGINAL DATA POOLS (UNCHANGED)
+   FULL ORIGINAL DATA POOLS
 ===================================================== */
 
 const ASSETS = [
@@ -112,7 +112,6 @@ function generateTimestamp(days=120){
 }
 
 function generateComment(){
-
   const templates = [
     () => `Guys, ${random(TESTIMONIALS)}`,
     () => `Anyone trading ${random(ASSETS)} on ${random(BROKERS)}?`,
@@ -142,10 +141,12 @@ function generateComment(){
 }
 
 /* =====================================================
-   POOL
+   POOL & JOINER REACTIVE
 ===================================================== */
 
 const POOL = [];
+window.realismEngineV11Pool = POOL;
+window.realismEngineV11EMOJIS = EMOJIS;
 
 function ensurePool(min=2000){
   while(POOL.length < min){
@@ -153,6 +154,19 @@ function ensurePool(min=2000){
     if(POOL.length > 10000) break;
   }
 }
+
+// React to joiner-simulator messages
+window.addEventListener("joiner:new", (ev)=>{
+  const joiner = ev.detail;
+  if(!joiner || !joiner.name) return;
+
+  const replyCount = 1 + Math.floor(Math.random()*3);
+  for(let i=0;i<replyCount;i++){
+    const persona = window.identity?.getRandomPersona?.() || { name:"User", avatar:`https://ui-avatars.com/api/?name=U` };
+    const baseText = `Welcome ${joiner.name}! ${random(TESTIMONIALS)}`;
+    POOL.push({ text: baseText, timestamp: new Date(), persona });
+  }
+});
 
 /* =====================================================
    SAFE APPEND
@@ -166,49 +180,18 @@ function appendSafe(persona,text,opts={}){
 }
 
 /* =====================================================
-   TRUE REPLY LOGIC (NEW FIX)
+   TRUE REPLY LOGIC
 ===================================================== */
 
 function getRandomExistingMessage(){
   const messages = Array.from(document.querySelectorAll('.tg-bubble'));
   if(messages.length < 5) return null;
-
   const target = messages[Math.floor(Math.random() * messages.length)];
   const id = target.dataset.id;
   const text = target.querySelector('.tg-bubble-text')?.textContent;
-
   if(!id || !text) return null;
-
-  return {
-    replyToId: id,
-    replyToText: text.slice(0,120)
-  };
+  return { replyToId: id, replyToText: text.slice(0,120) };
 }
-
-/* =====================================================
-   JOINER-REACTIVE DYNAMIC REPLIES
-===================================================== */
-
-window.addEventListener("joiner:new", (ev)=>{
-  const joiner = ev.detail;
-  if(!joiner || !joiner.name) return;
-
-  const replyCount = 1 + Math.floor(Math.random()*3);
-
-  for(let i=0;i<replyCount;i++){
-    const persona = window.identity?.getRandomPersona?.() || { name:"User", avatar:`https://ui-avatars.com/api/?name=U` };
-
-    let baseText = `Welcome ${joiner.name}!`;
-    if(window.identity?.SLANG && persona.region){
-      const slangList = window.identity.SLANG[persona.region] || [];
-      if(slangList.length) baseText = `${random(slangList)} ${joiner.name}, ${random(TESTIMONIALS)}`;
-    }
-    if(Math.random() < 0.55) baseText += " " + random(EMOJIS);
-
-    const timestamp = new Date(Date.now() - Math.random()*60000);
-    POOL.push({ text: baseText, timestamp, persona });
-  }
-});
 
 /* =====================================================
    POSTING
@@ -216,20 +199,15 @@ window.addEventListener("joiner:new", (ev)=>{
 
 function post(count=1){
   ensurePool(Math.max(1000,count));
-
   for(let i=0;i<count;i++){
     const item = POOL.shift();
     if(!item) break;
 
     setTimeout(()=>{
       const persona = item.persona || window.identity?.getRandomPersona?.() || { name:"User", avatar:`https://ui-avatars.com/api/?name=U` };
-
-      if(window.TGRenderer?.showTyping){
-        window.TGRenderer.showTyping(persona);
-      }
+      if(window.TGRenderer?.showTyping) window.TGRenderer.showTyping(persona);
 
       setTimeout(()=>{
-
         let replyData = {};
         if(maybe(0.28)){
           const existing = getRandomExistingMessage();
@@ -279,7 +257,7 @@ setTimeout(()=>{
   ensurePool(2000);
   post(60);
   simulate();
-  console.log("Realism Engine V11 FULL — Reply jumper 100% functional + joiner-reactive dynamic replies.");
+  console.log("Realism Engine V11 FULL — Joiner-reactive dynamic replies active.");
 },900);
 
 })();
