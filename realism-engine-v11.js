@@ -1,5 +1,5 @@
 // realism-engine-v11.patched.full.js
-// ULTRA-REALISM ENGINE V11 — FULL POOLS RESTORED + HARDENED
+// ULTRA-REALISM ENGINE V11 — FULL POOLS RESTORED + HARDENED + Reply IDs fixed
 
 (function(){
 
@@ -164,19 +164,22 @@ function ensurePool(min=1000){
 }
 
 /* =====================================================
-   SAFE APPEND (Renderer Compatible)
+   SAFE APPEND (Renderer Compatible + IDs for reply)
 ===================================================== */
 
 function appendSafe(persona,text,opts={}){
 
-  if(window.TGRenderer?.appendMessage){
-    return window.TGRenderer.appendMessage(persona,text,opts);
-  }
-
   const chat = document.getElementById("tg-comments-container");
   if(!chat) return null;
 
-  const id = `realism_${Date.now()}_${rand(9999)}`;
+  // generate unique ID if not provided
+  const id = opts.id || `realism_${Date.now()}_${rand(9999)}`;
+  opts.id = id;
+
+  // pass ID and other options to TGRenderer
+  if(window.TGRenderer?.appendMessage){
+    return window.TGRenderer.appendMessage(persona,text,opts);
+  }
 
   const el = document.createElement("div");
   el.className = "tg-bubble incoming";
@@ -219,9 +222,11 @@ function post(count=1){
       }
 
       setTimeout(()=>{
+        // now passing ID for reply support
         appendSafe(persona,item.text,{
           timestamp:item.timestamp,
-          type:"incoming"
+          type:"incoming",
+          id:`realism_${Date.now()}_${rand(9999)}`
         });
       },700+rand(500));
 
@@ -255,7 +260,7 @@ setTimeout(()=>{
   ensurePool(1200);
   post(60);
   simulate();
-  console.log("Realism Engine V11 FULL started.");
+  console.log("Realism Engine V11 FULL started with reply IDs enabled.");
 },900);
 
 })();
