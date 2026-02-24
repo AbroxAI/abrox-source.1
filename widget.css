@@ -1,4 +1,4 @@
-/* widget.css — Telegram 2026 replica with fixed mask tail and full grouping */
+/* widget.css — Telegram replica with full grouping and fixed SVG tail */
 
 /* variables */
 :root{
@@ -13,6 +13,7 @@
   --gold:#ffd166;
 
   --tg-gap: calc(var(--tg-avatar-size) * 0.6);
+  --tg-nub-offset: -7px; /* tail offset */
 }
 
 /* base */
@@ -42,10 +43,8 @@ html,body{
 .tg-title{ font-size:15px; font-weight:700; }
 .tg-meta{ font-size:12px; color:var(--tg-muted); margin-top:2px; }
 
-/* comments container */
-.tg-comments-container{
-  flex:1 1 auto; padding:12px; overflow-y:auto; -webkit-overflow-scrolling:touch;
-}
+/* comments */
+.tg-comments-container{ flex:1 1 auto; padding:12px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
 .tg-date-sticker{
   display:block; width:max-content; margin:12px auto; background:rgba(255,255,255,0.04);
   padding:6px 12px; border-radius:16px; font-size:12px; color:var(--tg-muted);
@@ -64,6 +63,7 @@ html,body{
   border-radius:50%;
   object-fit:cover;
   flex-shrink:0;
+  display:block;
 }
 
 /* bubble content */
@@ -72,13 +72,15 @@ html,body{
   word-break:break-word; position:relative; max-width:100%;
   box-shadow:0 4px 12px rgba(0,0,0,0.18);
   background:#182533; color:var(--tg-text);
+  overflow: visible; /* allow tail to show */
+  z-index:1;
 }
 
 /* incoming/outgoing colors */
 .tg-bubble.incoming .tg-bubble-content{ background:#182533; color:#e6eef8; }
 .tg-bubble.outgoing .tg-bubble-content{ background:#2b6df6; color:#fff; }
 
-/* mask-based tail (correct Telegram style) */
+/* SVG tail using mask (Telegram-style) */
 .tg-bubble-content::after{
   content:""; position:absolute; width:16px; height:18px; bottom:2px;
   background:currentColor; pointer-events:none;
@@ -86,26 +88,36 @@ html,body{
   mask-size:contain; mask-repeat:no-repeat;
 }
 .tg-bubble.incoming .tg-bubble-content::after{
-  left:-7px;
+  left:var(--tg-nub-offset);
   -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
   mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
 }
 .tg-bubble.outgoing .tg-bubble-content::after{
-  right:-7px; transform:scaleX(-1);
+  right:var(--tg-nub-offset);
+  transform:scaleX(-1);
   -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
   mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
 }
 
-/* reply preview */
+/* bubble sender/meta */
+.tg-bubble-sender{ font-size:13px; font-weight:600; margin-bottom:6px; }
+.tg-bubble-meta{ display:flex; align-items:center; gap:8px; margin-top:8px; font-size:11px; color:rgba(255,255,255,0.6); }
+.tg-bubble-image{ display:block; max-width:280px; border-radius:12px; margin-bottom:8px; object-fit:cover; }
 .tg-reply-preview{
   background:rgba(255,255,255,0.04); padding:6px 8px; border-left:3px solid rgba(255,255,255,0.08);
-  border-radius:8px; margin-bottom:8px; font-size:12px; color:var(--tg-muted);
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;
+  border-radius:8px; margin-bottom:8px; font-size:12px; color:var(--tg-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;
 }
 
-/* bubble text/meta */
-.tg-bubble-text{ margin-top:4px; }
-.tg-bubble-meta{ display:flex; align-items:center; gap:8px; margin-top:8px; font-size:11px; color:rgba(255,255,255,0.6); }
+/* Lucide / Feather icons inside bubbles */
+.tg-bubble-meta i[data-lucide] {
+  display:inline-block;
+  width:14px;
+  height:14px;
+  stroke:currentColor;
+  fill:none;
+  background:none;
+  vertical-align:middle;
+}
 
 /* ---------- Telegram grouping ---------- */
 .tg-bubble.tg-grouped-first .tg-bubble-content{ border-top-left-radius:18px; border-top-right-radius:18px; }
