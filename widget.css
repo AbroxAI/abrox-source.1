@@ -1,4 +1,4 @@
-/* widget.css — Telegram replica with correct tail color, fully validated */
+/* widget.css — Telegram 2026 replica with correct tail, avatars, broadcast image & pin banner */
 
 /* variables */
 :root{
@@ -43,6 +43,25 @@ html,body{
 .tg-title{ font-size:15px; font-weight:700; }
 .tg-meta{ font-size:12px; color:var(--tg-muted); margin-top:2px; }
 
+/* icon buttons */
+.tg-back-btn, .tg-options-btn{ background:none; border:none; color:#fff; padding:6px; cursor:pointer; }
+.tg-back-btn i, .tg-options-btn i{ width:22px; height:22px; }
+
+/* pin banner */
+.tg-pin-banner{
+  display:flex; align-items:center; gap:12px; padding:10px 14px;
+  background:rgba(23,33,43,0.55); backdrop-filter:blur(14px); border-radius:18px;
+  color:var(--tg-text); font-size:13px; position:sticky; top:calc(var(--tg-header-height) + 4px);
+  z-index:55; max-width:92%; margin:6px auto; transform:translateY(-8px);
+  opacity:0; transition:all 320ms;
+}
+.tg-pin-banner.show{ transform:translateY(0); opacity:1; }
+.tg-pin-banner img{ width:40px; height:40px; border-radius:10px; object-fit:cover; }
+.tg-pin-banner .pin-text{ flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tg-pin-banner .contact-admin-btn{
+  height:34px; border-radius:18px; padding:6px 14px; background:var(--tg-accent); color:#fff; border:none; font-weight:600;
+}
+
 /* comments container */
 .tg-comments-container{ flex:1 1 auto; padding:12px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
 .tg-date-sticker{
@@ -52,71 +71,57 @@ html,body{
 
 /* bubble wrapper */
 .tg-bubble{
-  display:flex;
-  align-items:center;
-  gap: var(--tg-gap, 28px);
+  display:flex; align-items:flex-start; gap: var(--tg-gap, 28px);
   margin-bottom:14px; max-width:78%; position:relative;
 }
 .tg-bubble.incoming{ justify-content:flex-start; }
 .tg-bubble.outgoing{ flex-direction:row-reverse; margin-left:auto; }
 
+/* avatar */
 .tg-bubble-avatar{
   width:var(--tg-avatar-size);
   height:var(--tg-avatar-size);
   border-radius:50%;
   object-fit:cover;
   flex-shrink:0;
+  display:block;
 }
 
 /* bubble content */
 .tg-bubble-content{
   padding:10px 14px; border-radius:16px; font-size:14px; line-height:1.35;
-  word-break:break-word; position:relative; max-width:100%; transition:all .18s ease; box-shadow:0 6px 18px rgba(0,0,0,0.18);
-  overflow: visible; /* allow SVG tail */
+  word-break:break-word; position:relative; max-width:100%;
+  box-shadow:0 6px 18px rgba(0,0,0,0.18);
+  overflow: visible;
   z-index:1;
+  background:#182533;
+  color:var(--tg-text);
 }
 
-/* bubble colors */
-.tg-bubble.incoming .tg-bubble-content{ background:#182533; color:#e6eef8; }
+/* incoming/outgoing colors */
+.tg-bubble.incoming .tg-bubble-content{ background:#182533; color:var(--tg-text); }
 .tg-bubble.outgoing .tg-bubble-content{ background:#2b6df6; color:#fff; }
 
-/* SVG-backed tail (color matches bubble) */
+/* SVG tail using mask (fixed & pointing near avatar, color locked to bubble) */
 .tg-bubble-content::after{
-  content: "";
-  position: absolute;
-  width: 28px;
-  height: 20px;
-  top: calc(50% - 10px);
-  pointer-events: none;
-  z-index:0;
-  background-repeat: no-repeat;
-  background-size: contain;
+  content:""; position:absolute; width:16px; height:18px; bottom:2px;
+  pointer-events:none;
+  background: currentColor; /* tail now inherits bubble color */
+  -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat;
+  mask-size:contain; mask-repeat:no-repeat;
 }
 .tg-bubble.incoming .tg-bubble-content::after{
-  left: var(--tg-nub-offset, -24px);
-  background-color: #182533; /* tail matches bubble */
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 20'><path d='M28 10 C20 2 8 2 0 10 C8 18 20 18 28 10 Z' fill='black'/></svg>");
-  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 20'><path d='M28 10 C20 2 8 2 0 10 C8 18 20 18 28 10 Z' fill='black'/></svg>");
-  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 20'><path d='M28 10 C20 2 8 2 0 10 C8 18 20 18 28 10 Z' fill='black'/></svg>");
-  -webkit-mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-size: contain;
-  mask-repeat: no-repeat;
+  left:-7px;
+  -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
+  mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
 }
 .tg-bubble.outgoing .tg-bubble-content::after{
-  right: var(--tg-nub-offset, -24px);
-  transform: scaleX(-1);
-  background-color: #2b6df6; /* tail matches bubble */
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 20'><path d='M28 10 C20 2 8 2 0 10 C8 18 20 18 28 10 Z' fill='black'/></svg>");
-  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 20'><path d='M28 10 C20 2 8 2 0 10 C8 18 20 18 28 10 Z' fill='black'/></svg>");
-  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 20'><path d='M28 10 C20 2 8 2 0 10 C8 18 20 18 28 10 Z' fill='black'/></svg>");
-  -webkit-mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-size: contain;
-  mask-repeat: no-repeat;
+  right:-7px; transform:scaleX(-1);
+  -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
+  mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
 }
 
-/* bubble sender/meta */
+/* sender/meta */
 .tg-bubble-sender{ font-size:13px; font-weight:600; margin-bottom:6px; }
 .tg-bubble-meta{ display:flex; align-items:center; gap:8px; margin-top:8px; font-size:11px; color:rgba(255,255,255,0.6); }
 .tg-bubble-image{ display:block; max-width:280px; border-radius:12px; margin-bottom:8px; object-fit:cover; }
@@ -127,8 +132,13 @@ html,body{
 
 /* input bar */
 .tg-input-wrapper{ padding:8px 12px; position:sticky; bottom:8px; z-index:60; display:flex; justify-content:center; }
-.tg-input-bar{ display:flex; align-items:center; gap:8px; width:100%; max-width:640px; height:var(--tg-input-height); border-radius:var(--tg-input-radius); background:rgba(23,33,43,0.55); backdrop-filter:blur(14px); padding:0 12px; }
-.tg-comment-input{ flex:1; height:100%; border:none; background:transparent; color:var(--tg-text); font-size:14px; outline:none; }
+.tg-input-bar{
+  display:flex; align-items:center; gap:8px; width:100%; max-width:640px; height:var(--tg-input-height);
+  border-radius:var(--tg-input-radius); background:rgba(23,33,43,0.55); backdrop-filter:blur(14px); padding:0 12px;
+}
+.tg-comment-input{
+  flex:1; height:100%; border-radius:var(--tg-input-radius); border:none; padding:0 12px; background:transparent; color:var(--tg-text); font-size:14px; outline:none;
+}
 .tg-send-btn{ width:36px; height:36px; border-radius:50%; background:var(--tg-accent); color:#fff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; }
 .tg-icon-btn{ background:none; border:none; padding:6px; cursor:pointer; color:var(--tg-muted); }
 
