@@ -1,4 +1,4 @@
-// bubble-renderer.js — Fully fixed Telegram 2026 bubbles with correct tail alignment and mask
+// bubble-renderer.js — Fully fixed Telegram 2026 bubbles with working reply jumper
 (function(){
   'use strict';
 
@@ -13,6 +13,7 @@
       return;
     }
 
+    // Avatar size
     let AVATAR_DIAM = 40;
     try{
       const v = getComputedStyle(document.documentElement).getPropertyValue('--tg-avatar-size');
@@ -53,7 +54,9 @@
       const sticker = document.createElement('div');
       sticker.className = 'tg-date-sticker';
       const d = new Date(dateObj);
-      sticker.textContent = d.toLocaleDateString([], {year:'numeric', month:'short', day:'numeric'});
+      sticker.textContent = d.toLocaleDateString([], {
+        year:'numeric', month:'short', day:'numeric'
+      });
       container.appendChild(sticker);
     }
 
@@ -76,35 +79,43 @@
       const avatar = document.createElement('img');
       avatar.className = 'tg-bubble-avatar';
       avatar.alt = persona?.name || 'user';
-      avatar.src = persona?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
-      avatar.onerror = () => { avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`; };
+      avatar.src = persona?.avatar ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
+      avatar.onerror = () => {
+        avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
+      };
 
       // content
       const content = document.createElement('div');
       content.className = 'tg-bubble-content';
 
-      const bgColor = type==='incoming' ? INCOMING_BG : OUTGOING_BG;
-      const textColor = type==='incoming' ? INCOMING_TEXT : '#fff';
-
-      content.style.background = bgColor;
-      content.style.color = textColor;
-
-      // set tail color dynamically using inline style
-      content.style.setProperty('--bubble-tail-color', bgColor);
+      if(type === 'incoming'){
+        content.style.background = INCOMING_BG;
+        content.style.color = INCOMING_TEXT;
+      } else {
+        content.style.background = OUTGOING_BG;
+        content.style.color = '#fff';
+      }
 
       // reply preview
       if(replyToText || replyToId){
         const rp = document.createElement('div');
         rp.className = 'tg-reply-preview';
-        rp.textContent = replyToText ? (replyToText.length>120 ? replyToText.slice(0,117)+'...' : replyToText) : 'Reply';
+        rp.textContent = replyToText
+          ? (replyToText.length > 120 ? replyToText.slice(0,117)+'...' : replyToText)
+          : 'Reply';
+
         rp.addEventListener('click', () => {
           if(replyToId && MESSAGE_MAP.has(replyToId)){
             const target = MESSAGE_MAP.get(replyToId).el;
-            target.scrollIntoView({behavior:'smooth', block:'center'});
-            target.classList.add('tg-highlight');
-            setTimeout(()=> target.classList.remove('tg-highlight'), 2600);
+            if(target){
+              target.scrollIntoView({behavior:'smooth', block:'center'});
+              target.classList.add('tg-highlight');
+              setTimeout(()=> target.classList.remove('tg-highlight'), 2600);
+            }
           }
         });
+
         content.appendChild(rp);
       }
 
@@ -154,12 +165,7 @@
 
       content.appendChild(meta);
 
-      // append tail dynamically (CSS already uses --bubble-tail-color)
-      content.style.position = 'relative';
-      content.style.setProperty('--bubble-tail-width','16px');
-      content.style.setProperty('--bubble-tail-height','18px');
-
-      // assembly
+      // assembly — avatars always visible, bubble tail correctly masked
       if(type==='incoming'){
         wrapper.appendChild(avatar);
         wrapper.appendChild(content);
@@ -174,13 +180,16 @@
       // context menu
       wrapper.addEventListener('contextmenu', (e)=>{
         e.preventDefault();
-        document.dispatchEvent(new CustomEvent('messageContext',{ detail:{ id, persona, text } }));
+        document.dispatchEvent(new CustomEvent('messageContext',{
+          detail:{ id, persona, text }
+        }));
       });
 
       return { wrapper, id, text, persona, timestamp };
     }
 
     function appendMessage(persona, text, opts={}){
+      // always use the server/id passed in opts.id
       const id = opts.id || ('m_' + Date.now() + '_' + Math.floor(Math.random()*9999));
       opts.id = id;
 
@@ -189,9 +198,15 @@
 
       const el = created.wrapper;
       container.appendChild(el);
-      MESSAGE_MAP.set(id,{ el, text: created.text, persona: created.persona, timestamp: created.timestamp });
+      MESSAGE_MAP.set(id,{
+        el,
+        text: created.text,
+        persona: created.persona,
+        timestamp: created.timestamp
+      });
 
-      const atBottom = (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 120);
+      const atBottom =
+        (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 120);
 
       if(atBottom){
         container.scrollTop = container.scrollHeight;
@@ -211,7 +226,9 @@
 
     function updateJump(){
       if(jumpText){
-        jumpText.textContent = unseenCount > 1 ? `New messages · ${unseenCount}` : 'New messages';
+        jumpText.textContent = unseenCount > 1
+          ? `New messages · ${unseenCount}`
+          : 'New messages';
       }
     }
     function showJump(){ jumpIndicator?.classList.remove('hidden'); }
@@ -259,7 +276,9 @@
     window.TGRenderer = {
       appendMessage:(p,t,o)=> appendMessage(p||{}, String(t||''), o||{}),
       showTyping:(p)=>{
-        document.dispatchEvent(new CustomEvent('headerTyping',{ detail:{ name:(p&&p.name)?p.name:'Someone' } }));
+        document.dispatchEvent(new CustomEvent('headerTyping',{
+          detail:{ name:(p&&p.name)?p.name:'Someone' }
+        }));
       }
     };
 
@@ -280,8 +299,10 @@
       }
     };
 
-    console.log('bubble-renderer fully fixed — avatars visible, tail aligned to avatar');
+    console.log('bubble-renderer fully fixed — avatars visible, tail aligned, reply jumper works');
   }
 
-  document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', init) : init();
+  document.readyState === 'loading'
+    ? document.addEventListener('DOMContentLoaded', init)
+    : init();
 })();
