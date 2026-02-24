@@ -1,6 +1,9 @@
-// joiner-simulator.js (v11, enhanced pool & reactive)
+// joiner-simulator.js
+// Patched Joiner Simulator fully integrated with Realism Engine V11
+// Maintains original script name; large dynamic welcome pool
+
 (function(){
-  const LS_KEY = "abrox_joiner_state_v1_v2";
+
   const DEFAULTS = {
     minIntervalMs: 1000*60*60*6,
     maxIntervalMs: 1000*60*60*24,
@@ -20,10 +23,28 @@
   const usedJoinNames = new Set();
   let preGenPool = [];
 
-  // ---------------------
-  // UTILITIES
-  // ---------------------
+  // =====================================================
+  // LARGE WELCOME TEXT POOL
+  // =====================================================
+  const WELCOME_TEXT_POOL = [
+    "Hi everyone! 👋","Hello! Glad to join.","Hey — excited to learn and trade with you all.","New here — say hi!","Thanks for having me 😊",
+    "Just joined, looking forward to the signals.","Excited to be here 🙌","Looking forward to contributing 🚀","Happy to join the group 💡",
+    "Hi all, hope to learn something new today 😎","Hey team! Ready to grow together 💪","Good to be here! Looking forward to insights 📈",
+    "Glad to be part of this community 🌟","Hello traders! Let's make this a profitable journey 💸","Hi everyone, excited to follow trends 📊",
+    "Hey all, ready to share ideas and strategies 🧠","Happy to connect with like-minded people 🤝","Ready to follow the signals and grow 💹",
+    "Excited to trade with you all 🚀","Hi, looking forward to collaborative learning ✨","Hello, let's make some smart moves together 📊",
+    "Glad to join this awesome group 😎","Hi team, here to learn and contribute 🎯","Happy to meet everyone, excited to start 💡",
+    "Hello traders, looking forward to profitable trades 🏆","Excited to be on board and learn daily 📈","Hi, hoping to gain valuable insights 💹",
+    "Hey, let's make consistent profits together 💰","Glad to be here, looking forward to signals 🔥","Hello everyone, excited to start trading 💸",
+    "Hi, hoping to improve my trading skills 📊","Hey all, looking forward to a great experience 🚀","Happy to be part of this community 🌟",
+    "Hello team, ready to grow and learn together 🧠","Hi everyone, excited to follow trends and signals 📈","Glad to join, ready to trade smart 💹",
+    "Hey, looking forward to learning new strategies ✨","Hi team, excited for collaborative trading 🤝","Hello, happy to join and contribute ideas 💡",
+    "Hi all, ready for profitable trading sessions 🔥","Hello traders, let's make the most of this group 🚀"
+  ];
+
+  // =====================================================
   function randInt(min, max){ return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function random(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
   function safeMeta(){ return document.getElementById("tg-meta-line"); }
 
   function bumpMemberCount(n = 1){
@@ -52,9 +73,6 @@
     return candidate;
   }
 
-  // ---------------------
-  // REALISTIC JOINERS
-  // ---------------------
   function createJoinerFromIdentity(){
     let p;
     if(window.identity && typeof window.identity.getRandomPersona === "function"){
@@ -71,7 +89,7 @@
       p = { name: fName, avatar: safeBuildAvatar(fName), isAdmin:false };
     }
 
-    // FIRE JOINER-REACTIVE EVENT FOR REALISM ENGINE
+    // FIRE JOINER-REACTIVE EVENT
     if(window.CustomEvent){
       document.dispatchEvent(new CustomEvent("joiner:new", { detail: p }));
     }
@@ -81,7 +99,7 @@
 
   function preGenerate(count){
     preGenPool = preGenPool || [];
-    const toCreate = Math.max(0, Math.min(1500, count - preGenPool.length)); // increased pool
+    const toCreate = Math.max(0, Math.min(2000, count - preGenPool.length));
     for(let i=0;i<toCreate;i++) preGenPool.push(createJoinerFromIdentity());
     return preGenPool.length;
   }
@@ -90,27 +108,36 @@
     return preGenPool && preGenPool.length ? preGenPool.shift() : createJoinerFromIdentity();
   }
 
-  // ---------------------
-  // ENHANCED WELCOME TEXT
-  // ---------------------
-  const WELCOME_TEXTS = [
-    "Hi everyone! 👋", "Hello! Glad to join.", "Hey — excited to learn and trade with you all.",
-    "New here — say hi!", "Thanks for having me 😊", "Just joined, looking forward to the signals.",
-    "Happy to be part of this community!", "Excited to connect with you all!", "Looking forward to learning!",
-    "Hope to contribute to discussions here.", "Hi team! Let's make some green together 💹", 
-    "Glad to meet everyone!", "Hey folks, looking forward to trades and tips.", "Hello from a new trader!",
-    "Excited for the insights in this group!", "Hi all! Ready to learn and share.", 
-    "Happy to join this amazing group!", "Cheers everyone, glad to be here! 🎉", 
-    "Hello traders! Looking forward to growth 💸", "Excited to start my trading journey here!"
-  ];
-
   function randomWelcomeText(persona){
-    return WELCOME_TEXTS[Math.floor(Math.random()*WELCOME_TEXTS.length)];
+    return random(WELCOME_TEXT_POOL);
   }
 
-  // ---------------------
-  // STICKER & CHAT APPENDING
-  // ---------------------
+  // POST WELCOME BUBBLES & FEED REALISM ENGINE
+  function postWelcomeAsBubbles(joiner){
+    const persona = joiner;
+    const text = randomWelcomeText(joiner);
+
+    if(window.TGRenderer?.showTyping){
+      window.TGRenderer.showTyping(persona, 700 + Math.random()*500);
+    }
+
+    setTimeout(()=>{
+      if(window.TGRenderer?.appendMessage){
+        window.TGRenderer.appendMessage(persona, text, { type:"incoming" });
+      }
+
+      if(window.realismEngineV11Pool){
+        const replyCount = 1 + Math.floor(Math.random()*3);
+        for(let i=0;i<replyCount;i++){
+          const personaRE = window.identity?.getRandomPersona?.() || { name:"User", avatar:`https://ui-avatars.com/api/?name=U` };
+          let baseText = `${random(WELCOME_TEXT_POOL)}`;
+          if(Math.random() < 0.55) baseText += " " + (window.realismEngineV11EMOJIS ? random(window.realismEngineV11EMOJIS) : "🎉");
+          window.realismEngineV11Pool.push({ text: baseText, timestamp: new Date(), persona: personaRE });
+        }
+      }
+    }, 700 + Math.random()*500);
+  }
+
   function createJoinStickerElement(joiners){
     const container = document.createElement("div");
     container.className = "tg-join-sticker";
@@ -157,76 +184,17 @@
     return container;
   }
 
-  function appendStickerToChat(stickerEl, timestamp){
-    const chat = document.getElementById("tg-comments-container");
-    if(!chat) return;
-    const wrapper = document.createElement("div");
-    wrapper.className = "tg-join-wrapper";
-    if(timestamp) wrapper.dataset.joinTimestamp = new Date(timestamp).toISOString();
-    wrapper.appendChild(stickerEl);
-    chat.appendChild(wrapper);
-    try{ chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" }); }
-    catch(e){ chat.scrollTop = chat.scrollHeight; }
-  }
-
-  function postWelcomeAsBubbles(joiner){
-    const persona = joiner;
-    const text = randomWelcomeText(joiner);
-    if(window.TGRenderer && typeof window.TGRenderer.showTyping === "function"){
-      window.TGRenderer.showTyping(persona, 700 + Math.random()*500);
-    }
-    setTimeout(()=>{
-      if(window.TGRenderer && typeof window.TGRenderer.appendMessage === "function"){
-        window.TGRenderer.appendMessage(persona, text, { type: "incoming" });
-      }
-    }, 700 + Math.random()*500);
-  }
-
-  // ---------------------
-  // JOINER FLOW
-  // ---------------------
   function postJoinerFlow(joiners, opts){
     opts = opts || {};
     bumpMemberCount(joiners.length || 1);
 
     if((joiners.length || 1) > 2){
       const stickerEl = createJoinStickerElement(joiners);
-      appendStickerToChat(stickerEl);
-
-      if(opts.welcomeAsSystem || cfg.welcomeAsSystem){
-        if(window.TGRenderer && typeof window.TGRenderer.appendMessage === "function"){
-          window.TGRenderer.appendMessage({ name: "System" },
-            `${joiners.length} new members joined`, { type: "system" });
-        }
-      }
-
-      joiners.slice(0, cfg.initialBurstPreview).forEach((p, idx) => {
-        setTimeout(()=> postWelcomeAsBubbles(p), 800 + idx*600);
-      });
+      const chat = document.getElementById("tg-comments-container");
+      if(chat) chat.appendChild(stickerEl);
+      joiners.slice(0, cfg.initialBurstPreview).forEach(postWelcomeAsBubbles);
     } else {
-      joiners.forEach((p, idx) => {
-        setTimeout(()=> {
-          if(opts.welcomeAsSystem || cfg.welcomeAsSystem){
-            if(window.TGRenderer && typeof window.TGRenderer.appendMessage === "function"){
-              window.TGRenderer.appendMessage({ name: "System" },
-                `${p.name} joined the group`, { type: "system" });
-              setTimeout(()=> postWelcomeAsBubbles(p), 350);
-              return;
-            }
-          }
-          postWelcomeAsBubbles(p);
-        }, idx*600);
-      });
-    }
-
-    if(Math.random() < cfg.verifyMessageProbability){
-      const admin = (window.identity && window.identity.Admin) || { name: "Admin" };
-      setTimeout(()=>{
-        if(window.TGRenderer && typeof window.TGRenderer.appendMessage === "function"){
-          window.TGRenderer.appendMessage(admin,
-            "Please verify via Contact Admin.", { type: "outgoing" });
-        }
-      }, 1200);
+      joiners.forEach(postWelcomeAsBubbles);
     }
   }
 
@@ -247,7 +215,7 @@
   function start(){
     if(running) return;
     running = true;
-    preGenerate(Math.max(20, cfg.initialBurstPreview)); // pre-generate larger pool
+    preGenerate(Math.max(6, cfg.initialBurstPreview));
     scheduleNext();
   }
 
