@@ -1,5 +1,4 @@
-// app.js (fully aligned with realism-engine-v11)
-
+// app.js — fully aligned with fixed BubbleRenderer / TGRenderer
 document.addEventListener("DOMContentLoaded", () => {
 
   const pinBanner = document.getElementById("tg-pin-banner");
@@ -11,40 +10,20 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     SAFE APPEND WRAPPER
+     SAFE APPEND WRAPPER — always uses TGRenderer
   ===================================================== */
-
   function appendSafe(persona, text, opts = {}){
     if(window.TGRenderer?.appendMessage){
       return window.TGRenderer.appendMessage(persona, text, opts);
     }
-
-    const id = `msg_${Date.now()}`;
-    const el = document.createElement("div");
-    el.className = `tg-bubble ${opts.type === "outgoing" ? "outgoing" : "incoming"}`;
-    el.dataset.id = id;
-
-    el.innerHTML = `
-      <img class="tg-bubble-avatar" src="${persona.avatar || "assets/admin.jpg"}">
-      <div class="tg-bubble-content">
-        <div class="tg-bubble-sender">${persona.name}</div>
-        <div class="tg-bubble-text">${text}</div>
-        <div class="tg-bubble-meta"></div>
-      </div>
-    `;
-
-    container.appendChild(el);
-    container.scrollTop = container.scrollHeight;
-
-    return id;
+    console.error("TGRenderer not ready — cannot append message");
+    return null;
   }
 
   /* =====================================================
      ADMIN BROADCAST
   ===================================================== */
-
   function postAdminBroadcast(){
-
     const admin = window.identity?.Admin || {
       name:"Admin",
       avatar:"assets/admin.jpg",
@@ -76,9 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =====================================================
      PIN BANNER
   ===================================================== */
-
   function showPinBanner(image, caption, pinnedMessageId){
-
     if(!pinBanner) return;
 
     pinBanner.innerHTML = "";
@@ -119,7 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function postPinNotice(){
     const system = { name:"System", avatar:"assets/admin.jpg" };
     appendSafe(system, "Admin pinned a message", {
-      timestamp: new Date(),
+      timestamp:new Date(),
       type:"incoming"
     });
   }
@@ -127,7 +104,6 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =====================================================
      INITIAL PIN FLOW
   ===================================================== */
-
   const broadcast = postAdminBroadcast();
 
   setTimeout(()=>{
@@ -138,13 +114,10 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =====================================================
      ADMIN AUTO RESPONSE
   ===================================================== */
-
   document.addEventListener("sendMessage", (ev)=>{
-
     const text = ev.detail.text.toLowerCase();
 
     if(text.includes("admin") || text.includes("contact")){
-
       const admin = window.identity?.Admin || {
         name:"Admin",
         avatar:"assets/admin.jpg"
@@ -164,9 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =====================================================
      AUTO REPLY HANDLER
   ===================================================== */
-
   document.addEventListener("autoReply", (ev)=>{
-
     const { parentText, persona, text } = ev.detail;
 
     window.TGRenderer?.showTyping(persona, 1000 + Math.random()*1200);
@@ -183,7 +154,6 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =====================================================
      START REALISM ENGINE (FIXED)
   ===================================================== */
-
   if(window.realism?.simulateRandomCrowdV11){
     setTimeout(()=>{
       window.realism.simulateRandomCrowdV11();
