@@ -1,11 +1,4 @@
-           // joiner-simulator.js (patched & tightened)
-// -------------------------------------------------
-// Simulates joiners, builds Telegram-style join stickers,
-// posts welcome messages, seeds history, and updates member counts.
-// Robust: avoids admin.jpg fallbacks, reduces avatar duplication,
-// non-blocking chunking, respects identity API when available.
-// -------------------------------------------------
-
+// joiner-simulator.js (v11, enhanced pool & reactive)
 (function(){
   const LS_KEY = "abrox_joiner_state_v1_v2";
   const DEFAULTS = {
@@ -27,6 +20,9 @@
   const usedJoinNames = new Set();
   let preGenPool = [];
 
+  // ---------------------
+  // UTILITIES
+  // ---------------------
   function randInt(min, max){ return Math.floor(Math.random() * (max - min + 1)) + min; }
   function safeMeta(){ return document.getElementById("tg-meta-line"); }
 
@@ -56,25 +52,36 @@
     return candidate;
   }
 
+  // ---------------------
+  // REALISTIC JOINERS
+  // ---------------------
   function createJoinerFromIdentity(){
+    let p;
     if(window.identity && typeof window.identity.getRandomPersona === "function"){
       const pRaw = window.identity.getRandomPersona();
-      const p = Object.assign({}, pRaw);
+      p = Object.assign({}, pRaw);
       p.name = uniqueNameCandidate(String(p.name || ("User" + randInt(1000,9999))));
       if(!p.avatar || String(p.avatar).toLowerCase().includes("assets/admin.jpg")){
         p.avatar = safeBuildAvatar(p.name);
       }
       p.lastSeen = Date.now();
       p.isAdmin = !!p.isAdmin;
-      return p;
+    } else {
+      const fName = uniqueNameCandidate("NewMember" + randInt(1000, 99999));
+      p = { name: fName, avatar: safeBuildAvatar(fName), isAdmin:false };
     }
-    const fName = uniqueNameCandidate("NewMember" + randInt(1000, 99999));
-    return { name: fName, avatar: safeBuildAvatar(fName), isAdmin:false };
+
+    // FIRE JOINER-REACTIVE EVENT FOR REALISM ENGINE
+    if(window.CustomEvent){
+      document.dispatchEvent(new CustomEvent("joiner:new", { detail: p }));
+    }
+
+    return p;
   }
 
   function preGenerate(count){
     preGenPool = preGenPool || [];
-    const toCreate = Math.max(0, Math.min(1000, count - preGenPool.length));
+    const toCreate = Math.max(0, Math.min(1500, count - preGenPool.length)); // increased pool
     for(let i=0;i<toCreate;i++) preGenPool.push(createJoinerFromIdentity());
     return preGenPool.length;
   }
@@ -83,18 +90,27 @@
     return preGenPool && preGenPool.length ? preGenPool.shift() : createJoinerFromIdentity();
   }
 
+  // ---------------------
+  // ENHANCED WELCOME TEXT
+  // ---------------------
+  const WELCOME_TEXTS = [
+    "Hi everyone! 👋", "Hello! Glad to join.", "Hey — excited to learn and trade with you all.",
+    "New here — say hi!", "Thanks for having me 😊", "Just joined, looking forward to the signals.",
+    "Happy to be part of this community!", "Excited to connect with you all!", "Looking forward to learning!",
+    "Hope to contribute to discussions here.", "Hi team! Let's make some green together 💹", 
+    "Glad to meet everyone!", "Hey folks, looking forward to trades and tips.", "Hello from a new trader!",
+    "Excited for the insights in this group!", "Hi all! Ready to learn and share.", 
+    "Happy to join this amazing group!", "Cheers everyone, glad to be here! 🎉", 
+    "Hello traders! Looking forward to growth 💸", "Excited to start my trading journey here!"
+  ];
+
   function randomWelcomeText(persona){
-    const variants = [
-      "Hi everyone! 👋",
-      "Hello! Glad to join.",
-      "Hey — excited to learn and trade with you all.",
-      "New here — say hi!",
-      "Thanks for having me 😊",
-      "Just joined, looking forward to the signals."
-    ];
-    return variants[Math.floor(Math.random()*variants.length)];
+    return WELCOME_TEXTS[Math.floor(Math.random()*WELCOME_TEXTS.length)];
   }
 
+  // ---------------------
+  // STICKER & CHAT APPENDING
+  // ---------------------
   function createJoinStickerElement(joiners){
     const container = document.createElement("div");
     container.className = "tg-join-sticker";
@@ -166,6 +182,9 @@
     }, 700 + Math.random()*500);
   }
 
+  // ---------------------
+  // JOINER FLOW
+  // ---------------------
   function postJoinerFlow(joiners, opts){
     opts = opts || {};
     bumpMemberCount(joiners.length || 1);
@@ -228,7 +247,7 @@
   function start(){
     if(running) return;
     running = true;
-    preGenerate(Math.max(6, cfg.initialBurstPreview));
+    preGenerate(Math.max(20, cfg.initialBurstPreview)); // pre-generate larger pool
     scheduleNext();
   }
 
@@ -256,4 +275,4 @@
   Object.assign(window.joiner, { start, stop, joinNow, preGenerate, config: cfg });
   setTimeout(()=> joinNow(cfg.initialBurstPreview || 3), 500);
 
-})();             
+})();
