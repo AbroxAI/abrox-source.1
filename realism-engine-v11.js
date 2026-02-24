@@ -1,5 +1,5 @@
-// realism-engine-v11.patched.full.js
-// ULTRA-REALISM ENGINE V11 — FULL POOLS RESTORED + HARDENED + TRUE Reply Support
+// realism-engine-v11.patched.joiner-reactive.js
+// ULTRA-REALISM ENGINE V11 — FULL POOLS + HARDENED + TRUE Reply + JOINER REACTIVE
 
 (function(){
 
@@ -147,10 +147,10 @@ function generateComment(){
 
 const POOL = [];
 
-function ensurePool(min=1000){
+function ensurePool(min=2000){
   while(POOL.length < min){
     POOL.push(generateComment());
-    if(POOL.length > 6000) break;
+    if(POOL.length > 10000) break;
   }
 }
 
@@ -186,21 +186,43 @@ function getRandomExistingMessage(){
 }
 
 /* =====================================================
+   JOINER-REACTIVE DYNAMIC REPLIES
+===================================================== */
+
+window.addEventListener("joiner:new", (ev)=>{
+  const joiner = ev.detail;
+  if(!joiner || !joiner.name) return;
+
+  const replyCount = 1 + Math.floor(Math.random()*3);
+
+  for(let i=0;i<replyCount;i++){
+    const persona = window.identity?.getRandomPersona?.() || { name:"User", avatar:`https://ui-avatars.com/api/?name=U` };
+
+    let baseText = `Welcome ${joiner.name}!`;
+    if(window.identity?.SLANG && persona.region){
+      const slangList = window.identity.SLANG[persona.region] || [];
+      if(slangList.length) baseText = `${random(slangList)} ${joiner.name}, ${random(TESTIMONIALS)}`;
+    }
+    if(Math.random() < 0.55) baseText += " " + random(EMOJIS);
+
+    const timestamp = new Date(Date.now() - Math.random()*60000);
+    POOL.push({ text: baseText, timestamp, persona });
+  }
+});
+
+/* =====================================================
    POSTING
 ===================================================== */
 
 function post(count=1){
-  ensurePool(Math.max(800,count));
+  ensurePool(Math.max(1000,count));
 
   for(let i=0;i<count;i++){
     const item = POOL.shift();
     if(!item) break;
 
     setTimeout(()=>{
-      const persona = window.identity?.getRandomPersona?.() || {
-        name:"User",
-        avatar:`https://ui-avatars.com/api/?name=U`
-      };
+      const persona = item.persona || window.identity?.getRandomPersona?.() || { name:"User", avatar:`https://ui-avatars.com/api/?name=U` };
 
       if(window.TGRenderer?.showTyping){
         window.TGRenderer.showTyping(persona);
@@ -209,8 +231,7 @@ function post(count=1){
       setTimeout(()=>{
 
         let replyData = {};
-
-        if(maybe(0.28)){ // 28% chance to reply
+        if(maybe(0.28)){
           const existing = getRandomExistingMessage();
           if(existing) replyData = existing;
         }
@@ -255,10 +276,10 @@ function simulate(){
 ===================================================== */
 
 setTimeout(()=>{
-  ensurePool(1200);
+  ensurePool(2000);
   post(60);
   simulate();
-  console.log("Realism Engine V11 FULL — Reply jumper 100% functional.");
+  console.log("Realism Engine V11 FULL — Reply jumper 100% functional + joiner-reactive dynamic replies.");
 },900);
 
 })();
