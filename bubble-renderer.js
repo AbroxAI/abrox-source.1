@@ -1,4 +1,4 @@
-// bubble-renderer.js — Fully fixed Telegram 2026 bubbles with working reply jumper
+// bubble-renderer.js — Fully fixed Telegram 2026 bubbles with correct tail alignment and dynamic tail color
 (function(){
   'use strict';
 
@@ -24,8 +24,8 @@
     }catch(e){}
 
     const BUBBLE_RADIUS = 16;
-    const INCOMING_BG = '#182533';
-    const OUTGOING_BG = '#2b6df6';
+    let INCOMING_BG = '#182533';
+    let OUTGOING_BG = '#2b6df6';
     const INCOMING_TEXT = '#e6eef8';
 
     let lastMessageDateKey = null;
@@ -89,13 +89,13 @@
       const content = document.createElement('div');
       content.className = 'tg-bubble-content';
 
-      if(type === 'incoming'){
-        content.style.background = INCOMING_BG;
-        content.style.color = INCOMING_TEXT;
-      } else {
-        content.style.background = OUTGOING_BG;
-        content.style.color = '#fff';
-      }
+      // apply background color dynamically
+      const bgColor = type === 'incoming' ? INCOMING_BG : OUTGOING_BG;
+      content.style.background = bgColor;
+      content.style.color = type === 'incoming' ? INCOMING_TEXT : '#fff';
+
+      // set dynamic tail color via CSS variable
+      content.style.setProperty('--bubble-tail-color', bgColor);
 
       // reply preview
       if(replyToText || replyToId){
@@ -108,11 +108,9 @@
         rp.addEventListener('click', () => {
           if(replyToId && MESSAGE_MAP.has(replyToId)){
             const target = MESSAGE_MAP.get(replyToId).el;
-            if(target){
-              target.scrollIntoView({behavior:'smooth', block:'center'});
-              target.classList.add('tg-highlight');
-              setTimeout(()=> target.classList.remove('tg-highlight'), 2600);
-            }
+            target.scrollIntoView({behavior:'smooth', block:'center'});
+            target.classList.add('tg-highlight');
+            setTimeout(()=> target.classList.remove('tg-highlight'), 2600);
           }
         });
 
@@ -189,7 +187,6 @@
     }
 
     function appendMessage(persona, text, opts={}){
-      // always use the server/id passed in opts.id
       const id = opts.id || ('m_' + Date.now() + '_' + Math.floor(Math.random()*9999));
       opts.id = id;
 
@@ -299,7 +296,7 @@
       }
     };
 
-    console.log('bubble-renderer fully fixed — avatars visible, tail aligned, reply jumper works');
+    console.log('bubble-renderer fully fixed — avatars visible, tail aligned, dynamic tail color');
   }
 
   document.readyState === 'loading'
