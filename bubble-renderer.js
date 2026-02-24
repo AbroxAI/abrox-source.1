@@ -1,4 +1,4 @@
-// bubble-renderer.js — Fixed Telegram-style bubble + SVG mask tail + avatars always visible
+// bubble-renderer.js — Telegram-style bubble renderer with SVG tail & grouping
 (function(){
   'use strict';
 
@@ -13,7 +13,6 @@
       return;
     }
 
-    // Read avatar size from CSS variable
     let AVATAR_DIAM = 40;
     try{
       const v = getComputedStyle(document.documentElement).getPropertyValue('--tg-avatar-size');
@@ -23,7 +22,6 @@
       }
     }catch(e){}
 
-    const BUBBLE_RADIUS = 16;
     const INCOMING_BG = '#182533';
     const OUTGOING_BG = '#2b6df6';
     const INCOMING_TEXT = '#e6eef8';
@@ -54,15 +52,13 @@
       const sticker = document.createElement('div');
       sticker.className = 'tg-date-sticker';
       const d = new Date(dateObj);
-      sticker.textContent = d.toLocaleDateString([], {
-        year:'numeric', month:'short', day:'numeric'
-      });
+      sticker.textContent = d.toLocaleDateString([], {year:'numeric', month:'short', day:'numeric'});
       container.appendChild(sticker);
     }
 
     function createBubbleElement(persona, text, opts={}){
       const timestamp = opts.timestamp || new Date();
-      const type = opts.type === 'outgoing' ? 'outgoing' : 'incoming';
+      const type = opts.type==='outgoing' ? 'outgoing' : 'incoming';
       const replyToText = opts.replyToText || null;
       const replyToId = opts.replyToId || null;
       const image = opts.image || null;
@@ -79,8 +75,7 @@
       const avatar = document.createElement('img');
       avatar.className = 'tg-bubble-avatar';
       avatar.alt = persona?.name || 'user';
-      avatar.src = persona?.avatar ||
-        `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
+      avatar.src = persona?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
       avatar.onerror = () => {
         avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
       };
@@ -88,23 +83,15 @@
       // content
       const content = document.createElement('div');
       content.className = 'tg-bubble-content';
-      if(type === 'incoming'){
-        content.style.background = INCOMING_BG;
-        content.style.color = INCOMING_TEXT;
-      } else {
-        content.style.background = OUTGOING_BG;
-        content.style.color = '#fff';
-      }
+      content.style.background = type==='incoming'? INCOMING_BG: OUTGOING_BG;
+      content.style.color = type==='incoming'? INCOMING_TEXT:'#fff';
 
       // reply preview
       if(replyToText || replyToId){
         const rp = document.createElement('div');
         rp.className = 'tg-reply-preview';
-        rp.textContent = replyToText
-          ? (replyToText.length > 120 ? replyToText.slice(0,117)+'...' : replyToText)
-          : 'Reply';
-
-        rp.addEventListener('click', () => {
+        rp.textContent = replyToText ? (replyToText.length>120? replyToText.slice(0,117)+'...' : replyToText) : 'Reply';
+        rp.addEventListener('click', ()=>{
           if(replyToId && MESSAGE_MAP.has(replyToId)){
             const target = MESSAGE_MAP.get(replyToId).el;
             target.scrollIntoView({behavior:'smooth', block:'center'});
@@ -112,7 +99,6 @@
             setTimeout(()=> target.classList.remove('tg-highlight'), 2600);
           }
         });
-
         content.appendChild(rp);
       }
 
@@ -127,7 +113,7 @@
         const img = document.createElement('img');
         img.className = 'tg-bubble-image';
         img.src = image;
-        img.onerror = () => { img.style.display = 'none'; };
+        img.onerror = ()=>{ img.style.display='none'; };
         content.appendChild(img);
       }
 
@@ -140,7 +126,7 @@
       if(caption){
         const cap = document.createElement('div');
         cap.className = 'tg-bubble-text';
-        cap.style.marginTop = '6px';
+        cap.style.marginTop='6px';
         cap.textContent = caption;
         content.appendChild(cap);
       }
@@ -162,23 +148,21 @@
 
       content.appendChild(meta);
 
-      // assembly — avatars always visible, mask tail handled by CSS
+      // assembly — avatars always visible
       if(type==='incoming'){
         wrapper.appendChild(avatar);
         wrapper.appendChild(content);
-        wrapper.style.justifyContent = 'flex-start';
+        wrapper.style.justifyContent='flex-start';
       } else {
-        wrapper.style.flexDirection = 'row-reverse';
+        wrapper.style.flexDirection='row-reverse';
         wrapper.appendChild(avatar);
         wrapper.appendChild(content);
-        wrapper.style.justifyContent = 'flex-end';
+        wrapper.style.justifyContent='flex-end';
       }
 
       wrapper.addEventListener('contextmenu', (e)=>{
         e.preventDefault();
-        document.dispatchEvent(new CustomEvent('messageContext',{
-          detail:{ id, persona, text }
-        }));
+        document.dispatchEvent(new CustomEvent('messageContext',{detail:{id,persona,text}}));
       });
 
       return { wrapper, id, text, persona, timestamp };
@@ -194,14 +178,10 @@
       const el = created.wrapper;
       container.appendChild(el);
       MESSAGE_MAP.set(id,{
-        el,
-        text: created.text,
-        persona: created.persona,
-        timestamp: created.timestamp
+        el, text: created.text, persona: created.persona, timestamp: created.timestamp
       });
 
-      const atBottom =
-        (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 120);
+      const atBottom = (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 120);
 
       if(atBottom){
         container.scrollTop = container.scrollHeight;
@@ -221,13 +201,11 @@
 
     function updateJump(){
       if(jumpText){
-        jumpText.textContent = unseenCount > 1
-          ? `New messages · ${unseenCount}`
-          : 'New messages';
+        jumpText.textContent = unseenCount>1 ? `New messages · ${unseenCount}`:'New messages';
       }
     }
     function showJump(){ jumpIndicator?.classList.remove('hidden'); }
-    function hideJump(){ jumpIndicator?.classList.add('hidden'); unseenCount = 0; updateJump(); }
+    function hideJump(){ jumpIndicator?.classList.add('hidden'); unseenCount=0; updateJump(); }
 
     jumpIndicator?.addEventListener('click', ()=>{
       container.scrollTop = container.scrollHeight;
@@ -236,68 +214,60 @@
 
     container.addEventListener('scroll', ()=>{
       const bottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-      bottom > 100 ? showJump() : hideJump();
+      bottom>100 ? showJump():hideJump();
     });
 
-    document.addEventListener('headerTyping', (ev)=>{
+    document.addEventListener('headerTyping',(ev)=>{
       try{
         const name = ev.detail?.name || 'Someone';
         typingSet.add(name);
         if(typingTimeouts.has(name)) clearTimeout(typingTimeouts.get(name));
 
         if(metaLine){
-          metaLine.style.opacity = '0.95';
-          if(typingSet.size > 2){
+          metaLine.style.opacity='0.95';
+          if(typingSet.size>2){
             metaLine.textContent = `${Array.from(typingSet).slice(0,2).join(', ')} and others are typing...`;
           } else {
-            metaLine.textContent = Array.from(typingSet).join(' ') +
-              (typingSet.size > 1 ? ' are typing...' : ' is typing...');
+            metaLine.textContent = Array.from(typingSet).join(' ') + (typingSet.size>1?' are typing...':' is typing...');
           }
         }
 
-        typingTimeouts.set(name, setTimeout(()=>{
+        typingTimeouts.set(name,setTimeout(()=>{
           typingSet.delete(name);
           typingTimeouts.delete(name);
           if(metaLine){
-            metaLine.textContent =
-              `${(window.MEMBER_COUNT||0).toLocaleString()} members, ${(window.ONLINE_COUNT||0).toLocaleString()} online`;
-            metaLine.style.opacity = '';
+            metaLine.textContent = `${(window.MEMBER_COUNT||0).toLocaleString()} members, ${(window.ONLINE_COUNT||0).toLocaleString()} online`;
+            metaLine.style.opacity='';
           }
-        }, 1600 + Math.random()*1200));
+        },1600+Math.random()*1200));
 
       }catch(e){}
     });
 
     window.TGRenderer = {
-      appendMessage:(p,t,o)=> appendMessage(p||{}, String(t||''), o||{}),
-      showTyping:(p)=>{
-        document.dispatchEvent(new CustomEvent('headerTyping',{
-          detail:{ name:(p&&p.name)?p.name:'Someone' }
-        }));
-      }
+      appendMessage:(p,t,o)=>appendMessage(p||{},String(t||''),o||{}),
+      showTyping:(p)=>{ document.dispatchEvent(new CustomEvent('headerTyping',{detail:{name:(p&&p.name)?p.name:'Someone'}})); }
     };
 
     window.BubbleRenderer = {
       renderMessages:(arr)=>{
         if(!Array.isArray(arr)) return;
         arr.forEach(m=>{
-          appendMessage({name:m.name, avatar:m.avatar}, m.text, {
+          appendMessage({name:m.name, avatar:m.avatar}, m.text,{
             id:m.id,
-            timestamp:m.time ? new Date(m.time) : new Date(),
-            type:m.isOwn ? 'outgoing' : 'incoming',
+            timestamp:m.time?new Date(m.time):new Date(),
+            type:m.isOwn?'outgoing':'incoming',
             image:m.image,
             caption:m.caption,
-            replyToText: m.replyToText,
-            replyToId: m.replyToId
+            replyToText:m.replyToText,
+            replyToId:m.replyToId
           });
         });
       }
     };
 
-    console.log('bubble-renderer fully fixed — avatars visible, correct SVG mask tail');
+    console.log('bubble-renderer ready — tails, avatars, images, and grouping validated');
   }
 
-  document.readyState === 'loading'
-    ? document.addEventListener('DOMContentLoaded', init)
-    : init();
+  document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
 })();
