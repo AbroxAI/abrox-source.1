@@ -1,4 +1,4 @@
-/* widget.css — Telegram 2026 replica with correct tail, avatars, broadcast image & pin banner */
+/* widget.css — Telegram 2026 replica with dynamic bubble tail colors */
 
 /* variables */
 :root{
@@ -96,28 +96,29 @@ html,body{
   z-index:1;
   background:#182533;
   color:var(--tg-text);
+  /* dynamic tail color variable */
+  --bubble-tail-color:#182533;
 }
 
 /* incoming/outgoing colors */
-.tg-bubble.incoming .tg-bubble-content{ background:#182533; color:var(--tg-text); }
-.tg-bubble.outgoing .tg-bubble-content{ background:#2b6df6; color:#fff; }
+.tg-bubble.incoming .tg-bubble-content{ background:#182533; color:var(--tg-text); --bubble-tail-color:#182533; }
+.tg-bubble.outgoing .tg-bubble-content{ background:#2b6df6; color:#fff; --bubble-tail-color:#2b6df6; }
 
-/* SVG tail using mask (fixed & pointing near avatar, color matches bubble background) */
+/* SVG tail using mask (dynamic color via --bubble-tail-color) */
 .tg-bubble-content::after{
   content:""; position:absolute; width:16px; height:18px; bottom:2px;
   pointer-events:none;
   -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat;
   mask-size:contain; mask-repeat:no-repeat;
+  background:var(--bubble-tail-color);
 }
 .tg-bubble.incoming .tg-bubble-content::after{
   left:-7px;
-  background:inherit; /* dynamically matches bubble background */
   -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
   mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
 }
 .tg-bubble.outgoing .tg-bubble-content::after{
   right:-7px; transform:scaleX(-1);
-  background:inherit; /* dynamically matches bubble background */
   -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
   mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
 }
