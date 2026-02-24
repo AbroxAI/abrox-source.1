@@ -1,4 +1,4 @@
-// bubble-renderer.js — Fully fixed Telegram 2026 bubbles with correct tail alignment and dynamic tail color
+// bubble-renderer.js — Fully fixed Telegram 2026 bubbles with correct tail alignment and mask + reply jumper fix
 (function(){
   'use strict';
 
@@ -13,7 +13,6 @@
       return;
     }
 
-    // Avatar size
     let AVATAR_DIAM = 40;
     try{
       const v = getComputedStyle(document.documentElement).getPropertyValue('--tg-avatar-size');
@@ -24,8 +23,8 @@
     }catch(e){}
 
     const BUBBLE_RADIUS = 16;
-    let INCOMING_BG = '#182533';
-    let OUTGOING_BG = '#2b6df6';
+    const INCOMING_BG = '#182533';
+    const OUTGOING_BG = '#2b6df6';
     const INCOMING_TEXT = '#e6eef8';
 
     let lastMessageDateKey = null;
@@ -75,7 +74,6 @@
       wrapper.className = `tg-bubble ${type}`;
       wrapper.dataset.id = id;
 
-      // avatar
       const avatar = document.createElement('img');
       avatar.className = 'tg-bubble-avatar';
       avatar.alt = persona?.name || 'user';
@@ -85,19 +83,18 @@
         avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
       };
 
-      // content
       const content = document.createElement('div');
       content.className = 'tg-bubble-content';
 
-      // apply background color dynamically
-      const bgColor = type === 'incoming' ? INCOMING_BG : OUTGOING_BG;
-      content.style.background = bgColor;
-      content.style.color = type === 'incoming' ? INCOMING_TEXT : '#fff';
+      if(type === 'incoming'){
+        content.style.background = INCOMING_BG;
+        content.style.color = INCOMING_TEXT;
+      } else {
+        content.style.background = OUTGOING_BG;
+        content.style.color = '#fff';
+      }
 
-      // set dynamic tail color via CSS variable
-      content.style.setProperty('--bubble-tail-color', bgColor);
-
-      // reply preview
+      // PATCHED reply preview jumper
       if(replyToText || replyToId){
         const rp = document.createElement('div');
         rp.className = 'tg-reply-preview';
@@ -106,24 +103,33 @@
           : 'Reply';
 
         rp.addEventListener('click', () => {
-          if(replyToId && MESSAGE_MAP.has(replyToId)){
-            const target = MESSAGE_MAP.get(replyToId).el;
-            target.scrollIntoView({behavior:'smooth', block:'center'});
-            target.classList.add('tg-highlight');
-            setTimeout(()=> target.classList.remove('tg-highlight'), 2600);
+          if(replyToId){
+            let targetEntry = MESSAGE_MAP.get(replyToId);
+            if(!targetEntry){
+              for(const [key,val] of MESSAGE_MAP.entries()){
+                if(key.startsWith(replyToId)){
+                  targetEntry = val;
+                  break;
+                }
+              }
+            }
+            if(targetEntry){
+              const target = targetEntry.el;
+              target.scrollIntoView({behavior:'smooth', block:'center'});
+              target.classList.add('tg-highlight');
+              setTimeout(()=> target.classList.remove('tg-highlight'), 2600);
+            }
           }
         });
 
         content.appendChild(rp);
       }
 
-      // sender
       const sender = document.createElement('div');
       sender.className = 'tg-bubble-sender';
       sender.textContent = persona?.name || 'User';
       content.appendChild(sender);
 
-      // image
       if(image){
         const img = document.createElement('img');
         img.className = 'tg-bubble-image';
@@ -132,7 +138,6 @@
         content.appendChild(img);
       }
 
-      // text
       const textEl = document.createElement('div');
       textEl.className = 'tg-bubble-text';
       textEl.textContent = text || '';
@@ -146,7 +151,6 @@
         content.appendChild(cap);
       }
 
-      // meta
       const meta = document.createElement('div');
       meta.className = 'tg-bubble-meta';
       const time = document.createElement('span');
@@ -163,7 +167,6 @@
 
       content.appendChild(meta);
 
-      // assembly — avatars always visible, bubble tail correctly masked
       if(type==='incoming'){
         wrapper.appendChild(avatar);
         wrapper.appendChild(content);
@@ -175,7 +178,6 @@
         wrapper.style.justifyContent = 'flex-end';
       }
 
-      // context menu
       wrapper.addEventListener('contextmenu', (e)=>{
         e.preventDefault();
         document.dispatchEvent(new CustomEvent('messageContext',{
@@ -296,7 +298,7 @@
       }
     };
 
-    console.log('bubble-renderer fully fixed — avatars visible, tail aligned, dynamic tail color');
+    console.log('bubble-renderer fully fixed — avatars visible, tail aligned to avatar, reply jumper fixed');
   }
 
   document.readyState === 'loading'
