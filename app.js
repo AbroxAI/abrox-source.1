@@ -1,4 +1,4 @@
-// app.js — fully aligned with animated Telegram 2026 inline glass buttons
+// app.js — fully aligned with fixed BubbleRenderer / TGRenderer
 document.addEventListener("DOMContentLoaded", () => {
 
   const pinBanner = document.getElementById("tg-pin-banner");
@@ -79,9 +79,9 @@ document.addEventListener("DOMContentLoaded", () => {
     blueBtn.className = "pin-btn";
     blueBtn.textContent = "View Pinned";
 
-    // Animated glass "Contact Admin" button
+    // Glass animated inline "Contact Admin" button
     const adminBtn = document.createElement("a");
-    adminBtn.className = "contact-admin-btn glass-btn pulse";
+    adminBtn.className = "contact-admin-btn glass-btn"; // glass + animated
     adminBtn.href = window.CONTACT_ADMIN_LINK || "https://t.me/ph_suppp";
     adminBtn.target = "_blank";
     adminBtn.textContent = "Contact Admin";
@@ -173,7 +173,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =====================================================
-     START REALISM ENGINE
+     START REALISM ENGINE (FIXED)
   ===================================================== */
   if(window.realism?.simulateRandomCrowdV11){
     setTimeout(()=>{
