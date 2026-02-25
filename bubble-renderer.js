@@ -1,265 +1,274 @@
-// bubble-renderer.js — Fully fixed Telegram 2026 bubbles with animated inline glass button
-(function(){
-  'use strict';
+/* widget.css — Telegram 2026 replica with dynamic bubble tail colors + glass buttons */
 
-  function init(){
-    const container = document.getElementById('tg-comments-container');
-    const jumpIndicator = document.getElementById('tg-jump-indicator');
-    const jumpText = document.getElementById('tg-jump-text');
-    const metaLine = document.getElementById('tg-meta-line');
+/* variables */
+:root{
+  --tg-bg-main:#0e1621;
+  --tg-text:#e6eef8;
+  --tg-muted:#9aa7bd;
+  --tg-accent:#2ea6ff;
+  --tg-avatar-size:40px;
+  --tg-header-height:58px;
+  --tg-input-height:46px;
+  --tg-input-radius:24px;
+  --gold:#ffd166;
 
-    if(!container){
-      console.error('bubble-renderer: container missing');
-      return;
-    }
+  --tg-gap: calc(var(--tg-avatar-size) * 0.7);
+  --tg-nub-offset: calc(-1 * (var(--tg-gap) - 6px));
+}
 
-    let AVATAR_DIAM = 40;
-    try{
-      const v = getComputedStyle(document.documentElement).getPropertyValue('--tg-avatar-size');
-      if(v){
-        const parsed = parseInt(v.trim(), 10);
-        if(!Number.isNaN(parsed) && parsed > 0) AVATAR_DIAM = parsed;
-      }
-    }catch(e){}
+/* base */
+*{ box-sizing:border-box; }
+html,body{
+  height:100dvh;
+  margin:0;
+  color:var(--tg-text);
+  background:linear-gradient(180deg,#0e1621,#17212b);
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+  -webkit-font-smoothing:antialiased;
+}
+.hidden{display:none!important}
 
-    const INCOMING_BG = '#182533';
-    const OUTGOING_BG = '#2b6df6';
-    const INCOMING_TEXT = '#e6eef8';
+/* layout */
+#tg-comments-app{ display:flex; flex-direction:column; height:100dvh; overflow:hidden; }
 
-    let lastMessageDateKey = null;
-    let unseenCount = 0;
-    const MESSAGE_MAP = new Map();
-    const typingSet = new Set();
-    const typingTimeouts = new Map();
+/* header */
+.tg-header{
+  display:flex; align-items:center; justify-content:space-between;
+  height:var(--tg-header-height); padding:0 14px;
+  background:rgba(23,33,43,0.78); backdrop-filter:blur(16px);
+  position:sticky; top:0; z-index:60;
+}
+.tg-header-center{ display:flex; align-items:center; gap:10px; flex:1; margin:0 12px; min-width:0; }
+.tg-header-avatar{ width:var(--tg-avatar-size); height:var(--tg-avatar-size); border-radius:50%; object-fit:cover; }
+.tg-title{ font-size:15px; font-weight:700; }
+.tg-meta{ font-size:12px; color:var(--tg-muted); margin-top:2px; }
 
-    function formatTime(date){
-      try{ return new Date(date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
-      catch(e){ return ''; }
-    }
+/* icon buttons */
+.tg-back-btn, .tg-options-btn{ background:none; border:none; color:#fff; padding:6px; cursor:pointer; }
+.tg-back-btn i, .tg-options-btn i{ width:22px; height:22px; }
 
-    function formatDateKey(date){
-      const d = new Date(date);
-      return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
-    }
+/* pin banner */
+.tg-pin-banner{
+  display:flex; align-items:center; gap:12px; padding:10px 14px;
+  background:rgba(23,33,43,0.55); backdrop-filter:blur(14px); border-radius:18px;
+  color:var(--tg-text); font-size:13px; position:sticky; top:calc(var(--tg-header-height) + 4px);
+  z-index:55; max-width:92%; margin:6px auto; transform:translateY(-8px);
+  opacity:0; transition:all 320ms;
+}
+.tg-pin-banner.show{ transform:translateY(0); opacity:1; }
+.tg-pin-banner img{
+  width:auto;
+  max-width:80px; /* scales nicely inside banner */
+  height:auto;
+  max-height:60px;
+  border-radius:10px;
+  object-fit:cover;
+  flex-shrink:0;
+}
 
-    function insertDateSticker(dateObj){
-      const key = formatDateKey(dateObj);
-      if(key === lastMessageDateKey) return;
-      lastMessageDateKey = key;
+/* pin text */
+.tg-pin-banner .pin-text{ flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-      const sticker = document.createElement('div');
-      sticker.className = 'tg-date-sticker';
-      sticker.textContent = new Date(dateObj).toLocaleDateString([], { year:'numeric', month:'short', day:'numeric' });
-      container.appendChild(sticker);
-    }
+/* Blue “View Pinned” button */
+.tg-pin-banner .pin-btn{
+  background:var(--tg-accent);
+  color:#fff;
+  border:none;
+  font-weight:600;
+  border-radius:18px;
+  padding:6px 14px;
+  transition: background 200ms ease, transform 150ms ease;
+}
+.tg-pin-banner .pin-btn:hover{
+  background:#1e90ff;
+  transform:translateY(-2px);
+}
+.tg-pin-banner .pin-btn:active{
+  transform:translateY(0);
+}
 
-    function createBubbleElement(persona, text, opts={}){
-      const timestamp = opts.timestamp || new Date();
-      const type = opts.type === 'outgoing' ? 'outgoing' : 'incoming';
-      const replyToText = opts.replyToText || null;
-      const replyToId = opts.replyToId || null;
-      const image = opts.image || null;
-      const caption = opts.caption || null;
-      const id = opts.id || ('m_' + Date.now() + '_' + Math.floor(Math.random()*9999));
+/* ========================== */
+/* Telegram 2026 Glass Button */
+/* ========================== */
+.contact-admin-btn.glass-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 18px;
+  backdrop-filter: blur(12px);
+  background: rgba(46, 166, 255, 0.15); /* translucent glass */
+  border: 1px solid rgba(46, 166, 255, 0.35);
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 200ms ease;
+  position: relative;
+  overflow: hidden;
+}
 
-      insertDateSticker(timestamp);
+/* Hover effect */
+.contact-admin-btn.glass-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 18px rgba(46, 166, 255, 0.35);
+}
 
-      const wrapper = document.createElement('div');
-      wrapper.className = `tg-bubble ${type}`;
-      wrapper.dataset.id = id;
+/* Active click effect */
+.contact-admin-btn.glass-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(46, 166, 255, 0.25);
+}
 
-      const avatar = document.createElement('img');
-      avatar.className = 'tg-bubble-avatar';
-      avatar.alt = persona?.name || 'user';
-      avatar.src = persona?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
-      avatar.onerror = () => { avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`; };
+/* Pulse animation */
+.contact-admin-btn.glass-btn.pulse::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(46,166,255,0.25) 0%, transparent 60%);
+  animation: pulseEffect 2s infinite;
+  border-radius: 50%;
+  pointer-events: none;
+}
 
-      const content = document.createElement('div');
-      content.className = 'tg-bubble-content';
-      content.style.background = type==='incoming'?INCOMING_BG:OUTGOING_BG;
-      content.style.color = type==='incoming'?INCOMING_TEXT:'#fff';
+@keyframes pulseEffect {
+  0% { transform: scale(0.5); opacity: 0.6; }
+  50% { transform: scale(1.1); opacity: 0.1; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
 
-      // Reply preview
-      if(replyToText || replyToId){
-        const rp = document.createElement('div');
-        rp.className = 'tg-reply-preview';
-        rp.textContent = replyToText ? (replyToText.length>120 ? replyToText.slice(0,117)+'...' : replyToText) : 'Reply';
-        rp.addEventListener('click', ()=>{
-          let targetEntry = MESSAGE_MAP.get(replyToId);
-          if(!targetEntry){
-            for(const [key,val] of MESSAGE_MAP.entries()){
-              if(key.startsWith(replyToId)){ targetEntry=val; break; }
-            }
-          }
-          if(targetEntry){
-            const target = targetEntry.el;
-            target.scrollIntoView({behavior:'smooth', block:'center'});
-            target.classList.add('tg-highlight');
-            setTimeout(()=>target.classList.remove('tg-highlight'),2600);
-          }
-        });
-        content.appendChild(rp);
-      }
+/* Button container */
+.tg-pin-banner .pin-btn-container{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
 
-      // Sender
-      const sender = document.createElement('div');
-      sender.className = 'tg-bubble-sender';
-      sender.textContent = persona?.name || 'User';
-      content.appendChild(sender);
+/* comments container */
+.tg-comments-container{ flex:1 1 auto; padding:12px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.tg-date-sticker{
+  display:block; width:max-content; margin:12px auto; background:rgba(255,255,255,0.04);
+  padding:6px 12px; border-radius:16px; font-size:12px; color:var(--tg-muted);
+}
 
-      // Image
-      if(image){
-        const img = document.createElement('img');
-        img.className = 'tg-bubble-image';
-        img.src = image;
-        img.style.width='100%'; img.style.height='auto'; img.style.objectFit='cover';
-        img.onerror = () => { img.style.display='none'; };
-        content.appendChild(img);
-      }
+/* bubble wrapper */
+.tg-bubble{
+  display:flex; align-items:flex-start; gap: var(--tg-gap, 28px);
+  margin-bottom:14px; max-width:78%; position:relative;
+}
+.tg-bubble.incoming{ justify-content:flex-start; }
+.tg-bubble.outgoing{ flex-direction:row-reverse; margin-left:auto; }
 
-      // Text
-      const textEl = document.createElement('div');
-      textEl.className = 'tg-bubble-text';
-      textEl.textContent = text || '';
-      content.appendChild(textEl);
+/* avatar */
+.tg-bubble-avatar{
+  width:var(--tg-avatar-size);
+  height:var(--tg-avatar-size);
+  border-radius:50%;
+  object-fit:cover;
+  flex-shrink:0;
+  display:block;
+}
 
-      // Caption & inline animated glass button (Telegram 2026)
-      if(caption){
-        const cap = document.createElement('div');
-        cap.className = 'tg-bubble-text';
-        cap.style.marginTop = '6px';
-        cap.style.whiteSpace = 'pre-line'; // preserve line breaks
-        cap.textContent = caption;
-        content.appendChild(cap);
+/* bubble content */
+.tg-bubble-content{
+  padding:10px 14px; border-radius:16px; font-size:14px; line-height:1.35;
+  word-break:break-word; position:relative; max-width:100%;
+  box-shadow:0 6px 18px rgba(0,0,0,0.18);
+  overflow: visible;
+  z-index:1;
+  background:#182533;
+  color:var(--tg-text);
+  --bubble-tail-color:#182533;
+}
 
-        if(persona?.isAdmin){
-          const adminBtn = document.createElement('a');
-          adminBtn.className = 'contact-admin-btn glass-btn pulse';
-          adminBtn.href = window.CONTACT_ADMIN_LINK || 'https://t.me/ph_suppp';
-          adminBtn.target='_blank';
-          adminBtn.textContent='Contact Admin';
-          adminBtn.style.marginTop='8px';
-          adminBtn.style.display='inline-block';
-          content.appendChild(adminBtn);
-        }
-      }
+/* incoming/outgoing colors */
+.tg-bubble.incoming .tg-bubble-content{ background:#182533; color:var(--tg-text); --bubble-tail-color:#182533; }
+.tg-bubble.outgoing .tg-bubble-content{ background:#2b6df6; color:#fff; --bubble-tail-color:#2b6df6; }
 
-      // Meta
-      const meta = document.createElement('div');
-      meta.className='tg-bubble-meta';
-      const time = document.createElement('span');
-      time.textContent=formatTime(timestamp);
-      meta.appendChild(time);
+/* SVG tail using mask */
+.tg-bubble-content::after{
+  content:""; position:absolute; width:16px; height:18px; bottom:2px;
+  pointer-events:none;
+  -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat;
+  mask-size:contain; mask-repeat:no-repeat;
+  background:var(--bubble-tail-color);
+}
+.tg-bubble.incoming .tg-bubble-content::after{
+  left:-7px;
+  -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
+  mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
+}
+.tg-bubble.outgoing .tg-bubble-content::after{
+  right:-7px; transform:scaleX(-1);
+  -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
+  mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'><path d='M22 0 C14 6 8 12 0 14 C10 14 18 16 22 20 Z' fill='black'/></svg>");
+}
 
-      if(type==='outgoing'){
-        const seen = document.createElement('div');
-        seen.className='seen';
-        const count = window.__abrox_seen_map?.[id] || 1;
-        seen.innerHTML=`<i data-lucide="eye"></i> ${count}`;
-        meta.appendChild(seen);
-      }
+/* sender/meta */
+.tg-bubble-sender{ font-size:13px; font-weight:600; margin-bottom:6px; }
+.tg-bubble-meta{ display:flex; align-items:center; gap:8px; margin-top:8px; font-size:11px; color:rgba(255,255,255,0.6); }
 
-      content.appendChild(meta);
+/* bubble images — fully responsive */
+.tg-bubble-image{
+  display:block;
+  max-width:100%;
+  width:auto;
+  height:auto;
+  max-height:300px;
+  border-radius:12px;
+  margin-bottom:8px;
+  object-fit:cover;
+}
 
-      // Append avatar/content
-      if(type==='incoming'){
-        wrapper.appendChild(avatar);
-        wrapper.appendChild(content);
-        wrapper.style.justifyContent='flex-start';
-      } else {
-        wrapper.style.flexDirection='row-reverse';
-        wrapper.appendChild(avatar);
-        wrapper.appendChild(content);
-        wrapper.style.justifyContent='flex-end';
-      }
+/* reply preview */
+.tg-reply-preview{
+  background:rgba(255,255,255,0.04); padding:6px 8px; border-left:3px solid rgba(255,255,255,0.08);
+  border-radius:8px; margin-bottom:8px; font-size:12px; color:var(--tg-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;
+}
 
-      wrapper.addEventListener('contextmenu',(e)=>{
-        e.preventDefault();
-        document.dispatchEvent(new CustomEvent('messageContext',{detail:{id,persona,text}}));
-      });
+/* input bar */
+.tg-input-wrapper{ padding:8px 12px; position:sticky; bottom:8px; z-index:60; display:flex; justify-content:center; }
+.tg-input-bar{
+  display:flex; align-items:center; gap:8px; width:100%; max-width:640px; height:var(--tg-input-height);
+  border-radius:var(--tg-input-radius); background:rgba(23,33,43,0.55); backdrop-filter:blur(14px); padding:0 12px;
+}
+.tg-comment-input{
+  flex:1; height:100%; border-radius:var(--tg-input-radius); border:none; padding:0 12px; background:transparent; color:var(--tg-text); font-size:14px; outline:none;
+}
+.tg-send-btn{ width:36px; height:36px; border-radius:50%; background:var(--tg-accent); color:#fff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.tg-icon-btn{ background:none; border:none; padding:6px; cursor:pointer; color:var(--tg-muted); }
 
-      return { wrapper, id, text, persona, timestamp };
-    }
+/* jump indicator */
+#tg-jump-indicator{
+  position:fixed; left:50%; transform:translateX(-50%); bottom:calc(var(--tg-input-height) + 64px);
+  background:var(--tg-accent); color:#fff; padding:6px 12px; border-radius:18px; font-size:13px; display:flex; align-items:center; gap:8px; z-index:999;
+}
+#tg-jump-indicator.hidden{display:none}
 
-    function appendMessage(persona,text,opts={}){
-      const id = opts.id || ('m_'+Date.now()+'_'+Math.floor(Math.random()*9999));
-      opts.id=id;
+/* highlight */
+.tg-highlight{ outline:2px solid var(--gold); animation:highlightFade 2600ms ease forwards; }
+@keyframes highlightFade{ 0%{opacity:1} 80%{opacity:1} 100%{opacity:0.2; outline:0;} }
 
-      const created=createBubbleElement(persona,text,opts);
-      if(!created) return null;
+/* join sticker */
+.tg-join-sticker{
+  display:flex; flex-direction:column; align-items:center; margin:12px auto; background:rgba(23,33,43,0.65); backdrop-filter:blur(10px);
+  border-radius:14px; padding:10px 12px; max-width:86%;
+}
+.tg-join-sticker .join-cluster{ display:flex; gap:6px; margin-bottom:8px; }
+.tg-join-sticker .join-cluster img{ width:42px; height:42px; border-radius:50%; object-fit:cover; margin-left:-12px; }
+.tg-join-sticker .join-names{ font-size:13px; font-weight:600; }
+.tg-join-sticker .join-sub{ font-size:12px; opacity:.85; }
 
-      const el=created.wrapper;
-      container.appendChild(el);
-      MESSAGE_MAP.set(id,{el,text:created.text,persona:created.persona,timestamp:created.timestamp});
-
-      const atBottom=(container.scrollTop+container.clientHeight)>=(container.scrollHeight-120);
-      if(atBottom){ container.scrollTop=container.scrollHeight; hideJump(); }
-      else{ unseenCount++; updateJump(); showJump(); }
-
-      if(window.lucide?.createIcons){ try{ window.lucide.createIcons(); }catch(e){} }
-
-      return id;
-    }
-
-    function updateJump(){
-      if(jumpText) jumpText.textContent=unseenCount>1?`New messages · ${unseenCount}`:'New messages';
-    }
-    function showJump(){ jumpIndicator?.classList.remove('hidden'); }
-    function hideJump(){ jumpIndicator?.classList.add('hidden'); unseenCount=0; updateJump(); }
-
-    jumpIndicator?.addEventListener('click',()=>{ container.scrollTop=container.scrollHeight; hideJump(); });
-    container.addEventListener('scroll',()=>{ const bottom=container.scrollHeight-container.scrollTop-container.clientHeight; bottom>100?showJump():hideJump(); });
-
-    document.addEventListener('headerTyping',(ev)=>{
-      try{
-        const name=ev.detail?.name||'Someone';
-        typingSet.add(name);
-        if(typingTimeouts.has(name)) clearTimeout(typingTimeouts.get(name));
-
-        if(metaLine){
-          metaLine.style.opacity='0.95';
-          metaLine.textContent = typingSet.size>2
-            ? `${Array.from(typingSet).slice(0,2).join(', ')} and others are typing...`
-            : Array.from(typingSet).join(' ') + (typingSet.size>1?' are typing...':' is typing...');
-        }
-
-        typingTimeouts.set(name,setTimeout(()=>{
-          typingSet.delete(name);
-          typingTimeouts.delete(name);
-          if(metaLine){
-            metaLine.textContent=`${(window.MEMBER_COUNT||0).toLocaleString()} members, ${(window.ONLINE_COUNT||0).toLocaleString()} online`;
-            metaLine.style.opacity='';
-          }
-        },1600+Math.random()*1200));
-      }catch(e){}
-    });
-
-    window.TGRenderer = {
-      appendMessage:(p,t,o)=>appendMessage(p||{},String(t||''),o||{}),
-      showTyping:(p)=>document.dispatchEvent(new CustomEvent('headerTyping',{detail:{name:(p&&p.name)?p.name:'Someone'}}))
-    };
-
-    window.BubbleRenderer={
-      renderMessages:(arr)=>{
-        if(!Array.isArray(arr)) return;
-        arr.forEach(m=>{
-          appendMessage({name:m.name,avatar:m.avatar,isAdmin:m.isAdmin}, m.text,{
-            id:m.id,
-            timestamp:m.time?new Date(m.time):new Date(),
-            type:m.isOwn?'outgoing':'incoming',
-            image:m.image,
-            caption:m.caption,
-            replyToText:m.replyToText,
-            replyToId:m.replyToId
-          });
-        });
-      }
-    };
-
-    console.log('bubble-renderer fully fixed — avatars visible, tail aligned, reply jumper fixed, admin broadcast button animated inline');
-
-  }
-
-  document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
-
-})();
+/* responsive */
+@media (max-width:520px){
+  .tg-bubble{ max-width:86%; }
+  .tg-join-sticker{ padding:8px 10px; }
+  .tg-join-sticker .join-cluster img{ width:36px; height:36px; margin-left:-10px; }
+  .tg-bubble-image{ max-height:220px; }
+  .tg-pin-banner img{ max-width:60px; max-height:50px; }
+  .tg-pin-banner .pin-btn-container{ flex-direction:column; align-items:flex-start; gap:6px; }
+}
