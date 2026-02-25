@@ -30,15 +30,16 @@ document.addEventListener("DOMContentLoaded", () => {
       isAdmin:true
     };
 
+    // Plain-text, line-break preserved, no Markdown
     const caption = `
-📌 *Group Rules*
+📌 Group Rules
 
-1️⃣ *New members* are read-only until verified.
-2️⃣ *Admins* do NOT DM directly.
-3️⃣ 🚫 *No screenshots* in chat.
-4️⃣ ⚠️ *Ignore unsolicited messages.*
+1️⃣ New members are read-only until verified.
+2️⃣ Admins do NOT DM directly.
+3️⃣ 🚫 No screenshots in chat.
+4️⃣ ⚠️ Ignore unsolicited messages.
 
-✅ To verify or contact admin, use the *“Contact Admin”* button below.
+✅ To verify or contact admin, use the Contact Admin button below.
 `;
 
     const image = "assets/broadcast.jpg";
@@ -74,14 +75,14 @@ document.addEventListener("DOMContentLoaded", () => {
     text.className = "pin-text";
     text.textContent = (caption || "Pinned message").split("\n")[0];
 
-    // Blue pin button
+    // Blue "View Pinned" button
     const blueBtn = document.createElement("button");
-    blueBtn.className = "pin-btn"; // keep your existing blue button styling
+    blueBtn.className = "pin-btn";
     blueBtn.textContent = "View Pinned";
 
-    // Inline glass "Contact Admin" button
+    // Glass inline "Contact Admin" button with animation
     const adminBtn = document.createElement("a");
-    adminBtn.className = "contact-admin-btn"; // glass button
+    adminBtn.className = "contact-admin-btn glass-btn"; // add glass styling class
     adminBtn.href = window.CONTACT_ADMIN_LINK || "https://t.me/ph_suppp";
     adminBtn.target = "_blank";
     adminBtn.textContent = "Contact Admin";
