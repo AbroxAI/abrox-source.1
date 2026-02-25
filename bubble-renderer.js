@@ -85,7 +85,6 @@
 
       const content = document.createElement('div');
       content.className = 'tg-bubble-content';
-
       if(type === 'incoming'){
         content.style.background = INCOMING_BG;
         content.style.color = INCOMING_TEXT;
@@ -94,7 +93,7 @@
         content.style.color = '#fff';
       }
 
-      // PATCHED reply preview jumper
+      // Reply preview
       if(replyToText || replyToId){
         const rp = document.createElement('div');
         rp.className = 'tg-reply-preview';
@@ -146,38 +145,27 @@
       textEl.textContent = text || '';
       content.appendChild(textEl);
 
+      // Broadcast caption
       if(caption){
         const cap = document.createElement('div');
         cap.className = 'tg-bubble-text';
         cap.style.marginTop = '6px';
-        // preserve line breaks for group rules
         cap.style.whiteSpace = 'pre-line';
         cap.textContent = caption;
         content.appendChild(cap);
 
-        // If admin broadcast, add inline buttons below caption
+        // Only one Contact Admin glass button for the broadcast caption
         if(persona?.isAdmin){
-          const btnContainer = document.createElement('div');
-          btnContainer.style.display = 'flex';
-          btnContainer.style.gap = '8px';
-          btnContainer.style.marginTop = '8px';
-
-          const blueBtn = document.createElement('button');
-          blueBtn.className = 'pin-btn';
-          blueBtn.textContent = 'View Pinned';
-
           const adminBtn = document.createElement('a');
-          adminBtn.className = 'contact-admin-btn';
+          adminBtn.className = 'contact-admin-btn glass-btn';
           adminBtn.href = window.CONTACT_ADMIN_LINK || 'https://t.me/ph_suppp';
           adminBtn.target = '_blank';
           adminBtn.textContent = 'Contact Admin';
-
-          btnContainer.appendChild(blueBtn);
-          btnContainer.appendChild(adminBtn);
-          content.appendChild(btnContainer);
+          content.appendChild(adminBtn);
         }
       }
 
+      // Meta line
       const meta = document.createElement('div');
       meta.className = 'tg-bubble-meta';
       const time = document.createElement('span');
