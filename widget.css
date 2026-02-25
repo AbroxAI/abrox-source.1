@@ -65,6 +65,8 @@ html,body{
   object-fit:cover;
   flex-shrink:0;
 }
+
+/* pin text */
 .tg-pin-banner .pin-text{ flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 /* Blue “View Pinned” button */
@@ -81,13 +83,12 @@ html,body{
   background:#1e90ff;
   transform:translateY(-2px);
 }
-.tg-pin-banner .pin-btn:active{
-  transform:translateY(0);
-}
+.tg-pin-banner .pin-btn:active{ transform:translateY(0); }
 
-/* Inline glass "Contact Admin" button */
-.tg-pin-banner .contact-admin-btn{
-  display:flex;
+/* Inline animated glass "Contact Admin" button */
+.tg-pin-banner .contact-admin-btn,
+.tg-bubble-content .contact-admin-btn{
+  display:inline-flex;
   align-items:center;
   justify-content:center;
   height:34px;
@@ -98,11 +99,14 @@ html,body{
   border:none;
   font-weight:600;
   flex-shrink:0;
-  transition: background 250ms ease, transform 150ms ease;
+  cursor:pointer;
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+  animation: pulse 1.8s infinite;
 }
-.tg-pin-banner .contact-admin-btn:hover{
-  background:rgba(46,166,255,0.35);
-  transform:translateY(-1px);
+@keyframes pulse{
+  0%{ transform: scale(1); box-shadow:0 0 0 rgba(46,166,255,0.2); }
+  50%{ transform: scale(1.05); box-shadow:0 0 8px rgba(46,166,255,0.35); }
+  100%{ transform: scale(1); box-shadow:0 0 0 rgba(46,166,255,0.2); }
 }
 
 /* Button container */
@@ -176,7 +180,7 @@ html,body{
 .tg-bubble-sender{ font-size:13px; font-weight:600; margin-bottom:6px; }
 .tg-bubble-meta{ display:flex; align-items:center; gap:8px; margin-top:8px; font-size:11px; color:rgba(255,255,255,0.6); }
 
-/* bubble images — fully responsive */
+/* bubble images */
 .tg-bubble-image{
   display:block;
   max-width:100%;
@@ -192,34 +196,6 @@ html,body{
 .tg-reply-preview{
   background:rgba(255,255,255,0.04); padding:6px 8px; border-left:3px solid rgba(255,255,255,0.08);
   border-radius:8px; margin-bottom:8px; font-size:12px; color:var(--tg-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;
-}
-
-/* Bubble caption / group rules */
-.tg-bubble-text.caption{
-  margin-top:6px;
-  font-size:13px;
-  line-height:1.5;
-  white-space:pre-line;
-  color:var(--tg-text);
-  display:block;
-}
-.tg-bubble-text.caption ul{
-  padding-left:18px;
-  margin:4px 0;
-  list-style-type:disc;
-}
-.tg-bubble-text.caption li{
-  margin-bottom:4px;
-}
-.tg-bubble-text.caption b,
-.tg-bubble-text.caption strong{
-  font-weight:600;
-}
-.tg-bubble-text.caption + .button-container{
-  margin-top:8px;
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
 }
 
 /* input bar */
