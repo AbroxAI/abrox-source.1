@@ -30,14 +30,16 @@ document.addEventListener("DOMContentLoaded", () => {
       isAdmin:true
     };
 
-    const caption = `📌 Group Rules
+    const caption = `
+📌 *Group Rules*
 
-- New members are read-only until verified
-- Admins do NOT DM directly
-- No screenshots in chat
-- Ignore unsolicited messages
+1️⃣ *New members* are read-only until verified.
+2️⃣ *Admins* do NOT DM directly.
+3️⃣ 🚫 *No screenshots* in chat.
+4️⃣ ⚠️ *Ignore unsolicited messages.*
 
-✅ To verify or contact admin, use the “Contact Admin” button below.`;
+✅ To verify or contact admin, use the *“Contact Admin”* button below.
+`;
 
     const image = "assets/broadcast.jpg";
     const timestamp = new Date(2025,2,14,10,0,0);
@@ -46,7 +48,8 @@ document.addEventListener("DOMContentLoaded", () => {
       timestamp,
       type:"incoming",
       image,
-      caption
+      caption,
+      imageStyle: { maxWidth: "100%", height: "auto", objectFit: "cover" } // ensures proper bubble fit
     });
 
     return { id, caption, image };
@@ -63,19 +66,37 @@ document.addEventListener("DOMContentLoaded", () => {
     const img = document.createElement("img");
     img.src = image;
     img.onerror = ()=> img.src = "assets/admin.jpg";
+    img.style.width = "100%";
+    img.style.height = "auto";
+    img.style.objectFit = "cover";
 
     const text = document.createElement("div");
     text.className = "pin-text";
     text.textContent = (caption || "Pinned message").split("\n")[0];
 
-    const btn = document.createElement("button");
-    btn.className = "contact-admin-btn";
-    btn.dataset.href = window.CONTACT_ADMIN_LINK || "https://t.me/ph_suppp";
-    btn.textContent = "Contact Admin";
+    // Blue pin button
+    const blueBtn = document.createElement("button");
+    blueBtn.className = "pin-btn"; // keep your existing blue button styling
+    blueBtn.textContent = "View Pinned";
+
+    // Inline glass "Contact Admin" button
+    const adminBtn = document.createElement("a");
+    adminBtn.className = "contact-admin-btn"; // glass button
+    adminBtn.href = window.CONTACT_ADMIN_LINK || "https://t.me/ph_suppp";
+    adminBtn.target = "_blank";
+    adminBtn.textContent = "Contact Admin";
+
+    // Button container (inline)
+    const btnContainer = document.createElement("div");
+    btnContainer.className = "pin-btn-container";
+    btnContainer.style.display = "flex";
+    btnContainer.style.gap = "8px"; // spacing between buttons
+    btnContainer.appendChild(blueBtn);
+    btnContainer.appendChild(adminBtn);
 
     pinBanner.appendChild(img);
     pinBanner.appendChild(text);
-    pinBanner.appendChild(btn);
+    pinBanner.appendChild(btnContainer);
 
     pinBanner.classList.remove("hidden");
     pinBanner.classList.add("show");
