@@ -1,4 +1,4 @@
-// bubble-renderer.js — Fully fixed Telegram 2026 bubbles with tail alignment, reply jumper, broadcast & buttons
+// bubble-renderer.js — Fully fixed Telegram 2026 bubbles with correct tail alignment, reply jumper, broadcast image & buttons
 (function(){
   'use strict';
 
@@ -29,6 +29,7 @@
     let lastMessageDateKey = null;
     let unseenCount = 0;
     const MESSAGE_MAP = new Map();
+
     const typingSet = new Set();
     const typingTimeouts = new Map();
 
@@ -75,36 +76,51 @@
       const avatar = document.createElement('img');
       avatar.className = 'tg-bubble-avatar';
       avatar.alt = persona?.name || 'user';
-      avatar.src = persona?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
-      avatar.onerror = () => { avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`; };
+      avatar.src = persona?.avatar ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
+      avatar.onerror = () => {
+        avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}&size=${AVATAR_DIAM}`;
+      };
 
       const content = document.createElement('div');
       content.className = 'tg-bubble-content';
-      content.style.background = (type==='incoming') ? INCOMING_BG : OUTGOING_BG;
-      content.style.color = (type==='incoming') ? INCOMING_TEXT : '#fff';
 
-      // Reply preview
+      if(type === 'incoming'){
+        content.style.background = INCOMING_BG;
+        content.style.color = INCOMING_TEXT;
+      } else {
+        content.style.background = OUTGOING_BG;
+        content.style.color = '#fff';
+      }
+
+      // Reply preview jumper
       if(replyToText || replyToId){
         const rp = document.createElement('div');
         rp.className = 'tg-reply-preview';
-        rp.textContent = replyToText ? (replyToText.length>120 ? replyToText.slice(0,117)+'...' : replyToText) : 'Reply';
-        rp.addEventListener('click', ()=>{
-          let targetEntry = MESSAGE_MAP.get(replyToId);
-          if(!targetEntry){
-            for(const [key,val] of MESSAGE_MAP.entries()){
-              if(key.startsWith(replyToId)){
-                targetEntry = val;
-                break;
+        rp.textContent = replyToText
+          ? (replyToText.length > 120 ? replyToText.slice(0,117)+'...' : replyToText)
+          : 'Reply';
+
+        rp.addEventListener('click', () => {
+          if(replyToId){
+            let targetEntry = MESSAGE_MAP.get(replyToId);
+            if(!targetEntry){
+              for(const [key,val] of MESSAGE_MAP.entries()){
+                if(key.startsWith(replyToId)){
+                  targetEntry = val;
+                  break;
+                }
               }
             }
-          }
-          if(targetEntry){
-            const target = targetEntry.el;
-            target.scrollIntoView({behavior:'smooth', block:'center'});
-            target.classList.add('tg-highlight');
-            setTimeout(()=> target.classList.remove('tg-highlight'), 2600);
+            if(targetEntry){
+              const target = targetEntry.el;
+              target.scrollIntoView({behavior:'smooth', block:'center'});
+              target.classList.add('tg-highlight');
+              setTimeout(()=> target.classList.remove('tg-highlight'), 2600);
+            }
           }
         });
+
         content.appendChild(rp);
       }
 
@@ -117,8 +133,10 @@
         const img = document.createElement('img');
         img.className = 'tg-bubble-image';
         img.src = image;
-        img.style.width='100%'; img.style.height='auto'; img.style.objectFit='cover';
-        img.onerror = ()=>{ img.style.display='none'; };
+        img.style.width = '100%';
+        img.style.height = 'auto';
+        img.style.objectFit = 'cover';
+        img.onerror = () => { img.style.display = 'none'; };
         content.appendChild(img);
       }
 
@@ -127,122 +145,179 @@
       textEl.textContent = text || '';
       content.appendChild(textEl);
 
-      // Caption with preserved line breaks
+      // ======= Broadcast caption & Telegram 2026 inline glass button =======
       if(caption){
         const cap = document.createElement('div');
         cap.className = 'tg-bubble-text';
-        cap.style.marginTop='6px';
-        cap.style.whiteSpace='pre-line';
+        cap.style.marginTop = '6px';
+        cap.style.whiteSpace = 'pre-line'; // preserves line breaks
         cap.textContent = caption;
         content.appendChild(cap);
 
-        // Single animated glass button for admin
+        // Admin/broadcast: single inline animated glass button
         if(persona?.isAdmin){
           const adminBtn = document.createElement('a');
-          adminBtn.className='contact-admin-btn glass-btn';
+          adminBtn.className = 'contact-admin-btn glass-btn pulse'; // glass + animated pulse
           adminBtn.href = window.CONTACT_ADMIN_LINK || 'https://t.me/ph_suppp';
-          adminBtn.target='_blank';
-          adminBtn.textContent='Contact Admin';
-          adminBtn.style.display='inline-flex';
-          adminBtn.style.marginTop='8px';
+          adminBtn.target = '_blank';
+          adminBtn.textContent = 'Contact Admin';
+          adminBtn.style.marginTop = '8px';
+          adminBtn.style.display = 'inline-flex';
           content.appendChild(adminBtn);
         }
       }
 
-      // Meta
       const meta = document.createElement('div');
-      meta.className='tg-bubble-meta';
-      const time = document.createElement('span'); time.textContent=formatTime(timestamp);
+      meta.className = 'tg-bubble-meta';
+      const time = document.createElement('span');
+      time.textContent = formatTime(timestamp);
       meta.appendChild(time);
 
       if(type==='outgoing'){
         const seen = document.createElement('div');
-        seen.className='seen';
+        seen.className = 'seen';
         const count = window.__abrox_seen_map?.[id] || 1;
-        seen.innerHTML=`<i data-lucide="eye"></i> ${count}`;
+        seen.innerHTML = `<i data-lucide="eye"></i> ${count}`;
         meta.appendChild(seen);
       }
+
       content.appendChild(meta);
 
       if(type==='incoming'){
-        wrapper.appendChild(avatar); wrapper.appendChild(content); wrapper.style.justifyContent='flex-start';
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(content);
+        wrapper.style.justifyContent = 'flex-start';
       } else {
-        wrapper.style.flexDirection='row-reverse'; wrapper.appendChild(avatar); wrapper.appendChild(content); wrapper.style.justifyContent='flex-end';
+        wrapper.style.flexDirection = 'row-reverse';
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(content);
+        wrapper.style.justifyContent = 'flex-end';
       }
 
       wrapper.addEventListener('contextmenu', (e)=>{
         e.preventDefault();
-        document.dispatchEvent(new CustomEvent('messageContext',{detail:{id, persona, text}}));
+        document.dispatchEvent(new CustomEvent('messageContext',{
+          detail:{ id, persona, text }
+        }));
       });
 
       return { wrapper, id, text, persona, timestamp };
     }
 
     function appendMessage(persona, text, opts={}){
-      const id = opts.id || ('m_'+Date.now()+'_'+Math.floor(Math.random()*9999));
-      opts.id=id;
-      const created=createBubbleElement(persona,text,opts);
+      const id = opts.id || ('m_' + Date.now() + '_' + Math.floor(Math.random()*9999));
+      opts.id = id;
+
+      const created = createBubbleElement(persona, text, opts);
       if(!created) return null;
 
       const el = created.wrapper;
       container.appendChild(el);
-      MESSAGE_MAP.set(id,{el,text:created.text,persona:created.persona,timestamp:created.timestamp});
+      MESSAGE_MAP.set(id,{
+        el,
+        text: created.text,
+        persona: created.persona,
+        timestamp: created.timestamp
+      });
 
-      const atBottom = (container.scrollTop+container.clientHeight)>=(container.scrollHeight-120);
-      if(atBottom){ container.scrollTop=container.scrollHeight; hideJump(); }
-      else{ unseenCount++; updateJump(); showJump(); }
+      const atBottom =
+        (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 120);
 
-      if(window.lucide?.createIcons){ try{ window.lucide.createIcons(); }catch(e){} }
+      if(atBottom){
+        container.scrollTop = container.scrollHeight;
+        hideJump();
+      } else {
+        unseenCount++;
+        updateJump();
+        showJump();
+      }
+
+      if(window.lucide?.createIcons){
+        try{ window.lucide.createIcons(); }catch(e){}
+      }
+
       return id;
     }
 
-    function updateJump(){ if(jumpText){ jumpText.textContent = unseenCount>1 ? `New messages · ${unseenCount}` : 'New messages'; } }
+    function updateJump(){
+      if(jumpText){
+        jumpText.textContent = unseenCount > 1
+          ? `New messages · ${unseenCount}`
+          : 'New messages';
+      }
+    }
     function showJump(){ jumpIndicator?.classList.remove('hidden'); }
-    function hideJump(){ jumpIndicator?.classList.add('hidden'); unseenCount=0; updateJump(); }
+    function hideJump(){ jumpIndicator?.classList.add('hidden'); unseenCount = 0; updateJump(); }
 
-    jumpIndicator?.addEventListener('click', ()=>{ container.scrollTop=container.scrollHeight; hideJump(); });
-    container.addEventListener('scroll', ()=>{ const bottom = container.scrollHeight-container.scrollTop-container.clientHeight; bottom>100?showJump():hideJump(); });
+    jumpIndicator?.addEventListener('click', ()=>{
+      container.scrollTop = container.scrollHeight;
+      hideJump();
+    });
 
-    document.addEventListener('headerTyping',(ev)=>{
+    container.addEventListener('scroll', ()=>{
+      const bottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      bottom > 100 ? showJump() : hideJump();
+    });
+
+    document.addEventListener('headerTyping', (ev)=>{
       try{
-        const name=ev.detail?.name||'Someone';
+        const name = ev.detail?.name || 'Someone';
         typingSet.add(name);
         if(typingTimeouts.has(name)) clearTimeout(typingTimeouts.get(name));
 
         if(metaLine){
-          metaLine.style.opacity='0.95';
-          if(typingSet.size>2){ metaLine.textContent=`${Array.from(typingSet).slice(0,2).join(', ')} and others are typing...`; }
-          else{ metaLine.textContent=Array.from(typingSet).join(' ')+(typingSet.size>1?' are typing...':' is typing...'); }
+          metaLine.style.opacity = '0.95';
+          if(typingSet.size > 2){
+            metaLine.textContent = `${Array.from(typingSet).slice(0,2).join(', ')} and others are typing...`;
+          } else {
+            metaLine.textContent = Array.from(typingSet).join(' ') +
+              (typingSet.size > 1 ? ' are typing...' : ' is typing...');
+          }
         }
 
-        typingTimeouts.set(name,setTimeout(()=>{
+        typingTimeouts.set(name, setTimeout(()=>{
           typingSet.delete(name);
           typingTimeouts.delete(name);
           if(metaLine){
-            metaLine.textContent=`${(window.MEMBER_COUNT||0).toLocaleString()} members, ${(window.ONLINE_COUNT||0).toLocaleString()} online`;
-            metaLine.style.opacity='';
+            metaLine.textContent =
+              `${(window.MEMBER_COUNT||0).toLocaleString()} members, ${(window.ONLINE_COUNT||0).toLocaleString()} online`;
+            metaLine.style.opacity = '';
           }
-        },1600+Math.random()*1200));
+        }, 1600 + Math.random()*1200));
+
       }catch(e){}
     });
 
-    window.TGRenderer = { appendMessage:(p,t,o)=>appendMessage(p||{},String(t||''),o||{}),
-      showTyping:(p)=>document.dispatchEvent(new CustomEvent('headerTyping',{detail:{name:(p&&p.name)?p.name:'Someone'}})) };
+    window.TGRenderer = {
+      appendMessage:(p,t,o)=> appendMessage(p||{}, String(t||''), o||{}),
+      showTyping:(p)=>{
+        document.dispatchEvent(new CustomEvent('headerTyping',{
+          detail:{ name:(p&&p.name)?p.name:'Someone' }
+        }));
+      }
+    };
 
-    window.BubbleRenderer={ renderMessages:(arr)=>{ if(!Array.isArray(arr)) return; arr.forEach(m=>{
-      appendMessage({name:m.name, avatar:m.avatar, isAdmin:m.isAdmin}, m.text, {
-        id:m.id,
-        timestamp:m.time?new Date(m.time):new Date(),
-        type:m.isOwn?'outgoing':'incoming',
-        image:m.image,
-        caption:m.caption,
-        replyToText:m.replyToText,
-        replyToId:m.replyToId
-      });
-    }); } };
+    window.BubbleRenderer = {
+      renderMessages:(arr)=>{
+        if(!Array.isArray(arr)) return;
+        arr.forEach(m=>{
+          appendMessage({name:m.name, avatar:m.avatar, isAdmin:m.isAdmin}, m.text, {
+            id:m.id,
+            timestamp:m.time ? new Date(m.time) : new Date(),
+            type:m.isOwn ? 'outgoing' : 'incoming',
+            image:m.image,
+            caption:m.caption,
+            replyToText: m.replyToText,
+            replyToId: m.replyToId
+          });
+        });
+      }
+    };
 
-    console.log('bubble-renderer fully fixed — avatars, tails, reply jumper, admin buttons, captions preserved');
+    console.log('bubble-renderer fully fixed — avatars visible, tail aligned, reply jumper fixed, admin broadcast buttons & image preserved with animated glass button');
   }
 
-  document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
+  document.readyState === 'loading'
+    ? document.addEventListener('DOMContentLoaded', init)
+    : init();
 })();
