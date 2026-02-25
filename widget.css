@@ -1,4 +1,4 @@
-/* widget.css — Telegram 2026 replica with dynamic bubble tail colors + glass buttons */
+/* widget.css — Telegram 2026 replica with dynamic bubble tail colors and glass animated buttons */
 
 /* variables */
 :root{
@@ -53,12 +53,12 @@ html,body{
   background:rgba(23,33,43,0.55); backdrop-filter:blur(14px); border-radius:18px;
   color:var(--tg-text); font-size:13px; position:sticky; top:calc(var(--tg-header-height) + 4px);
   z-index:55; max-width:92%; margin:6px auto; transform:translateY(-8px);
-  opacity:0; transition:all 320ms;
+  opacity:0; transition:all 320ms ease;
 }
 .tg-pin-banner.show{ transform:translateY(0); opacity:1; }
 .tg-pin-banner img{
   width:auto;
-  max-width:80px; /* scales nicely inside banner */
+  max-width:80px;
   height:auto;
   max-height:60px;
   border-radius:10px;
@@ -87,58 +87,36 @@ html,body{
   transform:translateY(0);
 }
 
-/* ========================== */
-/* Telegram 2026 Glass Button */
-/* ========================== */
-.contact-admin-btn.glass-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 14px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #fff;
-  text-decoration: none;
-  border-radius: 18px;
-  backdrop-filter: blur(12px);
-  background: rgba(46, 166, 255, 0.15); /* translucent glass */
-  border: 1px solid rgba(46, 166, 255, 0.35);
-  cursor: pointer;
-  transition: transform 150ms ease, box-shadow 200ms ease;
-  position: relative;
-  overflow: hidden;
+/* Glass animated button — Telegram 2026 style */
+.glass-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:6px 14px;
+  font-size:13px;
+  font-weight:600;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,0.2);
+  background:rgba(255,255,255,0.05);
+  backdrop-filter:blur(12px);
+  color:#fff;
+  cursor:pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation:pulse 1.6s infinite ease-in-out;
 }
-
-/* Hover effect */
-.contact-admin-btn.glass-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 18px rgba(46, 166, 255, 0.35);
+.glass-btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 4px 20px rgba(46,166,255,0.35);
 }
-
-/* Active click effect */
-.contact-admin-btn.glass-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 10px rgba(46, 166, 255, 0.25);
+.glass-btn:active{
+  transform:translateY(0);
+  box-shadow:none;
 }
 
 /* Pulse animation */
-.contact-admin-btn.glass-btn.pulse::before {
-  content: "";
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(46,166,255,0.25) 0%, transparent 60%);
-  animation: pulseEffect 2s infinite;
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-@keyframes pulseEffect {
-  0% { transform: scale(0.5); opacity: 0.6; }
-  50% { transform: scale(1.1); opacity: 0.1; }
-  100% { transform: scale(1.5); opacity: 0; }
+@keyframes pulse{
+  0%,100%{ transform:scale(1); opacity:1; }
+  50%{ transform:scale(1.03); opacity:0.85; }
 }
 
 /* Button container */
