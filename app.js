@@ -30,17 +30,15 @@ document.addEventListener("DOMContentLoaded", () => {
       isAdmin:true
     };
 
-    // Plain-text, line-break preserved, no Markdown
-    const caption = `
-📌 Group Rules
+    // Preserve line breaks for caption
+    const caption = `📌 Group Rules
 
 1️⃣ New members are read-only until verified.
 2️⃣ Admins do NOT DM directly.
 3️⃣ 🚫 No screenshots in chat.
 4️⃣ ⚠️ Ignore unsolicited messages.
 
-✅ To verify or contact admin, use the Contact Admin button below.
-`;
+✅ To verify or contact admin, use the Contact Admin button below.`;
 
     const image = "assets/broadcast.jpg";
     const timestamp = new Date(2025,2,14,10,0,0);
@@ -50,7 +48,16 @@ document.addEventListener("DOMContentLoaded", () => {
       type:"incoming",
       image,
       caption,
-      imageStyle: { maxWidth: "100%", height: "auto", objectFit: "cover" } // ensures proper bubble fit
+      imageStyle: { maxWidth: "100%", height: "auto", objectFit: "cover" },
+      // Add inline animated glass button for broadcast
+      extraButtons:[
+        {
+          type:"link",
+          text:"Contact Admin",
+          href: window.CONTACT_ADMIN_LINK || "https://t.me/ph_suppp",
+          className:"contact-admin-btn glass-btn"
+        }
+      ]
     });
 
     return { id, caption, image };
@@ -80,18 +87,18 @@ document.addEventListener("DOMContentLoaded", () => {
     blueBtn.className = "pin-btn";
     blueBtn.textContent = "View Pinned";
 
-    // Glass inline "Contact Admin" button with animation
+    // Animated glass "Contact Admin" button
     const adminBtn = document.createElement("a");
-    adminBtn.className = "contact-admin-btn glass-btn"; // add glass styling class
+    adminBtn.className = "contact-admin-btn glass-btn";
     adminBtn.href = window.CONTACT_ADMIN_LINK || "https://t.me/ph_suppp";
     adminBtn.target = "_blank";
     adminBtn.textContent = "Contact Admin";
 
-    // Button container (inline)
+    // Button container
     const btnContainer = document.createElement("div");
     btnContainer.className = "pin-btn-container";
     btnContainer.style.display = "flex";
-    btnContainer.style.gap = "8px"; // spacing between buttons
+    btnContainer.style.gap = "8px";
     btnContainer.appendChild(blueBtn);
     btnContainer.appendChild(adminBtn);
 
@@ -174,7 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =====================================================
-     START REALISM ENGINE (FIXED)
+     START REALISM ENGINE
   ===================================================== */
   if(window.realism?.simulateRandomCrowdV11){
     setTimeout(()=>{
