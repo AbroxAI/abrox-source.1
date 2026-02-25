@@ -85,6 +85,7 @@
 
       const content = document.createElement('div');
       content.className = 'tg-bubble-content';
+
       if(type === 'incoming'){
         content.style.background = INCOMING_BG;
         content.style.color = INCOMING_TEXT;
@@ -93,7 +94,7 @@
         content.style.color = '#fff';
       }
 
-      // Reply preview
+      // PATCHED reply preview jumper
       if(replyToText || replyToId){
         const rp = document.createElement('div');
         rp.className = 'tg-reply-preview';
@@ -145,27 +146,28 @@
       textEl.textContent = text || '';
       content.appendChild(textEl);
 
-      // Broadcast caption
+      // ======= Broadcast caption & single glass button =======
       if(caption){
         const cap = document.createElement('div');
         cap.className = 'tg-bubble-text';
         cap.style.marginTop = '6px';
-        cap.style.whiteSpace = 'pre-line';
+        cap.style.whiteSpace = 'pre-line'; // preserves line breaks
         cap.textContent = caption;
         content.appendChild(cap);
 
-        // Only one Contact Admin glass button for the broadcast caption
+        // Only for admin/broadcast, add single animated glass Contact Admin button
         if(persona?.isAdmin){
           const adminBtn = document.createElement('a');
-          adminBtn.className = 'contact-admin-btn glass-btn';
+          adminBtn.className = 'contact-admin-btn glass-btn'; // glass + animated
           adminBtn.href = window.CONTACT_ADMIN_LINK || 'https://t.me/ph_suppp';
           adminBtn.target = '_blank';
           adminBtn.textContent = 'Contact Admin';
+          adminBtn.style.marginTop = '8px';
+          adminBtn.style.display = 'inline-block';
           content.appendChild(adminBtn);
         }
       }
 
-      // Meta line
       const meta = document.createElement('div');
       meta.className = 'tg-bubble-meta';
       const time = document.createElement('span');
