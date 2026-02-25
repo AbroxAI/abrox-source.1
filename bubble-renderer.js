@@ -1,4 +1,4 @@
-// bubble-renderer.js — Fully fixed Telegram 2026 bubbles with correct tail alignment and mask + reply jumper fix
+// bubble-renderer.js — Fully fixed Telegram 2026 bubbles with correct tail alignment, reply jumper, broadcast image & buttons
 (function(){
   'use strict';
 
@@ -134,6 +134,9 @@
         const img = document.createElement('img');
         img.className = 'tg-bubble-image';
         img.src = image;
+        img.style.width = '100%';
+        img.style.height = 'auto';
+        img.style.objectFit = 'cover';
         img.onerror = () => { img.style.display = 'none'; };
         content.appendChild(img);
       }
@@ -147,8 +150,32 @@
         const cap = document.createElement('div');
         cap.className = 'tg-bubble-text';
         cap.style.marginTop = '6px';
+        // preserve line breaks for group rules
+        cap.style.whiteSpace = 'pre-line';
         cap.textContent = caption;
         content.appendChild(cap);
+
+        // If admin broadcast, add inline buttons below caption
+        if(persona?.isAdmin){
+          const btnContainer = document.createElement('div');
+          btnContainer.style.display = 'flex';
+          btnContainer.style.gap = '8px';
+          btnContainer.style.marginTop = '8px';
+
+          const blueBtn = document.createElement('button');
+          blueBtn.className = 'pin-btn';
+          blueBtn.textContent = 'View Pinned';
+
+          const adminBtn = document.createElement('a');
+          adminBtn.className = 'contact-admin-btn';
+          adminBtn.href = window.CONTACT_ADMIN_LINK || 'https://t.me/ph_suppp';
+          adminBtn.target = '_blank';
+          adminBtn.textContent = 'Contact Admin';
+
+          btnContainer.appendChild(blueBtn);
+          btnContainer.appendChild(adminBtn);
+          content.appendChild(btnContainer);
+        }
       }
 
       const meta = document.createElement('div');
@@ -285,7 +312,7 @@
       renderMessages:(arr)=>{
         if(!Array.isArray(arr)) return;
         arr.forEach(m=>{
-          appendMessage({name:m.name, avatar:m.avatar}, m.text, {
+          appendMessage({name:m.name, avatar:m.avatar, isAdmin:m.isAdmin}, m.text, {
             id:m.id,
             timestamp:m.time ? new Date(m.time) : new Date(),
             type:m.isOwn ? 'outgoing' : 'incoming',
@@ -298,7 +325,7 @@
       }
     };
 
-    console.log('bubble-renderer fully fixed — avatars visible, tail aligned to avatar, reply jumper fixed');
+    console.log('bubble-renderer fully fixed — avatars visible, tail aligned, reply jumper fixed, admin broadcast buttons & image preserved');
   }
 
   document.readyState === 'loading'
