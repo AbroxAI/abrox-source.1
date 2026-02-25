@@ -58,15 +58,13 @@ html,body{
 .tg-pin-banner.show{ transform:translateY(0); opacity:1; }
 .tg-pin-banner img{
   width:auto;
-  max-width:80px; /* scales nicely inside banner */
+  max-width:80px;
   height:auto;
   max-height:60px;
   border-radius:10px;
   object-fit:cover;
   flex-shrink:0;
 }
-
-/* pin text */
 .tg-pin-banner .pin-text{ flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 /* Blue “View Pinned” button */
@@ -100,6 +98,11 @@ html,body{
   border:none;
   font-weight:600;
   flex-shrink:0;
+  transition: background 250ms ease, transform 150ms ease;
+}
+.tg-pin-banner .contact-admin-btn:hover{
+  background:rgba(46,166,255,0.35);
+  transform:translateY(-1px);
 }
 
 /* Button container */
@@ -189,6 +192,34 @@ html,body{
 .tg-reply-preview{
   background:rgba(255,255,255,0.04); padding:6px 8px; border-left:3px solid rgba(255,255,255,0.08);
   border-radius:8px; margin-bottom:8px; font-size:12px; color:var(--tg-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;
+}
+
+/* Bubble caption / group rules */
+.tg-bubble-text.caption{
+  margin-top:6px;
+  font-size:13px;
+  line-height:1.5;
+  white-space:pre-line;
+  color:var(--tg-text);
+  display:block;
+}
+.tg-bubble-text.caption ul{
+  padding-left:18px;
+  margin:4px 0;
+  list-style-type:disc;
+}
+.tg-bubble-text.caption li{
+  margin-bottom:4px;
+}
+.tg-bubble-text.caption b,
+.tg-bubble-text.caption strong{
+  font-weight:600;
+}
+.tg-bubble-text.caption + .button-container{
+  margin-top:8px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
 }
 
 /* input bar */
