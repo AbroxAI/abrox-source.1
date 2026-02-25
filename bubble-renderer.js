@@ -149,7 +149,7 @@
       // ======= Broadcast caption & single glass button =======
       if(caption){
         const cap = document.createElement('div');
-        cap.className = 'tg-bubble-text';
+        cap.className = 'tg-bubble-text caption';
         cap.style.marginTop = '6px';
         cap.style.whiteSpace = 'pre-line'; // preserves line breaks
         cap.textContent = caption;
@@ -308,8 +308,8 @@
             type:m.isOwn ? 'outgoing' : 'incoming',
             image:m.image,
             caption:m.caption,
-            replyToText: m.replyToText,
-            replyToId: m.replyToId
+            replyToText:m.replyToText,
+            replyToId:m.replyToId
           });
         });
       }
