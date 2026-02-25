@@ -56,10 +56,57 @@ html,body{
   opacity:0; transition:all 320ms;
 }
 .tg-pin-banner.show{ transform:translateY(0); opacity:1; }
-.tg-pin-banner img{ width:40px; height:40px; border-radius:10px; object-fit:cover; }
+.tg-pin-banner img{
+  width:auto;
+  max-width:80px; /* scales nicely inside banner */
+  height:auto;
+  max-height:60px;
+  border-radius:10px;
+  object-fit:cover;
+  flex-shrink:0;
+}
+
+/* pin text */
 .tg-pin-banner .pin-text{ flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* Blue “View Pinned” button */
+.tg-pin-banner .pin-btn{
+  background:var(--tg-accent);
+  color:#fff;
+  border:none;
+  font-weight:600;
+  border-radius:18px;
+  padding:6px 14px;
+  transition: background 200ms ease, transform 150ms ease;
+}
+.tg-pin-banner .pin-btn:hover{
+  background:#1e90ff;
+  transform:translateY(-2px);
+}
+.tg-pin-banner .pin-btn:active{
+  transform:translateY(0);
+}
+
+/* Inline glass "Contact Admin" button */
 .tg-pin-banner .contact-admin-btn{
-  height:34px; border-radius:18px; padding:6px 14px; background:var(--tg-accent); color:#fff; border:none; font-weight:600;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:34px;
+  border-radius:18px;
+  padding:6px 14px;
+  background:rgba(46,166,255,0.2);
+  color:#fff;
+  border:none;
+  font-weight:600;
+  flex-shrink:0;
+}
+
+/* Button container */
+.tg-pin-banner .pin-btn-container{
+  display:flex;
+  gap:8px;
+  align-items:center;
 }
 
 /* comments container */
@@ -96,7 +143,6 @@ html,body{
   z-index:1;
   background:#182533;
   color:var(--tg-text);
-  /* dynamic tail color variable */
   --bubble-tail-color:#182533;
 }
 
@@ -104,7 +150,7 @@ html,body{
 .tg-bubble.incoming .tg-bubble-content{ background:#182533; color:var(--tg-text); --bubble-tail-color:#182533; }
 .tg-bubble.outgoing .tg-bubble-content{ background:#2b6df6; color:#fff; --bubble-tail-color:#2b6df6; }
 
-/* SVG tail using mask (dynamic color via --bubble-tail-color) */
+/* SVG tail using mask */
 .tg-bubble-content::after{
   content:""; position:absolute; width:16px; height:18px; bottom:2px;
   pointer-events:none;
@@ -126,7 +172,20 @@ html,body{
 /* sender/meta */
 .tg-bubble-sender{ font-size:13px; font-weight:600; margin-bottom:6px; }
 .tg-bubble-meta{ display:flex; align-items:center; gap:8px; margin-top:8px; font-size:11px; color:rgba(255,255,255,0.6); }
-.tg-bubble-image{ display:block; max-width:280px; border-radius:12px; margin-bottom:8px; object-fit:cover; }
+
+/* bubble images — fully responsive */
+.tg-bubble-image{
+  display:block;
+  max-width:100%;
+  width:auto;
+  height:auto;
+  max-height:300px;
+  border-radius:12px;
+  margin-bottom:8px;
+  object-fit:cover;
+}
+
+/* reply preview */
 .tg-reply-preview{
   background:rgba(255,255,255,0.04); padding:6px 8px; border-left:3px solid rgba(255,255,255,0.08);
   border-radius:8px; margin-bottom:8px; font-size:12px; color:var(--tg-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;
@@ -170,4 +229,7 @@ html,body{
   .tg-bubble{ max-width:86%; }
   .tg-join-sticker{ padding:8px 10px; }
   .tg-join-sticker .join-cluster img{ width:36px; height:36px; margin-left:-10px; }
+  .tg-bubble-image{ max-height:220px; }
+  .tg-pin-banner img{ max-width:60px; max-height:50px; }
+  .tg-pin-banner .pin-btn-container{ flex-direction:column; align-items:flex-start; gap:6px; }
 }
