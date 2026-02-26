@@ -1,4 +1,4 @@
-// interactions.js — Telegram 2026 polished input + send/camera toggle + header typing
+// interactions.js — Telegram 2026 input & typing interactions
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("tg-comment-input");
   const sendBtn = document.getElementById("tg-send-btn");
@@ -8,17 +8,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.__abrox_seen_map = window.__abrox_seen_map || {};
 
-  // header meta
+  // Header meta line
   if (metaLine) {
     metaLine.textContent =
       `${(window.MEMBER_COUNT || 1284).toLocaleString()} members, ` +
       `${(window.ONLINE_COUNT || 128).toLocaleString()} online`;
   }
 
-  // toggle camera vs send
+  // Toggle camera vs send button
   function updateToggle() {
     if (!input) return;
     const hasText = input.value.trim().length > 0;
+
     if (sendBtn) sendBtn.classList.toggle("hidden", !hasText);
     if (cameraBtn) cameraBtn.classList.toggle("hidden", hasText);
   }
@@ -30,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   updateToggle();
 
+  // Send message function
   function doSendMessage(replyToId = null) {
     if (!input) return;
     const text = input.value.trim();
@@ -48,6 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageId = window.TGRenderer.appendMessage(persona, text, {
           timestamp: new Date(),
           type: "outgoing",
+          replyToText: null,
           replyToId,
         });
       }
@@ -56,10 +59,9 @@ document.addEventListener("DOMContentLoaded", () => {
         window.__abrox_seen_map[messageId] = 1;
       }
 
+      // Fire custom event for auto replies
       document.dispatchEvent(
-        new CustomEvent("sendMessage", {
-          detail: { text, replyToId },
-        })
+        new CustomEvent("sendMessage", { detail: { text, replyToId } })
       );
     }, 500 + Math.random() * 300);
 
@@ -68,23 +70,23 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (sendBtn) sendBtn.addEventListener("click", () => doSendMessage());
-  if (input) input.addEventListener("keydown", e => {
+  if (input) input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       doSendMessage();
     }
   });
 
-  // contact admin buttons inside captions
-  document.addEventListener("click", e => {
+  // Contact admin buttons anywhere
+  document.addEventListener("click", (e) => {
     const btn = e.target.closest && e.target.closest(".contact-admin-btn, .glass-btn");
     if (!btn) return;
     window.open(btn.dataset?.href || contactAdminLink, "_blank");
     e.preventDefault();
   });
 
-  // header typing indicator
-  document.addEventListener("headerTyping", ev => {
+  // Header typing indicator (condensed)
+  document.addEventListener("headerTyping", (ev) => {
     try {
       if (!metaLine) return;
       const name = ev.detail?.name || "Someone";
@@ -101,13 +103,12 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (e) {}
   });
 
-  // auto reply handler
-  document.addEventListener("messageContext", ev => {
+  // Auto reply handler for message context
+  document.addEventListener("messageContext", (ev) => {
     const info = ev.detail;
-
     const persona = window.identity
       ? window.identity.getRandomPersona()
-      : { name: "User", avatar: "https://ui-avatars.com/api/?name=U" };
+      : { name: "User", avatar: `https://ui-avatars.com/api/?name=U` };
 
     setTimeout(() => {
       const replyText = window.identity
@@ -116,11 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       document.dispatchEvent(
         new CustomEvent("autoReply", {
-          detail: {
-            parentText: info.text,
-            persona,
-            text: replyText,
-          },
+          detail: { parentText: info.text, persona, text: replyText },
         })
       );
     }, 700 + Math.random() * 1200);
