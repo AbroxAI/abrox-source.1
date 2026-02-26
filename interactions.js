@@ -1,6 +1,4 @@
-// interactions.js (camera/send toggle + header typing)
-// polished and validated
-
+// interactions.js — camera/send toggle, header typing & auto-replies
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("tg-comment-input");
   const sendBtn = document.getElementById("tg-send-btn");
@@ -10,14 +8,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.__abrox_seen_map = window.__abrox_seen_map || {};
 
-  // header meta
+  // Initialize header meta
   if (metaLine) {
     metaLine.textContent =
       `${(window.MEMBER_COUNT || 1284).toLocaleString()} members, ` +
       `${(window.ONLINE_COUNT || 128).toLocaleString()} online`;
   }
 
-  // toggle camera vs send
+  // Toggle camera vs send button
   function updateToggle() {
     if (!input) return;
     const hasText = input.value.trim().length > 0;
@@ -33,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   updateToggle();
 
+  // Send message function
   function doSendMessage(replyToId = null) {
     if (!input) return;
     const text = input.value.trim();
@@ -73,9 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       document.dispatchEvent(
-        new CustomEvent("sendMessage", {
-          detail: { text, replyToId },
-        })
+        new CustomEvent("sendMessage", { detail: { text, replyToId } })
       );
     }, 500 + Math.random() * 300);
 
@@ -83,10 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
     updateToggle();
   }
 
-  if (sendBtn) {
-    sendBtn.addEventListener("click", () => doSendMessage());
-  }
-
+  if (sendBtn) sendBtn.addEventListener("click", () => doSendMessage());
   if (input) {
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
@@ -96,7 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // contact admin buttons
+  // Contact admin buttons
   document.addEventListener("click", (e) => {
     const btn = e.target.closest && e.target.closest(".contact-admin-btn");
     if (!btn) return;
@@ -104,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
   });
 
-  // header typing indicator (condensed)
+  // Header typing indicator
   document.addEventListener("headerTyping", (ev) => {
     try {
       if (!metaLine) return;
@@ -122,7 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (e) {}
   });
 
-  // auto reply handler
+  // Auto-reply handler
   document.addEventListener("messageContext", (ev) => {
     const info = ev.detail;
 
