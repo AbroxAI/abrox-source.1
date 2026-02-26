@@ -1,4 +1,5 @@
-// app.js — FINAL Telegram 2026 polished & fully compatible
+// app.js — FINAL Telegram 2026 (Pinned + Realism + Joiner Safe)
+
 document.addEventListener("DOMContentLoaded", () => {
 
   const pinBanner = document.getElementById("tg-pin-banner");
@@ -16,14 +17,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (window.TGRenderer?.appendMessage) {
       return window.TGRenderer.appendMessage(persona, text, opts);
     }
-    console.error("TGRenderer not ready — cannot append message");
+    console.warn("TGRenderer not ready");
     return null;
   }
 
   /* =====================================================
-     ADMIN BROADCAST (with clean caption + button)
+     ADMIN BROADCAST (Image + Caption + Glass Button)
   ===================================================== */
   function postAdminBroadcast() {
+
     const admin = window.identity?.Admin || {
       name: "Admin",
       avatar: "assets/admin.jpg",
@@ -57,6 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
      PIN BANNER
   ===================================================== */
   function showPinBanner(image, caption, pinnedMessageId) {
+
     if (!pinBanner) return;
 
     pinBanner.innerHTML = "";
@@ -69,13 +72,13 @@ document.addEventListener("DOMContentLoaded", () => {
     text.className = "pin-text";
     text.textContent = (caption || "Pinned message").split("\n")[0];
 
-    /* Blue View Pinned button */
     const blueBtn = document.createElement("button");
     blueBtn.className = "pin-btn";
     blueBtn.textContent = "View Pinned";
 
     blueBtn.onclick = (e) => {
       e.stopPropagation();
+
       const el = pinnedMessageId
         ? document.querySelector(`[data-id="${pinnedMessageId}"]`)
         : null;
@@ -87,7 +90,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     };
 
-    /* Contact Admin button */
     const adminBtn = document.createElement("a");
     adminBtn.className = "glass-btn";
     adminBtn.href = window.CONTACT_ADMIN_LINK || "https://t.me/ph_suppp";
@@ -105,7 +107,9 @@ document.addEventListener("DOMContentLoaded", () => {
     pinBanner.appendChild(btnContainer);
 
     pinBanner.classList.remove("hidden");
-    requestAnimationFrame(() => pinBanner.classList.add("show"));
+    requestAnimationFrame(() => {
+      pinBanner.classList.add("show");
+    });
   }
 
   function postPinNotice() {
@@ -127,12 +131,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }, 1200);
 
   /* =====================================================
-     ADMIN AUTO RESPONSE
+     ADMIN AUTO RESPONSE (uses sendMessage event)
   ===================================================== */
   document.addEventListener("sendMessage", (ev) => {
+
     const text = ev.detail?.text?.toLowerCase() || "";
 
     if (text.includes("admin") || text.includes("contact")) {
+
       const admin = window.identity?.Admin || {
         name: "Admin",
         avatar: "assets/admin.jpg"
@@ -141,7 +147,8 @@ document.addEventListener("DOMContentLoaded", () => {
       window.TGRenderer?.showTyping(admin);
 
       setTimeout(() => {
-        appendSafe(admin,
+        appendSafe(
+          admin,
           "Please use the Contact Admin button in the pinned banner above.",
           { timestamp: new Date(), type: "incoming" }
         );
@@ -150,10 +157,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =====================================================
-     AUTO REPLY HANDLER
+     AUTO REPLY HANDLER (Realism Reply Mode)
   ===================================================== */
   document.addEventListener("autoReply", (ev) => {
-    const { parentText, persona, text } = ev.detail;
+
+    const { parentText, persona, text } = ev.detail || {};
+    if (!persona || !text) return;
 
     window.TGRenderer?.showTyping(persona);
 
@@ -170,20 +179,23 @@ document.addEventListener("DOMContentLoaded", () => {
      START REALISM ENGINE
   ===================================================== */
   if (window.realism?.simulateRandomCrowdV11) {
-    setTimeout(() => window.realism.simulateRandomCrowdV11(), 600);
+    setTimeout(() => {
+      window.realism.simulateRandomCrowdV11();
+    }, 800);
   }
 
   /* =====================================================
-     FIX INPUT BAR STYLING
+     SAFE INPUT BAR FIX (No White Box)
   ===================================================== */
-  const inputWrapper = document.querySelector(".tg-input-wrapper");
   const inputBar = document.querySelector(".tg-input-bar");
-  if (inputWrapper && inputBar) {
-    inputWrapper.style.background = "transparent";
-    inputBar.style.background = "rgba(23,33,43,0.85)";
-    inputBar.style.backdropFilter = "blur(20px)";
-    inputBar.style.borderRadius = "24px";
-    inputBar.style.padding = "0 8px";
+
+  if (inputBar) {
+    inputBar.style.background = "rgba(23,33,43,0.78)";
+    inputBar.style.backdropFilter = "blur(24px)";
+    inputBar.style.webkitBackdropFilter = "blur(24px)";
+    inputBar.style.borderRadius = "26px";
   }
+
+  console.log("app.js fully synced with renderer + interactions + realism");
 
 });
