@@ -288,18 +288,5 @@
             timestamp:m.time ? new Date(m.time) : new Date(),
             type:m.isOwn ? 'outgoing' : 'incoming',
             image:m.image,
-            caption:m.caption,
-            replyToText: m.replyToText,
-            replyToId: m.replyToId
-          });
-        });
-      }
-    };
-
-    console.log('bubble-renderer fully patched with captions, opacity, sender & joiner integration');
-  }
-
-  document.readyState === 'loading'
-    ? document.addEventListener('DOMContentLoaded', init)
-    : init();
+            caption:m.ca
 })();
