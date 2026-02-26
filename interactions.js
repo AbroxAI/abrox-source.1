@@ -1,125 +1,149 @@
-// interactions.js — Telegram 2026 input & typing interactions
-document.addEventListener("DOMContentLoaded", () => {
-  const input = document.getElementById("tg-comment-input");
-  const sendBtn = document.getElementById("tg-send-btn");
-  const cameraBtn = document.getElementById("tg-camera-btn");
-  const metaLine = document.getElementById("tg-meta-line");
-  const contactAdminLink = window.CONTACT_ADMIN_LINK || "https://t.me/ph_suppp";
+// interactions.js — FULL integration for Telegram 2026 widget
+(function () {
+  'use strict';
 
-  window.__abrox_seen_map = window.__abrox_seen_map || {};
+  const input = document.getElementById('tg-comment-input');
+  const sendBtn = document.getElementById('tg-send-btn');
+  const cameraBtn = document.getElementById('tg-camera-btn');
+  const emojiBtn = document.getElementById('tg-emoji-btn');
+  const container = document.getElementById('tg-comments-container');
 
-  // Header meta line
-  if (metaLine) {
-    metaLine.textContent =
-      `${(window.MEMBER_COUNT || 1284).toLocaleString()} members, ` +
-      `${(window.ONLINE_COUNT || 128).toLocaleString()} online`;
+  if (!input || !sendBtn) {
+    console.error('interactions.js: required elements missing');
+    return;
   }
 
-  // Toggle camera vs send button
-  function updateToggle() {
-    if (!input) return;
+  /* ======================================================
+     INPUT STATE HANDLING (Blue circle send toggle)
+  ====================================================== */
+
+  function updateInputState() {
     const hasText = input.value.trim().length > 0;
 
-    if (sendBtn) sendBtn.classList.toggle("hidden", !hasText);
-    if (cameraBtn) cameraBtn.classList.toggle("hidden", hasText);
+    if (hasText) {
+      sendBtn.classList.remove('hidden');
+      cameraBtn?.classList.add('hidden');
+    } else {
+      sendBtn.classList.add('hidden');
+      cameraBtn?.classList.remove('hidden');
+    }
   }
 
-  if (input) {
-    input.addEventListener("input", updateToggle);
-    input.addEventListener("keyup", updateToggle);
-    input.addEventListener("change", updateToggle);
-  }
-  updateToggle();
+  input.addEventListener('input', updateInputState);
+  updateInputState();
 
-  // Send message function
-  function doSendMessage(replyToId = null) {
-    if (!input) return;
+  /* ======================================================
+     SEND MESSAGE
+  ====================================================== */
+
+  function sendMessage() {
     const text = input.value.trim();
     if (!text) return;
 
-    const persona = { name: "You", avatar: null };
+    const me = {
+      name: "You",
+      avatar: window.CURRENT_USER_AVATAR || null,
+      isAdmin: false
+    };
 
-    if (window.TGRenderer?.showTyping) {
-      window.TGRenderer.showTyping(persona, 400);
-    }
+    const id = window.TGRenderer?.appendMessage(me, text, {
+      type: 'outgoing',
+      timestamp: new Date()
+    });
 
-    setTimeout(() => {
-      let messageId = null;
+    input.value = '';
+    updateInputState();
 
-      if (window.TGRenderer?.appendMessage) {
-        messageId = window.TGRenderer.appendMessage(persona, text, {
-          timestamp: new Date(),
-          type: "outgoing",
-          replyToText: null,
-          replyToId,
-        });
-      }
+    simulateRealisticResponse(text);
 
-      if (messageId) {
-        window.__abrox_seen_map[messageId] = 1;
-      }
-
-      // Fire custom event for auto replies
-      document.dispatchEvent(
-        new CustomEvent("sendMessage", { detail: { text, replyToId } })
-      );
-    }, 500 + Math.random() * 300);
-
-    input.value = "";
-    updateToggle();
+    return id;
   }
 
-  if (sendBtn) sendBtn.addEventListener("click", () => doSendMessage());
-  if (input) input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
+  sendBtn.addEventListener('click', sendMessage);
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      doSendMessage();
+      sendMessage();
     }
   });
 
-  // Contact admin buttons anywhere
-  document.addEventListener("click", (e) => {
-    const btn = e.target.closest && e.target.closest(".contact-admin-btn, .glass-btn");
-    if (!btn) return;
-    window.open(btn.dataset?.href || contactAdminLink, "_blank");
-    e.preventDefault();
-  });
+  /* ======================================================
+     REALISM ENGINE HOOK
+  ====================================================== */
 
-  // Header typing indicator (condensed)
-  document.addEventListener("headerTyping", (ev) => {
-    try {
-      if (!metaLine) return;
-      const name = ev.detail?.name || "Someone";
+  function simulateRealisticResponse(userText) {
+    if (!window.RealismEngine || !window.identityPool) return;
 
-      metaLine.style.opacity = "0.9";
-      metaLine.textContent = `${name} is typing...`;
+    const persona = window.identityPool.getRandomPersona?.();
+    if (!persona) return;
 
-      setTimeout(() => {
-        metaLine.textContent =
-          `${(window.MEMBER_COUNT || 0).toLocaleString()} members, ` +
-          `${(window.ONLINE_COUNT || 0).toLocaleString()} online`;
-        metaLine.style.opacity = "";
-      }, 1200 + Math.random() * 1200);
-    } catch (e) {}
-  });
+    const delay = 800 + Math.random() * 1600;
 
-  // Auto reply handler for message context
-  document.addEventListener("messageContext", (ev) => {
-    const info = ev.detail;
-    const persona = window.identity
-      ? window.identity.getRandomPersona()
-      : { name: "User", avatar: `https://ui-avatars.com/api/?name=U` };
+    // Trigger header typing
+    document.dispatchEvent(new CustomEvent('headerTyping', {
+      detail: { name: persona.name }
+    }));
 
     setTimeout(() => {
-      const replyText = window.identity
-        ? window.identity.generateHumanComment(persona, info.text)
-        : "Nice point!";
+      const reply = window.RealismEngine.generateReply?.(userText, persona)
+        || generateFallbackReply(userText);
 
-      document.dispatchEvent(
-        new CustomEvent("autoReply", {
-          detail: { parentText: info.text, persona, text: replyText },
-        })
-      );
-    }, 700 + Math.random() * 1200);
+      window.TGRenderer.appendMessage(persona, reply, {
+        type: 'incoming',
+        timestamp: new Date()
+      });
+
+    }, delay);
+  }
+
+  function generateFallbackReply(text) {
+    const responses = [
+      "Nice one 🔥",
+      "Interesting take",
+      "Facts.",
+      "Can you explain more?",
+      "Agreed.",
+      "That’s solid.",
+      "100%",
+      "Exactly what I was thinking"
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+
+  /* ======================================================
+     SCROLL BEHAVIOR FIX
+  ====================================================== */
+
+  container?.addEventListener('scroll', () => {
+    const atBottom =
+      container.scrollTop + container.clientHeight >=
+      container.scrollHeight - 50;
+
+    if (atBottom) {
+      const jump = document.getElementById('tg-jump-indicator');
+      jump?.classList.add('hidden');
+    }
   });
-});
+
+  /* ======================================================
+     EMOJI BUTTON (basic insertion)
+  ====================================================== */
+
+  emojiBtn?.addEventListener('click', () => {
+    input.value += "😊";
+    input.focus();
+    updateInputState();
+  });
+
+  /* ======================================================
+     INITIAL ICON RENDER
+  ====================================================== */
+
+  if (window.lucide?.createIcons) {
+    try { window.lucide.createIcons(); } catch (e) {}
+  }
+
+  console.log('interactions.js fully integrated with bubble-renderer & realism engine');
+
+})();
