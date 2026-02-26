@@ -1,4 +1,4 @@
-/* widget.css — Telegram 2026 replica with full integration for bubbles, interactions & joiner simulator */
+/* widget.css — Patched Telegram 2026 replica with full integration & visual fixes */
 
 /* variables */
 :root{
@@ -113,7 +113,7 @@ html,body{
 }
 
 /* =========================================================
-   TELEGRAM 2026 PRO BLUE GLASS BUTTON (REAL)
+   TELEGRAM 2026 PRO BLUE GLASS BUTTON
    ========================================================= */
 
 .glass-btn{
@@ -197,6 +197,62 @@ html,body{
   padding:12px;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
+  background:transparent;
+  position:relative;
+}
+
+/* jump indicator (new message pill) */
+#tg-jump-indicator{
+  position:absolute;
+  bottom:16px;
+  left:50%;
+  transform:translateX(-50%);
+  background:var(--tg-accent);
+  color:#fff;
+  font-size:12px;
+  font-weight:600;
+  padding:4px 10px;
+  border-radius:12px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.35);
+  cursor:pointer;
+  z-index:80;
+  opacity:0.95;
+  transition:all 0.28s ease;
+}
+#tg-jump-indicator.hidden{ display:none; }
+
+/* input bar */
+#tg-input-wrapper{
+  display:flex;
+  align-items:center;
+  padding:0 12px;
+  height:var(--tg-input-height);
+  background:rgba(23,33,43,0.9);
+  border-radius:var(--tg-input-radius);
+  margin:6px 12px;
+  flex-shrink:0;
+}
+#tg-comment-input{
+  flex:1;
+  border:none;
+  background:transparent;
+  color:var(--tg-text);
+  font-size:14px;
+  outline:none;
+  padding:0 10px;
+  height:100%;
+  border-radius:var(--tg-input-radius);
+}
+#tg-camera-btn,#tg-send-btn{
+  background:none;
+  border:none;
+  color:#fff;
+  cursor:pointer;
+  width:36px;
+  height:36px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
 /* date sticker */
@@ -248,14 +304,15 @@ html,body{
   background:#182533;
   color:var(--tg-text);
   --bubble-tail-color:#182533;
+  opacity:0.98;
 }
 
+/* outgoing/incoming bubbles */
 .tg-bubble.incoming .tg-bubble-content{
   background:#182533;
   color:var(--tg-text);
   --bubble-tail-color:#182533;
 }
-
 .tg-bubble.outgoing .tg-bubble-content{
   background:#2b6df6;
   color:#fff;
@@ -294,6 +351,13 @@ html,body{
 }
 .tg-reply-preview:hover{
   background:rgba(46,166,255,0.2);
+}
+
+/* admin caption button inside bubble */
+.tg-bubble .contact-admin-btn{
+  display:inline-block;
+  margin-top:6px;
+  padding:4px 10px;
 }
 
 /* joiner sticker (cluster) */
