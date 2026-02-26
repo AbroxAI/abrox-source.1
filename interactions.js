@@ -1,4 +1,4 @@
-// interactions.js — fully patched for Telegram 2026 with dark input, send/camera toggle & header typing
+// interactions.js — Telegram 2026 polished input + send/camera toggle + header typing
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("tg-comment-input");
   const sendBtn = document.getElementById("tg-send-btn");
@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.__abrox_seen_map = window.__abrox_seen_map || {};
 
-  // initialize header meta
+  // header meta
   if (metaLine) {
     metaLine.textContent =
       `${(window.MEMBER_COUNT || 1284).toLocaleString()} members, ` +
@@ -19,17 +19,11 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateToggle() {
     if (!input) return;
     const hasText = input.value.trim().length > 0;
-
     if (sendBtn) sendBtn.classList.toggle("hidden", !hasText);
     if (cameraBtn) cameraBtn.classList.toggle("hidden", hasText);
   }
 
   if (input) {
-    // dark input background fix
-    input.style.background = "rgba(23,33,43,0.95)";
-    input.style.color = "#e6eef8";
-    input.style.border = "1px solid rgba(255,255,255,0.08)";
-
     input.addEventListener("input", updateToggle);
     input.addEventListener("keyup", updateToggle);
     input.addEventListener("change", updateToggle);
@@ -44,7 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const persona = { name: "You", avatar: null };
 
     if (window.TGRenderer?.showTyping) {
-      window.TGRenderer.showTyping(persona);
+      window.TGRenderer.showTyping(persona, 400);
     }
 
     setTimeout(() => {
@@ -67,40 +61,35 @@ document.addEventListener("DOMContentLoaded", () => {
           detail: { text, replyToId },
         })
       );
-    }, 400 + Math.random() * 300);
+    }, 500 + Math.random() * 300);
 
     input.value = "";
     updateToggle();
   }
 
-  if (sendBtn) {
-    sendBtn.addEventListener("click", () => doSendMessage());
-  }
+  if (sendBtn) sendBtn.addEventListener("click", () => doSendMessage());
+  if (input) input.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      doSendMessage();
+    }
+  });
 
-  if (input) {
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        doSendMessage();
-      }
-    });
-  }
-
-  // contact admin buttons inside caption
-  document.addEventListener("click", (e) => {
-    const btn = e.target.closest && e.target.closest(".contact-admin-btn");
+  // contact admin buttons inside captions
+  document.addEventListener("click", e => {
+    const btn = e.target.closest && e.target.closest(".contact-admin-btn, .glass-btn");
     if (!btn) return;
     window.open(btn.dataset?.href || contactAdminLink, "_blank");
     e.preventDefault();
   });
 
   // header typing indicator
-  document.addEventListener("headerTyping", (ev) => {
+  document.addEventListener("headerTyping", ev => {
     try {
       if (!metaLine) return;
       const name = ev.detail?.name || "Someone";
 
-      metaLine.style.opacity = "0.95";
+      metaLine.style.opacity = "0.9";
       metaLine.textContent = `${name} is typing...`;
 
       setTimeout(() => {
@@ -113,7 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // auto reply handler
-  document.addEventListener("messageContext", (ev) => {
+  document.addEventListener("messageContext", ev => {
     const info = ev.detail;
 
     const persona = window.identity
