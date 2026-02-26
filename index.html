@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Abrox – Profit Hunters Chat</title>
 
+  <!-- Widget CSS -->
   <link rel="stylesheet" href="widget.css" />
 
   <script>
-    // Site configuration (edit only these values)
+    // Site configuration
     window.CONTACT_ADMIN_LINK = "https://t.me/ph_suppp";
     window.MEMBER_COUNT = 1284;
     window.ONLINE_COUNT = 128;
@@ -36,6 +37,7 @@
 <body>
   <div id="tg-comments-app">
 
+    <!-- HEADER -->
     <header class="tg-header" role="banner">
       <button id="tg-back" class="tg-back-btn" aria-label="Back">
         <i data-lucide="arrow-left"></i>
@@ -43,7 +45,6 @@
 
       <div class="tg-header-center">
         <img src="assets/logo.jpg" alt="Logo" class="tg-header-avatar" />
-
         <div class="tg-header-info">
           <div class="tg-title">🌐 Profit Hunters Chat</div>
           <div class="tg-meta" id="tg-meta-line">1,284 members, 128 online</div>
@@ -55,15 +56,19 @@
       </button>
     </header>
 
+    <!-- PIN BANNER -->
     <div id="tg-pin-banner" class="tg-pin-banner hidden" role="region" aria-live="polite"></div>
 
+    <!-- COMMENTS CONTAINER -->
     <main id="tg-comments-container" class="tg-comments-container" role="feed" aria-live="off"></main>
 
+    <!-- NEW MESSAGE PILL -->
     <div id="tg-jump-indicator" class="hidden" aria-hidden="true">
       <i data-lucide="chevron-down"></i>
       <span id="tg-jump-text">New messages</span>
     </div>
 
+    <!-- INPUT BAR -->
     <div class="tg-input-wrapper" role="form" aria-label="Send a message">
       <div class="tg-input-bar glass">
         <button id="tg-emoji-btn" class="tg-icon-btn" aria-label="Emoji">
@@ -90,10 +95,10 @@
 
   </div>
 
-  <!-- icons -->
+  <!-- LUCIDE ICONS -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <!-- scripts (order matters) -->
+  <!-- CORE SCRIPTS (load order matters) -->
   <script src="identity-personas.js"></script>
   <script src="bubble-renderer.js"></script>
   <script src="joiner-simulator.js"></script>
