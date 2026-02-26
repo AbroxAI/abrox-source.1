@@ -1,4 +1,4 @@
-// bubble-renderer.js — Fully fixed Telegram 2026 bubbles with correct tail alignment, reply jumper, broadcast image & animated glass buttons
+// bubble-renderer-integrated.js — Telegram 2026 bubbles fully connected with interactions & joiner simulator
 (function(){
   'use strict';
 
@@ -35,9 +35,7 @@
     const typingTimeouts = new Map();
 
     function formatTime(date){
-      try{
-        return new Date(date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-      }catch(e){ return ''; }
+      try{ return new Date(date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }catch(e){ return ''; }
     }
 
     function formatDateKey(date){
@@ -94,34 +92,23 @@
         content.style.color = '#fff';
       }
 
-      // PATCHED reply preview jumper
+      // Reply preview jumper
       if(replyToText || replyToId){
         const rp = document.createElement('div');
         rp.className = 'tg-reply-preview';
         rp.textContent = replyToText
           ? (replyToText.length > 120 ? replyToText.slice(0,117)+'...' : replyToText)
           : 'Reply';
-
         rp.addEventListener('click', () => {
           if(replyToId){
-            let targetEntry = MESSAGE_MAP.get(replyToId);
-            if(!targetEntry){
-              for(const [key,val] of MESSAGE_MAP.entries()){
-                if(key.startsWith(replyToId)){
-                  targetEntry = val;
-                  break;
-                }
-              }
-            }
+            const targetEntry = MESSAGE_MAP.get(replyToId);
             if(targetEntry){
-              const target = targetEntry.el;
-              target.scrollIntoView({behavior:'smooth', block:'center'});
-              target.classList.add('tg-highlight');
-              setTimeout(()=> target.classList.remove('tg-highlight'), 2600);
+              targetEntry.el.scrollIntoView({behavior:'smooth', block:'center'});
+              targetEntry.el.classList.add('tg-highlight');
+              setTimeout(()=> targetEntry.el.classList.remove('tg-highlight'), 2600);
             }
           }
         });
-
         content.appendChild(rp);
       }
 
@@ -146,18 +133,18 @@
       textEl.textContent = text || '';
       content.appendChild(textEl);
 
-      // ======= Broadcast caption & animated glass button =======
+      // Broadcast caption & glass admin button
       if(caption){
         const cap = document.createElement('div');
         cap.className = 'tg-bubble-text';
         cap.style.marginTop = '6px';
-        cap.style.whiteSpace = 'pre-line'; // preserves line breaks
+        cap.style.whiteSpace = 'pre-line';
         cap.textContent = caption;
         content.appendChild(cap);
 
         if(persona?.isAdmin){
           const adminBtn = document.createElement('a');
-          adminBtn.className = 'contact-admin-btn glass-btn'; // glass + animated
+          adminBtn.className = 'contact-admin-btn glass-btn';
           adminBtn.href = window.CONTACT_ADMIN_LINK || 'https://t.me/ph_suppp';
           adminBtn.target = '_blank';
           adminBtn.textContent = 'Contact Admin';
@@ -186,12 +173,10 @@
       if(type==='incoming'){
         wrapper.appendChild(avatar);
         wrapper.appendChild(content);
-        wrapper.style.justifyContent = 'flex-start';
       } else {
         wrapper.style.flexDirection = 'row-reverse';
         wrapper.appendChild(avatar);
         wrapper.appendChild(content);
-        wrapper.style.justifyContent = 'flex-end';
       }
 
       wrapper.addEventListener('contextmenu', (e)=>{
@@ -207,34 +192,20 @@
     function appendMessage(persona, text, opts={}){
       const id = opts.id || ('m_' + Date.now() + '_' + Math.floor(Math.random()*9999));
       opts.id = id;
-
       const created = createBubbleElement(persona, text, opts);
       if(!created) return null;
 
       const el = created.wrapper;
       container.appendChild(el);
       MESSAGE_MAP.set(id,{
-        el,
-        text: created.text,
-        persona: created.persona,
-        timestamp: created.timestamp
+        el, text: created.text, persona: created.persona, timestamp: created.timestamp
       });
 
-      const atBottom =
-        (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 120);
+      const atBottom = (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 120);
+      if(atBottom){ container.scrollTop = container.scrollHeight; hideJump(); }
+      else { unseenCount++; updateJump(); showJump(); }
 
-      if(atBottom){
-        container.scrollTop = container.scrollHeight;
-        hideJump();
-      } else {
-        unseenCount++;
-        updateJump();
-        showJump();
-      }
-
-      if(window.lucide?.createIcons){
-        try{ window.lucide.createIcons(); }catch(e){}
-      }
+      if(window.lucide?.createIcons) try{ window.lucide.createIcons(); }catch(e){}
 
       return id;
     }
@@ -288,13 +259,20 @@
       }catch(e){}
     });
 
+    // ==== integrate Joiner Simulator ====
+    if(window.joiner){
+      document.addEventListener('joiner:new', (ev)=>{
+        const persona = ev.detail;
+        const text = window.WELCOME_TEXT_POOL
+          ? window.WELCOME_TEXT_POOL[Math.floor(Math.random()*window.WELCOME_TEXT_POOL.length)]
+          : 'Hi!';
+        appendMessage(persona, text, { type:'incoming' });
+      });
+    }
+
     window.TGRenderer = {
       appendMessage:(p,t,o)=> appendMessage(p||{}, String(t||''), o||{}),
-      showTyping:(p)=>{
-        document.dispatchEvent(new CustomEvent('headerTyping',{
-          detail:{ name:(p&&p.name)?p.name:'Someone' }
-        }));
-      }
+      showTyping:(p)=> document.dispatchEvent(new CustomEvent('headerTyping',{detail:{name:(p&&p.name)?p.name:'Someone'}}))
     };
 
     window.BubbleRenderer = {
@@ -314,7 +292,7 @@
       }
     };
 
-    console.log('bubble-renderer fully fixed — avatars visible, tail aligned, reply jumper fixed, admin broadcast buttons & image preserved');
+    console.log('bubble-renderer fully integrated with interactions & joiner-simulator');
   }
 
   document.readyState === 'loading'
