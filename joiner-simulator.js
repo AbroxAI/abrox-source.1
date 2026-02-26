@@ -1,8 +1,8 @@
-// joiner-simulator.js
-// Patched Joiner Simulator fully integrated with Realism Engine V11
-// Maintains original script name; large dynamic welcome pool
+// joiner-simulator.js — Fully integrated Joiner Simulator for Telegram 2026 replica
+// Works seamlessly with Bubble Renderer, Interactions.js & Widget CSS
 
 (function(){
+  'use strict';
 
   const DEFAULTS = {
     minIntervalMs: 1000*60*60*6,
@@ -23,9 +23,6 @@
   const usedJoinNames = new Set();
   let preGenPool = [];
 
-  // =====================================================
-  // LARGE WELCOME TEXT POOL
-  // =====================================================
   const WELCOME_TEXT_POOL = [
     "Hi everyone! 👋","Hello! Glad to join.","Hey — excited to learn and trade with you all.","New here — say hi!","Thanks for having me 😊",
     "Just joined, looking forward to the signals.","Excited to be here 🙌","Looking forward to contributing 🚀","Happy to join the group 💡",
@@ -42,7 +39,6 @@
     "Hi all, ready for profitable trading sessions 🔥","Hello traders, let's make the most of this group 🚀"
   ];
 
-  // =====================================================
   function randInt(min, max){ return Math.floor(Math.random() * (max - min + 1)) + min; }
   function random(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
   function safeMeta(){ return document.getElementById("tg-meta-line"); }
@@ -89,11 +85,7 @@
       p = { name: fName, avatar: safeBuildAvatar(fName), isAdmin:false };
     }
 
-    // FIRE JOINER-REACTIVE EVENT
-    if(window.CustomEvent){
-      document.dispatchEvent(new CustomEvent("joiner:new", { detail: p }));
-    }
-
+    document.dispatchEvent(new CustomEvent("joiner:new", { detail: p }));
     return p;
   }
 
@@ -108,11 +100,8 @@
     return preGenPool && preGenPool.length ? preGenPool.shift() : createJoinerFromIdentity();
   }
 
-  function randomWelcomeText(persona){
-    return random(WELCOME_TEXT_POOL);
-  }
+  function randomWelcomeText(){ return random(WELCOME_TEXT_POOL); }
 
-  // POST WELCOME BUBBLES & FEED REALISM ENGINE
   function postWelcomeAsBubbles(joiner){
     const persona = joiner;
     const text = randomWelcomeText(joiner);
@@ -129,7 +118,7 @@
       if(window.realismEngineV11Pool){
         const replyCount = 1 + Math.floor(Math.random()*3);
         for(let i=0;i<replyCount;i++){
-          const personaRE = window.identity?.getRandomPersona?.() || { name:"User", avatar:`https://ui-avatars.com/api/?name=U` };
+          const personaRE = window.identity?.getRandomPersona?.() || { name:"User", avatar:safeBuildAvatar("U") };
           let baseText = `${random(WELCOME_TEXT_POOL)}`;
           if(Math.random() < 0.55) baseText += " " + (window.realismEngineV11EMOJIS ? random(window.realismEngineV11EMOJIS) : "🎉");
           window.realismEngineV11Pool.push({ text: baseText, timestamp: new Date(), persona: personaRE });
@@ -184,8 +173,7 @@
     return container;
   }
 
-  function postJoinerFlow(joiners, opts){
-    opts = opts || {};
+  function postJoinerFlow(joiners){
     bumpMemberCount(joiners.length || 1);
 
     if((joiners.length || 1) > 2){
@@ -241,6 +229,8 @@
 
   window.joiner = window.joiner || {};
   Object.assign(window.joiner, { start, stop, joinNow, preGenerate, config: cfg });
+
+  // fire initial burst
   setTimeout(()=> joinNow(cfg.initialBurstPreview || 3), 500);
 
 })();
