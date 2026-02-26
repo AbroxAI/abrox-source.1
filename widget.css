@@ -1,4 +1,4 @@
-/* widget.css — Telegram 2026 replica with dynamic bubble tail colors and REAL Pro glass buttons */
+/* widget.css — Telegram 2026 replica with full integration for bubbles, interactions & joiner simulator */
 
 /* variables */
 :root{
@@ -105,6 +105,13 @@ html,body{
   transform:scale(.95);
 }
 
+/* Button container */
+.tg-pin-banner .pin-btn-container{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+
 /* =========================================================
    TELEGRAM 2026 PRO BLUE GLASS BUTTON (REAL)
    ========================================================= */
@@ -184,13 +191,6 @@ html,body{
     inset 0 3px 8px rgba(0,0,0,0.35);
 }
 
-/* Button container */
-.tg-pin-banner .pin-btn-container{
-  display:flex;
-  gap:8px;
-  align-items:center;
-}
-
 /* comments container */
 .tg-comments-container{
   flex:1 1 auto;
@@ -199,6 +199,7 @@ html,body{
   -webkit-overflow-scrolling:touch;
 }
 
+/* date sticker */
 .tg-date-sticker{
   display:block;
   width:max-content;
@@ -279,6 +280,53 @@ html,body{
   right:-7px;
   transform:scaleX(-1);
   clip-path:polygon(100% 0, 0 100%, 100% 100%);
+}
+
+/* reply preview jumper */
+.tg-reply-preview{
+  background:rgba(255,255,255,0.08);
+  padding:4px 8px;
+  border-radius:12px;
+  font-size:12px;
+  margin-bottom:6px;
+  cursor:pointer;
+  transition: all .25s ease;
+}
+.tg-reply-preview:hover{
+  background:rgba(46,166,255,0.2);
+}
+
+/* joiner sticker (cluster) */
+.tg-join-sticker{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  margin:14px 0;
+}
+.join-cluster{
+  display:flex;
+  gap:-12px;
+}
+.join-avatar{
+  border-radius:50%;
+  border:2px solid var(--tg-bg-main);
+}
+.join-more{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  background:rgba(46,166,255,0.3);
+  color:#fff;
+  font-size:12px;
+  font-weight:600;
+  border:2px solid var(--tg-bg-main);
+}
+.join-names, .join-sub{
+  font-size:12px;
+  color:var(--tg-muted);
+  margin-top:2px;
+  text-align:center;
 }
 
 /* responsive */
