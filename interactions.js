@@ -1,4 +1,4 @@
-// interactions.js — camera/send toggle, header typing & auto-replies
+// interactions.js — fully patched for Telegram 2026 with dark input, send/camera toggle & header typing
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("tg-comment-input");
   const sendBtn = document.getElementById("tg-send-btn");
@@ -8,14 +8,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.__abrox_seen_map = window.__abrox_seen_map || {};
 
-  // Initialize header meta
+  // initialize header meta
   if (metaLine) {
     metaLine.textContent =
       `${(window.MEMBER_COUNT || 1284).toLocaleString()} members, ` +
       `${(window.ONLINE_COUNT || 128).toLocaleString()} online`;
   }
 
-  // Toggle camera vs send button
+  // toggle camera vs send
   function updateToggle() {
     if (!input) return;
     const hasText = input.value.trim().length > 0;
@@ -25,13 +25,17 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (input) {
+    // dark input background fix
+    input.style.background = "rgba(23,33,43,0.95)";
+    input.style.color = "#e6eef8";
+    input.style.border = "1px solid rgba(255,255,255,0.08)";
+
     input.addEventListener("input", updateToggle);
     input.addEventListener("keyup", updateToggle);
     input.addEventListener("change", updateToggle);
   }
   updateToggle();
 
-  // Send message function
   function doSendMessage(replyToId = null) {
     if (!input) return;
     const text = input.value.trim();
@@ -40,7 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const persona = { name: "You", avatar: null };
 
     if (window.TGRenderer?.showTyping) {
-      window.TGRenderer.showTyping(persona, 400);
+      window.TGRenderer.showTyping(persona);
     }
 
     setTimeout(() => {
@@ -52,19 +56,6 @@ document.addEventListener("DOMContentLoaded", () => {
           type: "outgoing",
           replyToId,
         });
-      } else if (window.BubbleRenderer?.renderMessages) {
-        const id = "m_local_" + Date.now();
-        window.BubbleRenderer.renderMessages([
-          {
-            id,
-            name: "You",
-            text,
-            time: new Date().toLocaleTimeString(),
-            isOwn: true,
-            replyToId,
-          },
-        ]);
-        messageId = id;
       }
 
       if (messageId) {
@@ -72,15 +63,20 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       document.dispatchEvent(
-        new CustomEvent("sendMessage", { detail: { text, replyToId } })
+        new CustomEvent("sendMessage", {
+          detail: { text, replyToId },
+        })
       );
-    }, 500 + Math.random() * 300);
+    }, 400 + Math.random() * 300);
 
     input.value = "";
     updateToggle();
   }
 
-  if (sendBtn) sendBtn.addEventListener("click", () => doSendMessage());
+  if (sendBtn) {
+    sendBtn.addEventListener("click", () => doSendMessage());
+  }
+
   if (input) {
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
@@ -90,7 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Contact admin buttons
+  // contact admin buttons inside caption
   document.addEventListener("click", (e) => {
     const btn = e.target.closest && e.target.closest(".contact-admin-btn");
     if (!btn) return;
@@ -98,13 +94,13 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
   });
 
-  // Header typing indicator
+  // header typing indicator
   document.addEventListener("headerTyping", (ev) => {
     try {
       if (!metaLine) return;
       const name = ev.detail?.name || "Someone";
 
-      metaLine.style.opacity = "0.9";
+      metaLine.style.opacity = "0.95";
       metaLine.textContent = `${name} is typing...`;
 
       setTimeout(() => {
@@ -116,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (e) {}
   });
 
-  // Auto-reply handler
+  // auto reply handler
   document.addEventListener("messageContext", (ev) => {
     const info = ev.detail;
 
