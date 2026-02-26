@@ -1,6 +1,8 @@
 /* widget.css — Telegram 2026 replica with full integration for bubbles, interactions & joiner simulator */
 
-/* variables */
+/* ========================
+   VARIABLES
+======================== */
 :root{
   --tg-bg-main:#0e1621;
   --tg-text:#e6eef8;
@@ -16,7 +18,9 @@
   --tg-nub-offset: calc(-1 * (var(--tg-gap) - 6px));
 }
 
-/* base */
+/* ========================
+   BASE
+======================== */
 *{ box-sizing:border-box; }
 html,body{
   height:100dvh;
@@ -28,10 +32,14 @@ html,body{
 }
 .hidden{display:none!important}
 
-/* layout */
+/* ========================
+   LAYOUT
+======================== */
 #tg-comments-app{ display:flex; flex-direction:column; height:100dvh; overflow:hidden; }
 
-/* header */
+/* ========================
+   HEADER
+======================== */
 .tg-header{
   display:flex; align-items:center; justify-content:space-between;
   height:var(--tg-header-height); padding:0 14px;
@@ -44,11 +52,13 @@ html,body{
 .tg-title{ font-size:15px; font-weight:700; }
 .tg-meta{ font-size:12px; color:var(--tg-muted); margin-top:2px; }
 
-/* icon buttons */
+/* ICON BUTTONS */
 .tg-back-btn, .tg-options-btn{ background:none; border:none; color:#fff; padding:6px; cursor:pointer; }
 .tg-back-btn i, .tg-options-btn i{ width:22px; height:22px; }
 
-/* pin banner */
+/* ========================
+   PIN BANNER
+======================== */
 .tg-pin-banner{
   display:flex; align-items:center; gap:12px; padding:10px 14px;
   background:rgba(23,33,43,0.55);
@@ -112,10 +122,9 @@ html,body{
   align-items:center;
 }
 
-/* =========================================================
-   TELEGRAM 2026 PRO BLUE GLASS BUTTON (REAL)
-   ========================================================= */
-
+/* ========================
+   GLASS BUTTON
+======================== */
 .glass-btn{
   position:relative;
   display:inline-flex;
@@ -191,15 +200,20 @@ html,body{
     inset 0 3px 8px rgba(0,0,0,0.35);
 }
 
-/* comments container */
+/* ========================
+   COMMENTS CONTAINER
+======================== */
 .tg-comments-container{
   flex:1 1 auto;
   padding:12px;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
+  background:transparent;
 }
 
-/* date sticker */
+/* ========================
+   DATE STICKER
+======================== */
 .tg-date-sticker{
   display:block;
   width:max-content;
@@ -211,7 +225,9 @@ html,body{
   color:var(--tg-muted);
 }
 
-/* bubble wrapper */
+/* ========================
+   BUBBLES
+======================== */
 .tg-bubble{
   display:flex;
   align-items:flex-start;
@@ -223,7 +239,7 @@ html,body{
 .tg-bubble.incoming{ justify-content:flex-start; }
 .tg-bubble.outgoing{ flex-direction:row-reverse; margin-left:auto; }
 
-/* avatar */
+/* AVATAR */
 .tg-bubble-avatar{
   width:var(--tg-avatar-size);
   height:var(--tg-avatar-size);
@@ -233,7 +249,7 @@ html,body{
   display:block;
 }
 
-/* bubble content */
+/* BUBBLE CONTENT */
 .tg-bubble-content{
   padding:10px 14px;
   border-radius:16px;
@@ -255,14 +271,22 @@ html,body{
   color:var(--tg-text);
   --bubble-tail-color:#182533;
 }
-
 .tg-bubble.outgoing .tg-bubble-content{
   background:#2b6df6;
   color:#fff;
   --bubble-tail-color:#2b6df6;
 }
 
-/* bubble tail */
+/* SENDER NAME */
+.tg-bubble-sender{
+  font-weight:600;
+  font-size:13px;
+  color:var(--tg-text);
+  margin-bottom:4px;
+  opacity:0.95;
+}
+
+/* BUBBLE TAIL */
 .tg-bubble-content::after{
   content:"";
   position:absolute;
@@ -282,7 +306,15 @@ html,body{
   clip-path:polygon(100% 0, 0 100%, 100% 100%);
 }
 
-/* reply preview jumper */
+/* BUBBLE TEXT */
+.tg-bubble-text{
+  font-size:14px;
+  line-height:1.35;
+  color:inherit;
+  margin-bottom:0;
+}
+
+/* REPLY PREVIEW JUMPER */
 .tg-reply-preview{
   background:rgba(255,255,255,0.08);
   padding:4px 8px;
@@ -296,7 +328,7 @@ html,body{
   background:rgba(46,166,255,0.2);
 }
 
-/* joiner sticker (cluster) */
+/* JOINER STICKER */
 .tg-join-sticker{
   display:flex;
   flex-direction:column;
@@ -329,18 +361,33 @@ html,body{
   text-align:center;
 }
 
-/* input bar */
-.tg-input-bar{
+/* ========================
+   INPUT BAR
+======================== */
+.tg-input-wrapper{
+  padding:8px 12px;
+  background:transparent;
+  flex-shrink:0;
+}
+.tg-input-bar.glass{
   display:flex;
   align-items:center;
   gap:8px;
-  padding:0 12px;
+  padding:6px 12px;
   height:var(--tg-input-height);
-  background:var(--tg-bg-main);
   border-radius:var(--tg-input-radius);
-  flex-shrink:0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(46,166,255,0.30) 0%,
+      rgba(46,166,255,0.18) 45%,
+      rgba(46,166,255,0.10) 100%
+    );
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border:1px solid rgba(46,166,255,0.45);
 }
-.tg-input-bar input{
+.tg-comment-input{
   flex:1;
   background:transparent;
   border:none;
@@ -349,16 +396,44 @@ html,body{
   font-size:14px;
   line-height:1.35;
 }
-.tg-input-bar button{
+.tg-icon-btn{
+  background:none;
+  border:none;
+  color:#fff;
   display:flex;
   align-items:center;
   justify-content:center;
-  border:none;
-  background:none;
   cursor:pointer;
 }
 
-/* responsive */
+/* ========================
+   JUMP INDICATOR
+======================== */
+#tg-jump-indicator{
+  position:sticky;
+  bottom:6px;
+  margin:auto;
+  background:var(--tg-accent);
+  color:#fff;
+  padding:6px 12px;
+  border-radius:16px;
+  display:flex;
+  gap:6px;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  z-index:50;
+  transition:all .2s ease;
+}
+#tg-jump-indicator.hidden{
+  display:none;
+}
+
+/* ========================
+   RESPONSIVE
+======================== */
 @media (max-width:520px){
   .tg-bubble{ max-width:86%; }
   .tg-bubble-image{ max-height:220px; }
