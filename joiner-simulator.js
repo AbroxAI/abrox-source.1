@@ -1,16 +1,11 @@
-// joiner-simulator.js — Fully integrated Joiner Simulator for Telegram 2026 replica
-// Works seamlessly with Bubble Renderer, Interactions.js & Widget CSS
-
-(function(){
-  'use strict';
-
+// joiner-simulator.js — fully integrated with Telegram 2026 renderer & interactions
+(function() {
   const DEFAULTS = {
-    minIntervalMs: 1000*60*60*6,
-    maxIntervalMs: 1000*60*60*24,
+    minIntervalMs: 1000 * 60 * 60 * 6,
+    maxIntervalMs: 1000 * 60 * 60 * 24,
     burstMin: 1,
     burstMax: 6,
     welcomeAsSystem: true,
-    verifyMessageProbability: 0.18,
     stickerMaxAvatars: 8,
     stickerAvatarSize: 42,
     stickerOverlap: 12,
@@ -23,25 +18,20 @@
   const usedJoinNames = new Set();
   let preGenPool = [];
 
+  // Welcome text pool
   const WELCOME_TEXT_POOL = [
     "Hi everyone! 👋","Hello! Glad to join.","Hey — excited to learn and trade with you all.","New here — say hi!","Thanks for having me 😊",
     "Just joined, looking forward to the signals.","Excited to be here 🙌","Looking forward to contributing 🚀","Happy to join the group 💡",
     "Hi all, hope to learn something new today 😎","Hey team! Ready to grow together 💪","Good to be here! Looking forward to insights 📈",
     "Glad to be part of this community 🌟","Hello traders! Let's make this a profitable journey 💸","Hi everyone, excited to follow trends 📊",
     "Hey all, ready to share ideas and strategies 🧠","Happy to connect with like-minded people 🤝","Ready to follow the signals and grow 💹",
-    "Excited to trade with you all 🚀","Hi, looking forward to collaborative learning ✨","Hello, let's make some smart moves together 📊",
-    "Glad to join this awesome group 😎","Hi team, here to learn and contribute 🎯","Happy to meet everyone, excited to start 💡",
-    "Hello traders, looking forward to profitable trades 🏆","Excited to be on board and learn daily 📈","Hi, hoping to gain valuable insights 💹",
-    "Hey, let's make consistent profits together 💰","Glad to be here, looking forward to signals 🔥","Hello everyone, excited to start trading 💸",
-    "Hi, hoping to improve my trading skills 📊","Hey all, looking forward to a great experience 🚀","Happy to be part of this community 🌟",
-    "Hello team, ready to grow and learn together 🧠","Hi everyone, excited to follow trends and signals 📈","Glad to join, ready to trade smart 💹",
-    "Hey, looking forward to learning new strategies ✨","Hi team, excited for collaborative trading 🤝","Hello, happy to join and contribute ideas 💡",
-    "Hi all, ready for profitable trading sessions 🔥","Hello traders, let's make the most of this group 🚀"
+    "Excited to trade with you all 🚀","Hi, looking forward to collaborative learning ✨","Hello, let's make some smart moves together 📊"
   ];
 
-  function randInt(min, max){ return Math.floor(Math.random() * (max - min + 1)) + min; }
-  function random(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-  function safeMeta(){ return document.getElementById("tg-meta-line"); }
+  // helper
+  const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+  const random = arr => arr[Math.floor(Math.random() * arr.length)];
+  const safeMeta = () => document.getElementById("tg-meta-line");
 
   function bumpMemberCount(n = 1){
     window.MEMBER_COUNT = Math.max(0, (window.MEMBER_COUNT || 0) + n);
@@ -50,11 +40,9 @@
   }
 
   function safeBuildAvatar(name){
-    try{
-      if(window.identity && typeof window.identity.buildUniqueAvatar === "function"){
-        return window.identity.buildUniqueAvatar(name);
-      }
-    }catch(e){}
+    try {
+      if(window.identity?.buildUniqueAvatar) return window.identity.buildUniqueAvatar(name);
+    } catch(e){}
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name||"U")}&background=random&size=256`;
   }
 
@@ -71,21 +59,25 @@
 
   function createJoinerFromIdentity(){
     let p;
-    if(window.identity && typeof window.identity.getRandomPersona === "function"){
-      const pRaw = window.identity.getRandomPersona();
-      p = Object.assign({}, pRaw);
-      p.name = uniqueNameCandidate(String(p.name || ("User" + randInt(1000,9999))));
+    if(window.identity?.getRandomPersona){
+      const raw = window.identity.getRandomPersona();
+      p = {...raw};
+      p.name = uniqueNameCandidate(String(p.name || `User${randInt(1000,9999)}`));
       if(!p.avatar || String(p.avatar).toLowerCase().includes("assets/admin.jpg")){
         p.avatar = safeBuildAvatar(p.name);
       }
       p.lastSeen = Date.now();
       p.isAdmin = !!p.isAdmin;
     } else {
-      const fName = uniqueNameCandidate("NewMember" + randInt(1000, 99999));
+      const fName = uniqueNameCandidate(`NewMember${randInt(1000,99999)}`);
       p = { name: fName, avatar: safeBuildAvatar(fName), isAdmin:false };
     }
 
-    document.dispatchEvent(new CustomEvent("joiner:new", { detail: p }));
+    // FIRE joiner:new event for TGRenderer
+    if(window.CustomEvent){
+      document.dispatchEvent(new CustomEvent("joiner:new", { detail: p }));
+    }
+
     return p;
   }
 
@@ -97,11 +89,14 @@
   }
 
   function nextJoiner(){
-    return preGenPool && preGenPool.length ? preGenPool.shift() : createJoinerFromIdentity();
+    return preGenPool?.length ? preGenPool.shift() : createJoinerFromIdentity();
   }
 
-  function randomWelcomeText(){ return random(WELCOME_TEXT_POOL); }
+  function randomWelcomeText(persona){
+    return random(WELCOME_TEXT_POOL);
+  }
 
+  // post bubble with typing simulation
   function postWelcomeAsBubbles(joiner){
     const persona = joiner;
     const text = randomWelcomeText(joiner);
@@ -113,16 +108,6 @@
     setTimeout(()=>{
       if(window.TGRenderer?.appendMessage){
         window.TGRenderer.appendMessage(persona, text, { type:"incoming" });
-      }
-
-      if(window.realismEngineV11Pool){
-        const replyCount = 1 + Math.floor(Math.random()*3);
-        for(let i=0;i<replyCount;i++){
-          const personaRE = window.identity?.getRandomPersona?.() || { name:"User", avatar:safeBuildAvatar("U") };
-          let baseText = `${random(WELCOME_TEXT_POOL)}`;
-          if(Math.random() < 0.55) baseText += " " + (window.realismEngineV11EMOJIS ? random(window.realismEngineV11EMOJIS) : "🎉");
-          window.realismEngineV11Pool.push({ text: baseText, timestamp: new Date(), persona: personaRE });
-        }
       }
     }, 700 + Math.random()*500);
   }
@@ -176,10 +161,12 @@
   function postJoinerFlow(joiners){
     bumpMemberCount(joiners.length || 1);
 
+    const chat = document.getElementById("tg-comments-container");
+    if(!chat) return;
+
     if((joiners.length || 1) > 2){
       const stickerEl = createJoinStickerElement(joiners);
-      const chat = document.getElementById("tg-comments-container");
-      if(chat) chat.appendChild(stickerEl);
+      chat.appendChild(stickerEl);
       joiners.slice(0, cfg.initialBurstPreview).forEach(postWelcomeAsBubbles);
     } else {
       joiners.forEach(postWelcomeAsBubbles);
@@ -229,8 +216,5 @@
 
   window.joiner = window.joiner || {};
   Object.assign(window.joiner, { start, stop, joinNow, preGenerate, config: cfg });
-
-  // fire initial burst
   setTimeout(()=> joinNow(cfg.initialBurstPreview || 3), 500);
-
 })();
