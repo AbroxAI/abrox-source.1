@@ -1,8 +1,9 @@
-// app.js — FINAL Telegram 2026 aligned with Pro Glass + Clean Caption
+// app.js — FINAL Telegram 2026 Pro Glass + Clean Caption + Joiner Integration
 document.addEventListener("DOMContentLoaded", () => {
 
   const pinBanner = document.getElementById("tg-pin-banner");
   const container = document.getElementById("tg-comments-container");
+  const input = document.getElementById("tg-comment-input");
 
   if(!container){
     console.error("tg-comments-container missing in DOM");
@@ -30,7 +31,6 @@ document.addEventListener("DOMContentLoaded", () => {
       isAdmin:true
     };
 
-    // CLEAN caption (no markdown stars)
     const caption =
 `📌 Group Rules
 
@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
 ✅ To verify or contact admin, use the Contact Admin button below.`;
 
     const image = "assets/broadcast.jpg";
-    const timestamp = new Date(2025,2,14,10,0,0);
+    const timestamp = new Date();
 
     const id = appendSafe(admin, "", {
       timestamp,
@@ -74,7 +74,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const blueBtn = document.createElement("button");
     blueBtn.className = "pin-btn";
     blueBtn.textContent = "View Pinned";
-
     blueBtn.onclick = (e)=>{
       e.stopPropagation();
       const el = pinnedMessageId
@@ -88,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     };
 
-    /* Telegram Pro Glass Contact Button */
+    /* Contact Admin Button */
     const adminBtn = document.createElement("a");
     adminBtn.className = "glass-btn";
     adminBtn.href = window.CONTACT_ADMIN_LINK || "https://t.me/ph_suppp";
@@ -170,12 +169,26 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =====================================================
-     START REALISM ENGINE
+     DARK INPUT BAR + Send/Camera Toggle Fix
+  ===================================================== */
+  if(input){
+    input.style.background = "#1a242f";
+    input.style.color = "#e6eef8";
+    input.style.border = "none";
+    input.style.borderRadius = "24px";
+    input.style.padding = "0 14px";
+    input.style.caretColor = "#2ea6ff";
+  }
+
+  /* =====================================================
+     START REALISM ENGINE / JOINER SIMULATOR
   ===================================================== */
   if(window.realism?.simulateRandomCrowdV11){
-    setTimeout(()=>{
-      window.realism.simulateRandomCrowdV11();
-    }, 600);
+    setTimeout(()=> window.realism.simulateRandomCrowdV11(), 600);
+  }
+
+  if(window.joiner){
+    setTimeout(()=> window.joiner.start(), 1200);
   }
 
 });
