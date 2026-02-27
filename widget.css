@@ -243,29 +243,36 @@ html,body{
   clip-path:polygon(100% 0, 0 100%, 100% 100%);
 }
 
-/* Sender name (colored per persona) */
-.tg-bubble-sender {
-  font-weight: 600;           /* slightly bold for visibility */
-  font-size: 13px;            /* slightly smaller than message text */
-  margin-bottom: 2px;
-  display: inline-block;
+/* bubble sender — multiple colors */
+.tg-bubble-sender{
+  font-weight:600;
+  margin-bottom:2px;
+  font-size:13px;
 }
 
-/* Multiple colors for personas */
-.tg-bubble-sender[data-color="1"] { color: #2ea6ff; }
-.tg-bubble-sender[data-color="2"] { color: #ffd166; }
-.tg-bubble-sender[data-color="3"] { color: #ff6b6b; }
-.tg-bubble-sender[data-color="4"] { color: #6bcB77; }
-.tg-bubble-sender[data-color="5"] { color: #f08fff; }
-/* add more as needed */
+/* Assign 15 persona colors */
+.tg-bubble-sender[data-color="1"]{ color:#2ea6ff; }
+.tg-bubble-sender[data-color="2"]{ color:#ff6b6b; }
+.tg-bubble-sender[data-color="3"]{ color:#ffb86c; }
+.tg-bubble-sender[data-color="4"]{ color:#8be9fd; }
+.tg-bubble-sender[data-color="5"]{ color:#50fa7b; }
+.tg-bubble-sender[data-color="6"]{ color:#ff79c6; }
+.tg-bubble-sender[data-color="7"]{ color:#bd93f9; }
+.tg-bubble-sender[data-color="8"]{ color:#f1fa8c; }
+.tg-bubble-sender[data-color="9"]{ color:#ff5555; }
+.tg-bubble-sender[data-color="10"]{ color:#6272a4; }
+.tg-bubble-sender[data-color="11"]{ color:#ff6e96; }
+.tg-bubble-sender[data-color="12"]{ color:#8affff; }
+.tg-bubble-sender[data-color="13"]{ color:#ffde6d; }
+.tg-bubble-sender[data-color="14"]{ color:#5aff7a; }
+.tg-bubble-sender[data-color="15"]{ color:#d16fff; }
 
-/* Timestamp styling */
-.tg-bubble-meta {
-  font-size: 11px;           /* smaller than message text */
-  font-weight: 400;          /* normal weight */
-  color: var(--tg-muted);    /* lighter, muted */
-  margin-top: 4px;
-  display: inline-block;
+/* bubble meta timestamp */
+.tg-bubble-meta{
+  font-size:11px;
+  font-weight:400;
+  color:var(--tg-muted);
+  margin-top:2px;
 }
 
 /* NEW MESSAGE BLUE PILL (jump indicator) */
