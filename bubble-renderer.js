@@ -6,7 +6,6 @@
     const container = document.getElementById('tg-comments-container');
     const jumpIndicator = document.getElementById('tg-jump-indicator');
     const jumpText = document.getElementById('tg-jump-text');
-    const pillCount = jumpIndicator?.querySelector('.pill-count');
     const metaLine = document.getElementById('tg-meta-line');
 
     if(!container){
@@ -202,14 +201,13 @@
       });
 
       const atBottom = (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 120);
-      if(atBottom){ 
-        container.scrollTop = container.scrollHeight; 
-        hideJump(); 
-      }
-      else { 
-        unseenCount++; 
-        updateJump(); 
-        showJump(); 
+      if(atBottom){
+        container.scrollTop = container.scrollHeight;
+        hideJump();
+      } else {
+        unseenCount++;
+        updateJump();
+        showJump();
       }
 
       if(window.lucide?.createIcons) try{ window.lucide.createIcons(); }catch(e){}
@@ -217,23 +215,15 @@
       return id;
     }
 
-    // ===== NEW MESSAGE PILL FUNCTIONS =====
     function updateJump(){
-      if(jumpText && pillCount){
-        jumpText.textContent = unseenCount > 1 ? 'New messages' : 'New message';
-        pillCount.textContent = unseenCount;
+      if(jumpText){
+        jumpText.textContent = unseenCount > 1
+          ? `New messages · ${unseenCount}`
+          : 'New messages';
       }
     }
-    function showJump(){
-      jumpIndicator?.classList.remove('hidden');
-      jumpIndicator?.classList.add('show');
-    }
-    function hideJump(){
-      jumpIndicator?.classList.add('hidden');
-      jumpIndicator?.classList.remove('show');
-      unseenCount = 0;
-      updateJump();
-    }
+    function showJump(){ jumpIndicator?.classList.add('show'); }
+    function hideJump(){ jumpIndicator?.classList.remove('show'); unseenCount = 0; updateJump(); }
 
     jumpIndicator?.addEventListener('click', ()=>{
       container.scrollTop = container.scrollHeight;
@@ -245,7 +235,6 @@
       bottom > 100 ? showJump() : hideJump();
     });
 
-    // ==== Typing indicator ====
     document.addEventListener('headerTyping', (ev)=>{
       try{
         const name = ev.detail?.name || 'Someone';
@@ -308,7 +297,7 @@
       }
     };
 
-    console.log('bubble-renderer fully integrated with interactions, joiner-simulator, and new message pill');
+    console.log('bubble-renderer fully integrated with new message pill & joiner-simulator');
   }
 
   document.readyState === 'loading'
