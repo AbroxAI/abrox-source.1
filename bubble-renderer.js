@@ -1,5 +1,4 @@
-// bubble-renderer.js — FULL Telegram 2026 Renderer (Complete + Blue Pill Synced, name color fix)
-
+// bubble-renderer.js — FIXED: Telegram 2026 Renderer (Sender Names Always on Top + Blue Pill Synced)
 (function () {
   'use strict';
 
@@ -8,7 +7,6 @@
     const container = document.getElementById('tg-comments-container');
     const jumpIndicator = document.getElementById('tg-jump-indicator');
     const jumpText = document.getElementById('tg-jump-text');
-    const metaLine = document.getElementById('tg-meta-line');
 
     if (!container) {
       console.error('bubble-renderer: container missing');
@@ -22,7 +20,6 @@
     /* =====================================================
        DATE STICKERS
     ===================================================== */
-
     function formatDateKey(date) {
       const d = new Date(date);
       return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
@@ -47,7 +44,6 @@
     /* =====================================================
        CREATE BUBBLE
     ===================================================== */
-
     function createBubble(persona, text, opts = {}) {
 
       const id = opts.id || ('m_' + Date.now() + '_' + Math.floor(Math.random() * 9999));
@@ -80,9 +76,14 @@
       /* Content */
       const content = document.createElement('div');
       content.className = 'tg-bubble-content';
-      // DO NOT set color inline; CSS handles sender color
 
-      /* Reply preview */
+      // 1️⃣ Sender name ALWAYS at top
+      const sender = document.createElement('div');
+      sender.className = 'tg-bubble-sender';
+      sender.textContent = persona?.name || 'User';
+      content.appendChild(sender);
+
+      // 2️⃣ Reply preview
       if (replyToText || replyToId) {
         const replyPreview = document.createElement('div');
         replyPreview.className = 'tg-reply-preview';
@@ -97,22 +98,13 @@
 
           target.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           target.el.classList.add('tg-highlight');
-          setTimeout(() => {
-            target.el.classList.remove('tg-highlight');
-          }, 2000);
+          setTimeout(() => target.el.classList.remove('tg-highlight'), 2000);
         });
 
         content.appendChild(replyPreview);
       }
 
-      /* Sender name */
-      const sender = document.createElement('div');
-      sender.className = 'tg-bubble-sender';
-      sender.textContent = persona?.name || 'User';
-      // inline color removed to let CSS handle highlight
-      content.appendChild(sender);
-
-      /* Image */
+      // 3️⃣ Image
       if (image) {
         const img = document.createElement('img');
         img.className = 'tg-bubble-image';
@@ -123,7 +115,7 @@
         content.appendChild(img);
       }
 
-      /* Text */
+      // 4️⃣ Text
       if (text) {
         const textEl = document.createElement('div');
         textEl.className = 'tg-bubble-text';
@@ -131,7 +123,7 @@
         content.appendChild(textEl);
       }
 
-      /* Caption */
+      // 5️⃣ Caption
       if (caption) {
         const cap = document.createElement('div');
         cap.className = 'tg-bubble-text';
@@ -140,7 +132,7 @@
         content.appendChild(cap);
       }
 
-      /* Admin button */
+      // 6️⃣ Admin Button
       if (persona?.isAdmin) {
         const adminBtn = document.createElement('a');
         adminBtn.className = 'glass-btn';
@@ -151,7 +143,7 @@
         content.appendChild(adminBtn);
       }
 
-      /* Meta time */
+      // 7️⃣ Timestamp Meta
       const meta = document.createElement('div');
       meta.className = 'tg-bubble-meta';
       meta.textContent = new Date(timestamp).toLocaleTimeString([], {
@@ -183,9 +175,7 @@
     /* =====================================================
        APPEND MESSAGE
     ===================================================== */
-
     function appendMessage(persona, text, opts = {}) {
-
       const bubble = createBubble(persona, text, opts);
       container.appendChild(bubble);
 
@@ -208,10 +198,8 @@
     /* =====================================================
        BLUE NEW MESSAGE PILL
     ===================================================== */
-
     function updateJump() {
       if (!jumpText) return;
-
       jumpText.textContent =
         unseenCount > 1
           ? `New messages · ${unseenCount}`
@@ -239,21 +227,18 @@
         container.scrollTop -
         container.clientHeight;
 
-      if (distanceFromBottom < 80) {
-        hideJump();
-      }
+      if (distanceFromBottom < 80) hideJump();
     });
 
     /* =====================================================
        GLOBAL API
     ===================================================== */
-
     window.TGRenderer = {
       appendMessage,
       showTyping: function () {}
     };
 
-    console.log('✅ FULL bubble-renderer loaded (name color fix applied)');
+    console.log('✅ FULL bubble-renderer loaded with fixed sender order');
   }
 
   document.readyState === 'loading'
