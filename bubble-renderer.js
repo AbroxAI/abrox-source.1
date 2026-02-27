@@ -1,5 +1,4 @@
-// bubble-renderer.js — FULL Telegram 2026 Renderer (Complete + Blue Pill Synced)
-// FIXED: Sender name always at top of bubble content
+// bubble-renderer.js — FULL Telegram 2026 Renderer (Complete + Blue Pill Synced, name color fix)
 
 (function () {
   'use strict';
@@ -81,12 +80,7 @@
       /* Content */
       const content = document.createElement('div');
       content.className = 'tg-bubble-content';
-
-      /* === FIX: Sender name always at top === */
-      const sender = document.createElement('div');
-      sender.className = 'tg-bubble-sender';
-      sender.textContent = persona?.name || 'User';
-      content.appendChild(sender);
+      // DO NOT set color inline; CSS handles sender color
 
       /* Reply preview */
       if (replyToText || replyToId) {
@@ -110,6 +104,13 @@
 
         content.appendChild(replyPreview);
       }
+
+      /* Sender name */
+      const sender = document.createElement('div');
+      sender.className = 'tg-bubble-sender';
+      sender.textContent = persona?.name || 'User';
+      // inline color removed to let CSS handle highlight
+      content.appendChild(sender);
 
       /* Image */
       if (image) {
@@ -252,7 +253,7 @@
       showTyping: function () {}
     };
 
-    console.log('✅ FULL bubble-renderer loaded with sender-name fix');
+    console.log('✅ FULL bubble-renderer loaded (name color fix applied)');
   }
 
   document.readyState === 'loading'
