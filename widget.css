@@ -67,23 +67,6 @@ html,body{
 }
 .tg-pin-banner.show{ transform:translateY(0); opacity:1; }
 
-.tg-pin-banner img{
-  width:auto;
-  max-width:80px;
-  height:auto;
-  max-height:60px;
-  border-radius:10px;
-  object-fit:cover;
-  flex-shrink:0;
-}
-
-.tg-pin-banner .pin-text{
-  flex:1;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
 /* Blue “View Pinned” button */
 .tg-pin-banner .pin-btn{
   height:36px;
@@ -112,28 +95,20 @@ html,body{
   align-items:center;
 }
 
-/* =========================================================
-   TELEGRAM 2026 PRO BLUE GLASS BUTTON (REAL)
-   ========================================================= */
-
+/* TELEGRAM 2026 PRO BLUE GLASS BUTTON */
 .glass-btn{
   position:relative;
   display:inline-flex;
   align-items:center;
   justify-content:center;
-
   height:36px;
   padding:0 16px;
-
   font-size:14px;
   font-weight:600;
   letter-spacing:.2px;
-
   border-radius:22px;
-
   color:#ffffff;
   text-decoration:none;
-
   background:
     linear-gradient(
       180deg,
@@ -141,20 +116,15 @@ html,body{
       rgba(46,166,255,0.18) 45%,
       rgba(46,166,255,0.10) 100%
     );
-
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-
   border:1px solid rgba(46,166,255,0.45);
-
   box-shadow:
     0 6px 24px rgba(46,166,255,0.25),
     inset 0 1px 0 rgba(255,255,255,0.35);
-
   transition: all .28s cubic-bezier(.4,0,.2,1);
   overflow:hidden;
 }
-
 .glass-btn::before{
   content:'';
   position:absolute;
@@ -162,28 +132,21 @@ html,body{
   left:-120%;
   width:120%;
   height:100%;
-
   background:linear-gradient(
     120deg,
     rgba(255,255,255,0) 0%,
     rgba(255,255,255,0.55) 50%,
     rgba(255,255,255,0) 100%
   );
-
   transition: all .8s ease;
 }
-
 .glass-btn:hover{
   transform:translateY(-2px);
   box-shadow:
     0 10px 32px rgba(46,166,255,0.55),
     inset 0 1px 0 rgba(255,255,255,0.5);
 }
-
-.glass-btn:hover::before{
-  left:120%;
-}
-
+.glass-btn:hover::before{ left:120%; }
 .glass-btn:active{
   transform:scale(.95);
   box-shadow:
@@ -249,13 +212,11 @@ html,body{
   color:var(--tg-text);
   --bubble-tail-color:#182533;
 }
-
 .tg-bubble.incoming .tg-bubble-content{
   background:#182533;
   color:var(--tg-text);
   --bubble-tail-color:#182533;
 }
-
 .tg-bubble.outgoing .tg-bubble-content{
   background:#2b6df6;
   color:#fff;
@@ -282,52 +243,41 @@ html,body{
   clip-path:polygon(100% 0, 0 100%, 100% 100%);
 }
 
-/* reply preview jumper */
-.tg-reply-preview{
-  background:rgba(255,255,255,0.08);
-  padding:4px 8px;
-  border-radius:12px;
-  font-size:12px;
-  margin-bottom:6px;
-  cursor:pointer;
-  transition: all .25s ease;
+/* NEW MESSAGE BLUE PILL (jump indicator) */
+#tg-jump-indicator {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--tg-accent);
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.32);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 80;
+  transition: all 0.28s cubic-bezier(.4,0,.2,1);
 }
-.tg-reply-preview:hover{
-  background:rgba(46,166,255,0.2);
+#tg-jump-indicator:hover {
+  transform: translateX(-50%) translateY(-2px);
+  box-shadow: 0 10px 24px rgba(46,166,255,0.5);
 }
-
-/* joiner sticker (cluster) */
-.tg-join-sticker{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  margin:14px 0;
+#tg-jump-indicator i {
+  width: 16px;
+  height: 16px;
+  stroke-width: 3;
 }
-.join-cluster{
-  display:flex;
-  gap:-12px;
+#tg-jump-indicator.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(8px);
 }
-.join-avatar{
-  border-radius:50%;
-  border:2px solid var(--tg-bg-main);
-}
-.join-more{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:50%;
-  background:rgba(46,166,255,0.3);
-  color:#fff;
-  font-size:12px;
-  font-weight:600;
-  border:2px solid var(--tg-bg-main);
-}
-.join-names, .join-sub{
-  font-size:12px;
-  color:var(--tg-muted);
-  margin-top:2px;
-  text-align:center;
-}
+#tg-jump-text { white-space: nowrap; }
 
 /* input wrapper */
 .tg-input-wrapper{
