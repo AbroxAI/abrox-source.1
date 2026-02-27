@@ -3,11 +3,9 @@
   'use strict';
 
   function init() {
-
     const container = document.getElementById('tg-comments-container');
     const jumpIndicator = document.getElementById('tg-jump-indicator');
     const jumpText = document.getElementById('tg-jump-text');
-    const metaLine = document.getElementById('tg-meta-line');
 
     if (!container) {
       console.error('bubble-renderer: container missing');
@@ -21,7 +19,6 @@
     /* =====================================================
        DATE STICKERS
     ===================================================== */
-
     function formatDateKey(date) {
       const d = new Date(date);
       return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
@@ -44,10 +41,12 @@
     }
 
     /* =====================================================
-       PERSONA COLOR ASSIGNMENT
+       PERSONA COLOR ASSIGNMENT (up to 15 colors)
     ===================================================== */
     const personaColorMap = new Map();
-    const personaColors = ["1","2","3","4","5","6","7"]; // matches CSS data-color values
+    const personaColors = [
+      "1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"
+    ];
 
     function getPersonaColor(personaName) {
       if (!personaName) return "1";
@@ -61,9 +60,7 @@
     /* =====================================================
        CREATE BUBBLE
     ===================================================== */
-
     function createBubble(persona, text, opts = {}) {
-
       const id = opts.id || ('m_' + Date.now() + '_' + Math.floor(Math.random() * 9999));
       const type = opts.type === 'outgoing' ? 'outgoing' : 'incoming';
       const timestamp = opts.timestamp || new Date();
@@ -95,7 +92,14 @@
       const content = document.createElement('div');
       content.className = 'tg-bubble-content';
 
-      /* Reply preview */
+      // **Sender name (always first)**
+      const sender = document.createElement('div');
+      sender.className = 'tg-bubble-sender';
+      sender.textContent = persona?.name || 'User';
+      sender.dataset.color = getPersonaColor(persona?.name || 'User');
+      content.appendChild(sender);
+
+      // Reply preview (if any)
       if (replyToText || replyToId) {
         const replyPreview = document.createElement('div');
         replyPreview.className = 'tg-reply-preview';
@@ -118,18 +122,7 @@
         content.appendChild(replyPreview);
       }
 
-      /* Sender name */
-      const sender = document.createElement('div');
-      sender.className = 'tg-bubble-sender';
-      sender.textContent = persona?.name || 'User';
-
-      // Assign persona color automatically
-      const colorIndex = getPersonaColor(persona?.name || 'User');
-      sender.dataset.color = colorIndex;
-
-      content.appendChild(sender);
-
-      /* Image */
+      // Image
       if (image) {
         const img = document.createElement('img');
         img.className = 'tg-bubble-image';
@@ -140,7 +133,7 @@
         content.appendChild(img);
       }
 
-      /* Text */
+      // Text (always after name)
       if (text) {
         const textEl = document.createElement('div');
         textEl.className = 'tg-bubble-text';
@@ -148,7 +141,7 @@
         content.appendChild(textEl);
       }
 
-      /* Caption */
+      // Caption
       if (caption) {
         const cap = document.createElement('div');
         cap.className = 'tg-bubble-text';
@@ -157,7 +150,7 @@
         content.appendChild(cap);
       }
 
-      /* Admin button */
+      // Admin button
       if (persona?.isAdmin) {
         const adminBtn = document.createElement('a');
         adminBtn.className = 'glass-btn';
@@ -168,7 +161,7 @@
         content.appendChild(adminBtn);
       }
 
-      /* Meta time */
+      // Meta time (smaller, normal weight)
       const meta = document.createElement('div');
       meta.className = 'tg-bubble-meta';
       meta.textContent = new Date(timestamp).toLocaleTimeString([], {
@@ -177,7 +170,7 @@
       });
       content.appendChild(meta);
 
-      /* Structure */
+      // Structure
       if (type === 'incoming') {
         wrapper.appendChild(avatar);
         wrapper.appendChild(content);
@@ -200,9 +193,7 @@
     /* =====================================================
        APPEND MESSAGE
     ===================================================== */
-
     function appendMessage(persona, text, opts = {}) {
-
       const bubble = createBubble(persona, text, opts);
       container.appendChild(bubble);
 
@@ -225,7 +216,6 @@
     /* =====================================================
        BLUE NEW MESSAGE PILL
     ===================================================== */
-
     function updateJump() {
       if (!jumpText) return;
 
@@ -264,13 +254,12 @@
     /* =====================================================
        GLOBAL API
     ===================================================== */
-
     window.TGRenderer = {
       appendMessage,
       showTyping: function () {}
     };
 
-    console.log('✅ FULL bubble-renderer loaded with persona colors');
+    console.log('✅ FULL bubble-renderer loaded with 15 persona colors and correct name/text order');
   }
 
   document.readyState === 'loading'
