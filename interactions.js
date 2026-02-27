@@ -1,4 +1,4 @@
-// interactions-fixed.js — Telegram 2026 widget integration with bubble pill
+// interactions.js — FIXED for TGRenderer readiness & Blue Pill
 (function () {
   'use strict';
 
@@ -10,7 +10,7 @@
   const jumpIndicator = document.getElementById('tg-jump-indicator');
   const jumpText = document.getElementById('tg-jump-text');
 
-  if (!input || !sendBtn || !container) {
+  if (!input || !sendBtn) {
     console.error('interactions.js: required elements missing');
     return;
   }
@@ -20,7 +20,6 @@
   ====================================================== */
   function updateInputState() {
     const hasText = input.value.trim().length > 0;
-
     if (hasText) {
       sendBtn.classList.remove('hidden');
       cameraBtn?.classList.add('hidden');
@@ -29,9 +28,24 @@
       cameraBtn?.classList.remove('hidden');
     }
   }
-
   input.addEventListener('input', updateInputState);
   updateInputState();
+
+  /* ======================================================
+     WAIT FOR TGRenderer
+  ====================================================== */
+  function onTGRendererReady(callback) {
+    if (window.TGRenderer && typeof window.TGRenderer.appendMessage === 'function') {
+      callback();
+    } else {
+      const interval = setInterval(() => {
+        if (window.TGRenderer && typeof window.TGRenderer.appendMessage === 'function') {
+          clearInterval(interval);
+          callback();
+        }
+      }, 50);
+    }
+  }
 
   /* ======================================================
      SEND MESSAGE
@@ -46,28 +60,20 @@
       isAdmin: false
     };
 
-    // Append outgoing message
-    const id = window.TGRenderer?.appendMessage(me, text, {
-      type: 'outgoing',
-      timestamp: new Date()
+    onTGRendererReady(() => {
+      const id = window.TGRenderer.appendMessage(me, text, {
+        type: 'outgoing',
+        timestamp: new Date()
+      });
+
+      input.value = '';
+      updateInputState();
+
+      simulateRealisticResponse(text);
     });
-
-    input.value = '';
-    updateInputState();
-
-    // Reset new message pill if user was at bottom
-    if (jumpIndicator) {
-      jumpIndicator.classList.add('hidden');
-      if (jumpText) jumpText.textContent = 'New messages';
-    }
-
-    simulateRealisticResponse(text);
-
-    return id;
   }
 
   sendBtn.addEventListener('click', sendMessage);
-
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -76,39 +82,31 @@
   });
 
   /* ======================================================
-     REALISM ENGINE RESPONSE
+     REALISM ENGINE HOOK
   ====================================================== */
   function simulateRealisticResponse(userText) {
-    if (!window.RealismEngine || !window.identityPool) return;
+    onTGRendererReady(() => {
+      if (!window.RealismEngine || !window.identityPool) return;
 
-    const persona = window.identityPool.getRandomPersona?.();
-    if (!persona) return;
+      const persona = window.identityPool.getRandomPersona?.();
+      if (!persona) return;
 
-    const delay = 800 + Math.random() * 1600;
+      const delay = 800 + Math.random() * 1600;
 
-    // Trigger typing header
-    document.dispatchEvent(new CustomEvent('headerTyping', { detail: { name: persona.name } }));
+      document.dispatchEvent(new CustomEvent('headerTyping', {
+        detail: { name: persona.name }
+      }));
 
-    setTimeout(() => {
-      const reply = window.RealismEngine.generateReply?.(userText, persona)
-        || generateFallbackReply(userText);
+      setTimeout(() => {
+        const reply = window.RealismEngine.generateReply?.(userText, persona)
+          || generateFallbackReply(userText);
 
-      window.TGRenderer.appendMessage(persona, reply, {
-        type: 'incoming',
-        timestamp: new Date()
-      });
-
-      // Show new message pill if user is not at bottom
-      const atBottom = (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 120);
-      if (!atBottom && jumpIndicator && jumpText) {
-        let currentCount = parseInt(jumpText.dataset.count || '0', 10);
-        currentCount++;
-        jumpText.dataset.count = currentCount;
-        jumpText.textContent = currentCount > 1 ? `New messages · ${currentCount}` : 'New messages';
-        jumpIndicator.classList.remove('hidden');
-      }
-
-    }, delay);
+        window.TGRenderer.appendMessage(persona, reply, {
+          type: 'incoming',
+          timestamp: new Date()
+        });
+      }, delay);
+    });
   }
 
   function generateFallbackReply(text) {
@@ -126,6 +124,35 @@
   }
 
   /* ======================================================
+     BLUE PILL / JUMP INDICATOR
+  ====================================================== */
+  function updateJump(unseenCount) {
+    if (!jumpText) return;
+    jumpText.textContent = unseenCount > 1
+      ? `New messages · ${unseenCount}`
+      : 'New messages';
+  }
+
+  function showJump() {
+    jumpIndicator?.classList.remove('hidden');
+  }
+
+  function hideJump() {
+    jumpIndicator?.classList.add('hidden');
+  }
+
+  jumpIndicator?.addEventListener('click', () => {
+    if (container) container.scrollTop = container.scrollHeight;
+    hideJump();
+  });
+
+  container?.addEventListener('scroll', () => {
+    if (!container) return;
+    const bottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    bottom > 100 ? showJump() : hideJump();
+  });
+
+  /* ======================================================
      EMOJI BUTTON
   ====================================================== */
   emojiBtn?.addEventListener('click', () => {
@@ -135,34 +162,12 @@
   });
 
   /* ======================================================
-     SCROLL HANDLING FOR NEW MESSAGE PILL
-  ====================================================== */
-  container.addEventListener('scroll', () => {
-    const atBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 50;
-    if (atBottom) {
-      if (jumpIndicator) jumpIndicator.classList.add('hidden');
-      if (jumpText) {
-        jumpText.dataset.count = 0;
-        jumpText.textContent = 'New messages';
-      }
-    }
-  });
-
-  jumpIndicator?.addEventListener('click', () => {
-    container.scrollTop = container.scrollHeight;
-    if (jumpIndicator) jumpIndicator.classList.add('hidden');
-    if (jumpText) {
-      jumpText.dataset.count = 0;
-      jumpText.textContent = 'New messages';
-    }
-  });
-
-  /* ======================================================
      INITIAL ICON RENDER
   ====================================================== */
   if (window.lucide?.createIcons) {
     try { window.lucide.createIcons(); } catch (e) {}
   }
 
-  console.log('interactions.js fixed with new message pill integration');
+  console.log('interactions.js FIXED with TGRenderer-ready blue pill & realism');
+
 })();
