@@ -223,6 +223,18 @@ html,body{
   --bubble-tail-color:#2b6df6;
 }
 
+/* sender name tweak */
+.tg-bubble-sender {
+  font-weight: 600;
+  font-size: 14px;
+  color: #ffd166; /* golden accent for better visibility */
+  margin-bottom: 2px;
+}
+.tg-bubble-sender:hover {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* bubble tail */
 .tg-bubble-content::after{
   content:"";
