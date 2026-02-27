@@ -223,18 +223,6 @@ html,body{
   --bubble-tail-color:#2b6df6;
 }
 
-/* sender name tweak */
-.tg-bubble-sender {
-  font-weight: 600;
-  font-size: 14px;
-  color: #ffd166; /* golden accent for better visibility */
-  margin-bottom: 2px;
-}
-.tg-bubble-sender:hover {
-  text-decoration: underline;
-  cursor: pointer;
-}
-
 /* bubble tail */
 .tg-bubble-content::after{
   content:"";
@@ -253,6 +241,31 @@ html,body{
   right:-7px;
   transform:scaleX(-1);
   clip-path:polygon(100% 0, 0 100%, 100% 100%);
+}
+
+/* Sender name (colored per persona) */
+.tg-bubble-sender {
+  font-weight: 600;           /* slightly bold for visibility */
+  font-size: 13px;            /* slightly smaller than message text */
+  margin-bottom: 2px;
+  display: inline-block;
+}
+
+/* Multiple colors for personas */
+.tg-bubble-sender[data-color="1"] { color: #2ea6ff; }
+.tg-bubble-sender[data-color="2"] { color: #ffd166; }
+.tg-bubble-sender[data-color="3"] { color: #ff6b6b; }
+.tg-bubble-sender[data-color="4"] { color: #6bcB77; }
+.tg-bubble-sender[data-color="5"] { color: #f08fff; }
+/* add more as needed */
+
+/* Timestamp styling */
+.tg-bubble-meta {
+  font-size: 11px;           /* smaller than message text */
+  font-weight: 400;          /* normal weight */
+  color: var(--tg-muted);    /* lighter, muted */
+  margin-top: 4px;
+  display: inline-block;
 }
 
 /* NEW MESSAGE BLUE PILL (jump indicator) */
