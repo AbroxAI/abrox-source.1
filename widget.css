@@ -191,6 +191,58 @@ html,body{
     inset 0 3px 8px rgba(0,0,0,0.35);
 }
 
+/* =========================================================
+   NEW MESSAGE PILL
+========================================================= */
+
+.tg-new-message-pill {
+  position: absolute;
+  bottom: 80px; /* above input bar */
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--tg-accent);
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(46,166,255,0.35);
+  cursor: pointer;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: tg-new-pill-entrance 0.35s ease-out;
+  backdrop-filter: blur(12px);
+  transition: all 0.25s ease;
+}
+
+.tg-new-message-pill .pill-count {
+  background: #fff;
+  color: var(--tg-accent);
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tg-new-message-pill i {
+  font-size: 14px;
+}
+
+@keyframes tg-new-pill-entrance {
+  0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.tg-new-message-pill.hidden {
+  display: none !important;
+}
+
 /* comments container */
 .tg-comments-container{
   flex:1 1 auto;
