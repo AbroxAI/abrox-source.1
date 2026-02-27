@@ -1,4 +1,6 @@
-// bubble-renderer.js — FIXED: Telegram 2026 Renderer (Sender Names Always on Top + Blue Pill Synced)
+// bubble-renderer.js — FULL Telegram 2026 Renderer (Complete + Blue Pill Synced)
+// FIXED: Sender name always at top of bubble content
+
 (function () {
   'use strict';
 
@@ -7,6 +9,7 @@
     const container = document.getElementById('tg-comments-container');
     const jumpIndicator = document.getElementById('tg-jump-indicator');
     const jumpText = document.getElementById('tg-jump-text');
+    const metaLine = document.getElementById('tg-meta-line');
 
     if (!container) {
       console.error('bubble-renderer: container missing');
@@ -20,6 +23,7 @@
     /* =====================================================
        DATE STICKERS
     ===================================================== */
+
     function formatDateKey(date) {
       const d = new Date(date);
       return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
@@ -44,6 +48,7 @@
     /* =====================================================
        CREATE BUBBLE
     ===================================================== */
+
     function createBubble(persona, text, opts = {}) {
 
       const id = opts.id || ('m_' + Date.now() + '_' + Math.floor(Math.random() * 9999));
@@ -77,13 +82,13 @@
       const content = document.createElement('div');
       content.className = 'tg-bubble-content';
 
-      // 1️⃣ Sender name ALWAYS at top
+      /* === FIX: Sender name always at top === */
       const sender = document.createElement('div');
       sender.className = 'tg-bubble-sender';
       sender.textContent = persona?.name || 'User';
       content.appendChild(sender);
 
-      // 2️⃣ Reply preview
+      /* Reply preview */
       if (replyToText || replyToId) {
         const replyPreview = document.createElement('div');
         replyPreview.className = 'tg-reply-preview';
@@ -98,13 +103,15 @@
 
           target.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           target.el.classList.add('tg-highlight');
-          setTimeout(() => target.el.classList.remove('tg-highlight'), 2000);
+          setTimeout(() => {
+            target.el.classList.remove('tg-highlight');
+          }, 2000);
         });
 
         content.appendChild(replyPreview);
       }
 
-      // 3️⃣ Image
+      /* Image */
       if (image) {
         const img = document.createElement('img');
         img.className = 'tg-bubble-image';
@@ -115,7 +122,7 @@
         content.appendChild(img);
       }
 
-      // 4️⃣ Text
+      /* Text */
       if (text) {
         const textEl = document.createElement('div');
         textEl.className = 'tg-bubble-text';
@@ -123,7 +130,7 @@
         content.appendChild(textEl);
       }
 
-      // 5️⃣ Caption
+      /* Caption */
       if (caption) {
         const cap = document.createElement('div');
         cap.className = 'tg-bubble-text';
@@ -132,7 +139,7 @@
         content.appendChild(cap);
       }
 
-      // 6️⃣ Admin Button
+      /* Admin button */
       if (persona?.isAdmin) {
         const adminBtn = document.createElement('a');
         adminBtn.className = 'glass-btn';
@@ -143,7 +150,7 @@
         content.appendChild(adminBtn);
       }
 
-      // 7️⃣ Timestamp Meta
+      /* Meta time */
       const meta = document.createElement('div');
       meta.className = 'tg-bubble-meta';
       meta.textContent = new Date(timestamp).toLocaleTimeString([], {
@@ -175,7 +182,9 @@
     /* =====================================================
        APPEND MESSAGE
     ===================================================== */
+
     function appendMessage(persona, text, opts = {}) {
+
       const bubble = createBubble(persona, text, opts);
       container.appendChild(bubble);
 
@@ -198,8 +207,10 @@
     /* =====================================================
        BLUE NEW MESSAGE PILL
     ===================================================== */
+
     function updateJump() {
       if (!jumpText) return;
+
       jumpText.textContent =
         unseenCount > 1
           ? `New messages · ${unseenCount}`
@@ -227,18 +238,21 @@
         container.scrollTop -
         container.clientHeight;
 
-      if (distanceFromBottom < 80) hideJump();
+      if (distanceFromBottom < 80) {
+        hideJump();
+      }
     });
 
     /* =====================================================
        GLOBAL API
     ===================================================== */
+
     window.TGRenderer = {
       appendMessage,
       showTyping: function () {}
     };
 
-    console.log('✅ FULL bubble-renderer loaded with fixed sender order');
+    console.log('✅ FULL bubble-renderer loaded with sender-name fix');
   }
 
   document.readyState === 'loading'
