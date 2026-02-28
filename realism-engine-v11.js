@@ -1,4 +1,4 @@
-// realism-engine-v11.js — ULTRA-REALISM ENGINE V11 (with variable typing durations)
+// realism-engine-v11.js — ULTRA-REALISM ENGINE V11 (with variable typing durations + self-replies)
 
 (function(){
 
@@ -179,7 +179,7 @@ function appendSafe(persona,text,opts={}){
 }
 
 /* =====================================================
-   TYPING DELAY BASED ON MESSAGE LENGTH
+   TYPING DELAY
 ===================================================== */
 
 function getTypingDelay(text){
@@ -191,7 +191,7 @@ function getTypingDelay(text){
 }
 
 /* =====================================================
-   TRUE REPLY LOGIC
+   RANDOM EXISTING MESSAGE (for reply preview & self-replies)
 ===================================================== */
 
 function getRandomExistingMessage(){
@@ -205,7 +205,7 @@ function getRandomExistingMessage(){
 }
 
 /* =====================================================
-   POSTING
+   POSTING (WITH SELF-REPLIES)
 ===================================================== */
 
 function post(count=1){
@@ -221,13 +221,28 @@ function post(count=1){
 
       if(window.TGRenderer?.showTyping) window.TGRenderer.showTyping(persona);
 
-      // Trigger ultra-real header typing
+      // Ultra-real header typing
       document.dispatchEvent(new CustomEvent('headerTyping', { detail: { name: persona.name } }));
 
       let replyData = {};
+
+      // 28% chance to reply to another existing message
       if(maybe(0.28)){
         const existing = getRandomExistingMessage();
         if(existing) replyData = existing;
+      }
+
+      // 12% chance to reply to own previous message
+      if(maybe(0.12)){
+        const selfMessages = Array.from(document.querySelectorAll('.tg-bubble'))
+          .filter(b => b.dataset.persona === persona.name);
+        if(selfMessages.length){
+          const selfTarget = selfMessages[Math.floor(Math.random()*selfMessages.length)];
+          const selfText = selfTarget.querySelector('.tg-bubble-text')?.textContent;
+          if(selfText){
+            replyData = { replyToId: selfTarget.dataset.id, replyToText: selfText.slice(0,120) };
+          }
+        }
       }
 
       appendSafe(persona,item.text,{
@@ -238,12 +253,11 @@ function post(count=1){
       });
 
     }, delay);
-
   }
 }
 
 /* =====================================================
-   SCHEDULER
+   SCHEDULER & SIMULATE
 ===================================================== */
 
 let started=false;
@@ -265,14 +279,14 @@ function simulate(){
 }
 
 /* =====================================================
-   START
+   START REALISM ENGINE
 ===================================================== */
 
 setTimeout(()=>{
   ensurePool(2000);
   post(60);
   simulate();
-  console.log("Realism Engine V11 FULL — Joiner-reactive dynamic replies with variable typing durations active.");
+  console.log("Realism Engine V11 FULL — Joiner-reactive dynamic replies WITH self-replies active.");
 },900);
 
 })();
