@@ -1,4 +1,4 @@
-// bubble-renderer.js — FULL Telegram 2026 Renderer (Complete + Blue Pill Synced + Typing Fix)
+// bubble-renderer.js — FULL Telegram 2026 Renderer (Complete + Blue Pill Synced + Reply Preview Fixed)
 (function () {
   'use strict';
 
@@ -107,6 +107,7 @@
           ? (replyToText.length > 120 ? replyToText.slice(0, 117) + '...' : replyToText)
           : 'Reply';
 
+        // Scroll and highlight target
         replyPreview.addEventListener('click', () => {
           if (!replyToId) return;
           const target = MESSAGE_MAP.get(replyToId);
@@ -178,6 +179,7 @@
         wrapper.appendChild(content);
       }
 
+      // store in map for reply jumps
       MESSAGE_MAP.set(id, {
         el: wrapper,
         text,
@@ -195,9 +197,6 @@
       const bubble = createBubble(persona, text, opts);
       container.appendChild(bubble);
 
-      // Fire the ultra-real typing stop
-      document.dispatchEvent(new CustomEvent("messageAppended", { detail: { persona } }));
-
       const atBottom =
         container.scrollTop + container.clientHeight >=
         container.scrollHeight - 80;
@@ -212,15 +211,6 @@
       }
 
       return true;
-    }
-
-    /* =====================================================
-       SHOW TYPING (ultra-real)
-    ===================================================== */
-    function showTyping(persona) {
-      // Fire headerTyping event for app.js
-      if (!persona || !persona.name) return;
-      document.dispatchEvent(new CustomEvent("headerTyping", { detail: { name: persona.name } }));
     }
 
     /* =====================================================
@@ -266,10 +256,10 @@
     ===================================================== */
     window.TGRenderer = {
       appendMessage,
-      showTyping
+      showTyping: function () {}
     };
 
-    console.log('✅ FULL bubble-renderer loaded with 15 persona colors, correct name order, and ultra-real typing support');
+    console.log('✅ FULL bubble-renderer loaded with 15 persona colors, reply preview, and jump-to-message');
   }
 
   document.readyState === 'loading'
