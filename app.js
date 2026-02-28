@@ -1,4 +1,4 @@
-// app.js — FINAL Telegram 2026 with Reply Preview + Pin Banner Jumpers
+// app.js — FINAL Telegram 2026 with Reply Preview + Pin Banner Jumpers + Telegram-style pulse highlight
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -9,14 +9,20 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!container) { console.error("tg-comments-container missing in DOM"); return; }
 
   /* =====================================================
-     CSS for Telegram-style highlight
+     CSS for Telegram-style highlight + pulse
   ===================================================== */
   const style = document.createElement('style');
   style.textContent = `
     .tg-highlight {
       background-color: rgba(255, 229, 100, 0.3);
       border-radius: 14px;
-      transition: opacity 2.6s ease-out;
+      animation: tgFadePulse 2.6s ease-out forwards;
+    }
+
+    @keyframes tgFadePulse {
+      0% { opacity: 1; transform: scale(1.02); }
+      20% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(1); }
     }
   `;
   document.head.appendChild(style);
@@ -28,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (window.TGRenderer?.appendMessage) {
       const id = window.TGRenderer.appendMessage(persona, text, opts);
       document.dispatchEvent(new CustomEvent("messageAppended", { detail: { persona } }));
-      // Add reply preview jumper after append
+      // Attach reply preview jumper after append
       if (opts.replyToText) attachReplyJump(id, opts.replyToText);
       return id;
     }
@@ -81,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     REPLY PREVIEW JUMPER
+     JUMP TO MESSAGE + PULSE
   ===================================================== */
   function jumpToMessage(el) {
     if (!el) return;
@@ -99,9 +105,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     replyPreview.style.cursor = 'pointer';
     replyPreview.addEventListener('click', () => {
-      // Find the original bubble by matching text snippet
       const allBubbles = Array.from(document.querySelectorAll('.tg-bubble'));
-      const target = allBubbles.find(b => b.dataset.id !== newMessageId && b.querySelector('.tg-bubble-text')?.textContent.includes(replyText));
+      const target = allBubbles.find(b =>
+        b.dataset.id !== newMessageId &&
+        b.querySelector('.tg-bubble-text')?.textContent.includes(replyText)
+      );
       if (target) jumpToMessage(target);
     });
   }
@@ -235,6 +243,6 @@ document.addEventListener("DOMContentLoaded", () => {
     inputBar.style.borderRadius = "26px";
   }
 
-  console.log("app.js patched: reply preview & pin banner jumpers + Telegram-style highlight active");
+  console.log("app.js patched: reply preview & pin banner jumpers + Telegram-style pulse highlight active");
 
 });
