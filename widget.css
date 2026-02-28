@@ -86,13 +86,12 @@ html, body {
 .tg-back-btn i, .tg-options-btn i { width: 22px; height: 22px; }
 
 /* =========================
-   PIN BANNER
+   PIN BANNER (FIXED HORIZONTAL)
 ========================= */
 .tg-pin-banner {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
+  gap: 14px;
   padding: 12px 16px;
   background: rgba(23,33,43,0.6);
   backdrop-filter: blur(16px);
@@ -115,24 +114,27 @@ html, body {
   opacity: 1;
 }
 .tg-pin-banner img {
-  max-width: 60px;
-  max-height: 60px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0;
 }
 .tg-pin-text {
-  margin: 0;
+  flex: 1;
   font-size: 13px;
   line-height: 1.35;
   color: var(--tg-text);
-  white-space: pre-line;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
 }
 .tg-pin-banner .pin-btn-container {
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
   align-items: center;
+  flex-shrink: 0;
 }
 .tg-pin-banner .pin-btn {
   height: 36px;
