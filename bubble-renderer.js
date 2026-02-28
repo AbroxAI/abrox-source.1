@@ -1,4 +1,4 @@
-// bubble-renderer.js — FULL Telegram 2026 Renderer (Complete + Blue Pill Synced)
+// bubble-renderer.js — FULL Telegram 2026 Renderer (Complete + Blue Pill Synced + Typing Fix)
 (function () {
   'use strict';
 
@@ -114,9 +114,7 @@
 
           target.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           target.el.classList.add('tg-highlight');
-          setTimeout(() => {
-            target.el.classList.remove('tg-highlight');
-          }, 2000);
+          setTimeout(() => target.el.classList.remove('tg-highlight'), 2000);
         });
 
         content.appendChild(replyPreview);
@@ -197,6 +195,9 @@
       const bubble = createBubble(persona, text, opts);
       container.appendChild(bubble);
 
+      // Fire the ultra-real typing stop
+      document.dispatchEvent(new CustomEvent("messageAppended", { detail: { persona } }));
+
       const atBottom =
         container.scrollTop + container.clientHeight >=
         container.scrollHeight - 80;
@@ -211,6 +212,15 @@
       }
 
       return true;
+    }
+
+    /* =====================================================
+       SHOW TYPING (ultra-real)
+    ===================================================== */
+    function showTyping(persona) {
+      // Fire headerTyping event for app.js
+      if (!persona || !persona.name) return;
+      document.dispatchEvent(new CustomEvent("headerTyping", { detail: { name: persona.name } }));
     }
 
     /* =====================================================
@@ -256,10 +266,10 @@
     ===================================================== */
     window.TGRenderer = {
       appendMessage,
-      showTyping: function () {}
+      showTyping
     };
 
-    console.log('✅ FULL bubble-renderer loaded with 15 persona colors and correct name/text order');
+    console.log('✅ FULL bubble-renderer loaded with 15 persona colors, correct name order, and ultra-real typing support');
   }
 
   document.readyState === 'loading'
