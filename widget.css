@@ -40,13 +40,7 @@ html,body{
   position:sticky; top:0; z-index:60;
 }
 .tg-header-center{ display:flex; align-items:center; gap:10px; flex:1; margin:0 12px; min-width:0; }
-.tg-header-avatar{
-  width:var(--tg-avatar-size);
-  height:var(--tg-avatar-size);
-  border-radius:50%;
-  object-fit:cover;
-  content: url("/assets/admin.jpg"); /* fallback admin avatar if missing */
-}
+.tg-header-avatar{ width:var(--tg-avatar-size); height:var(--tg-avatar-size); border-radius:50%; object-fit:cover; }
 .tg-title{ font-size:15px; font-weight:700; }
 .tg-meta{ font-size:12px; color:var(--tg-muted); margin-top:2px; }
 
@@ -54,24 +48,58 @@ html,body{
 .tg-back-btn, .tg-options-btn{ background:none; border:none; color:#fff; padding:6px; cursor:pointer; }
 .tg-back-btn i, .tg-options-btn i{ width:22px; height:22px; }
 
-/* pin banner */
-.tg-pin-banner{
-  display:flex; align-items:center; gap:12px; padding:10px 14px;
-  background:rgba(23,33,43,0.55);
-  backdrop-filter:blur(14px);
-  border-radius:18px;
-  color:var(--tg-text);
-  font-size:13px;
-  position:sticky;
-  top:calc(var(--tg-header-height) + 4px);
-  z-index:55;
-  max-width:92%;
-  margin:6px auto;
-  transform:translateY(-8px);
-  opacity:0;
-  transition:all 320ms ease;
+/* =====================================================
+   PIN BANNER FIX — caption alignment & Telegram style
+===================================================== */
+.tg-pin-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(23,33,43,0.6);
+  backdrop-filter: blur(16px);
+  border-radius: 18px;
+  color: var(--tg-text);
+  font-size: 13px;
+  line-height: 1.4;
+  position: sticky;
+  top: calc(var(--tg-header-height) + 6px);
+  z-index: 55;
+  max-width: 95%;
+  margin: 6px auto;
+  transform: translateY(-8px);
+  opacity: 0;
+  transition: all 320ms ease;
+  word-break: break-word;
 }
-.tg-pin-banner.show{ transform:translateY(0); opacity:1; }
+.tg-pin-banner.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.tg-pin-banner img {
+  max-width: 60px;
+  max-height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.tg-pin-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--tg-text);
+  white-space: pre-line; /* preserves line breaks from JS caption */
+  text-align: left;
+}
+
+.tg-pin-banner .pin-btn-container {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
 
 /* Blue “View Pinned” button */
 .tg-pin-banner .pin-btn{
@@ -92,13 +120,6 @@ html,body{
 }
 .tg-pin-banner .pin-btn:active{
   transform:scale(.95);
-}
-
-/* Button container */
-.tg-pin-banner .pin-btn-container{
-  display:flex;
-  gap:8px;
-  align-items:center;
 }
 
 /* TELEGRAM 2026 PRO BLUE GLASS BUTTON */
@@ -289,15 +310,6 @@ html,body{
   background: rgba(46, 166, 255, 0.15);
 }
 
-/* yellow fade animation for jumps */
-@keyframes tg-highlight-fade {
-  0% { background-color: rgba(255, 255, 0, 0.5); }
-  100% { background-color: transparent; }
-}
-.tg-highlight {
-  animation: tg-highlight-fade 2.6s ease forwards;
-}
-
 /* bubble meta timestamp */
 .tg-bubble-meta{
   font-size:11px;
@@ -407,6 +419,6 @@ html,body{
 @media (max-width:520px){
   .tg-bubble{ max-width:86%; }
   .tg-bubble-image{ max-height:220px; }
-  .tg-pin-banner img{ max-width:60px; max-height:50px; }
+  .tg-pin-banner img{ max-width:50px; max-height:50px; }
   .tg-pin-banner .pin-btn-container{ flex-direction:column; align-items:flex-start; gap:6px; }
 }
