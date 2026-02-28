@@ -1,4 +1,4 @@
-// interactions.js — FULL Telegram 2026 integration (Ultra-Real Typing + Variable Durations + Reply Preview Jumper + Fixed Header Typing)
+// interactions.js — Telegram 2026 interactions with ultra-real typing + reply preview + pinned view
 (function () {
   'use strict';
 
@@ -9,7 +9,7 @@
   const container = document.getElementById('tg-comments-container');
   const jumpIndicator = document.getElementById('tg-jump-indicator');
   const jumpText = document.getElementById('tg-jump-text');
-  const headerMeta = document.getElementById('tg-meta-line');
+  const pinBtn = document.querySelector('.tg-pin-banner .pin-btn');
 
   if (!input || !sendBtn || !container) {
     console.error('interactions.js: required elements missing');
@@ -17,11 +17,10 @@
   }
 
   let unseenCount = 0;
-  const typingPersons = new Set();
 
-  /* ======================================================
+  /* ===============================
      INPUT STATE HANDLING
-  ====================================================== */
+  =============================== */
   function updateInputState() {
     const hasText = input.value.trim().length > 0;
     if (hasText) {
@@ -36,9 +35,9 @@
   input.addEventListener('input', updateInputState);
   updateInputState();
 
-  /* ======================================================
+  /* ===============================
      TYPING DURATION CALCULATOR
-  ====================================================== */
+  =============================== */
   function getTypingDelay(text) {
     if (!text) return 800;
     const base = 600;
@@ -47,9 +46,9 @@
     return Math.min(8000, base + text.length * perChar + randomFactor);
   }
 
-  /* ======================================================
+  /* ===============================
      SEND MESSAGE
-  ====================================================== */
+  =============================== */
   function sendMessage() {
     const text = input.value.trim();
     if (!text) return;
@@ -71,6 +70,8 @@
 
     simulateRealisticResponse(text);
 
+    document.dispatchEvent(new CustomEvent('sendMessage', { detail: { text } }));
+
     return id;
   }
 
@@ -82,9 +83,9 @@
     }
   });
 
-  /* ======================================================
-     REALISM ENGINE HOOK + HEADER TYPING
-  ====================================================== */
+  /* ===============================
+     REALISM ENGINE HOOK
+  =============================== */
   function simulateRealisticResponse(userText) {
     if (!window.RealismEngine || !window.identityPool) return;
 
@@ -92,8 +93,7 @@
     if (!persona) return;
 
     window.TGRenderer?.showTyping(persona);
-    typingPersons.add(persona.name);
-    updateHeaderTyping();
+    document.dispatchEvent(new CustomEvent('headerTyping', { detail: { name: persona.name } }));
 
     const delay = getTypingDelay(userText);
 
@@ -101,15 +101,12 @@
       const reply = window.RealismEngine.generateReply?.(userText, persona)
         || generateFallbackReply(userText);
 
-      const bubbleId = window.TGRenderer.appendMessage(persona, reply, {
+      const bubbleEl = window.TGRenderer.appendMessage(persona, reply, {
         type: 'incoming',
         timestamp: new Date()
       });
 
-      attachReplyPreview(bubbleId, reply); // ✅ Attach reply preview jumper
-
-      typingPersons.delete(persona.name);
-      updateHeaderTyping();
+      attachReplyPreview(bubbleEl, reply);
 
       const atBottom = (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 50);
       if (!atBottom) {
@@ -134,39 +131,20 @@
     return responses[Math.floor(Math.random() * responses.length)];
   }
 
-  /* ======================================================
-     HEADER TYPING UPDATE
-  ====================================================== */
-  function updateHeaderTyping() {
-    if (!headerMeta) return;
-    if (typingPersons.size === 0) {
-      headerMeta.textContent = `${window.MEMBER_COUNT?.toLocaleString() || 0} members, ${window.ONLINE_COUNT?.toLocaleString() || 0} online`;
-    } else if (typingPersons.size === 1) {
-      const [name] = typingPersons;
-      headerMeta.textContent = `${name} is typing…`;
-    } else {
-      const names = Array.from(typingPersons).slice(0, 2).join(" & ");
-      headerMeta.textContent = `${names} are typing…`;
-    }
-  }
-
-  /* ======================================================
+  /* ===============================
      REPLY PREVIEW / YELLOW HIGHLIGHT
-  ====================================================== */
-  function attachReplyPreview(bubbleId, replyText) {
-    if (!bubbleId || !replyText) return;
-    const newMsgEl = document.querySelector(`[data-id="${bubbleId}"]`);
-    if (!newMsgEl) return;
+  =============================== */
+  function attachReplyPreview(bubbleEl, replyText) {
+    if (!bubbleEl || !replyText) return;
+    const replyButton = bubbleEl.querySelector('.tg-bubble-reply');
+    if (!replyButton) return;
 
-    const replyPreview = newMsgEl.querySelector('.tg-bubble-reply');
-    if (!replyPreview) return;
-
-    replyPreview.addEventListener('click', () => {
+    replyButton.addEventListener('click', () => {
       const allBubbles = Array.from(document.querySelectorAll('.tg-bubble'));
       const target = allBubbles.find(b =>
-        b.dataset.id !== bubbleId &&
-        b.querySelector('.tg-bubble-text')?.textContent.includes(replyText)
+        b !== bubbleEl && b.querySelector('.tg-bubble-text')?.textContent.includes(replyText)
       );
+
       if (target) {
         target.scrollIntoView({ behavior: 'smooth', block: 'center' });
         target.classList.add('tg-highlight');
@@ -175,9 +153,9 @@
     });
   }
 
-  /* ======================================================
-     NEW MESSAGE PILL
-  ====================================================== */
+  /* ===============================
+     NEW MESSAGE BLUE PILL
+  =============================== */
   function updateJump() {
     if (jumpText) {
       jumpText.textContent = unseenCount > 1
@@ -199,21 +177,37 @@
     bottom > 100 ? showJump() : hideJump();
   });
 
-  /* ======================================================
+  /* ===============================
+     VIEW PINNED BUTTON
+  =============================== */
+  pinBtn?.addEventListener('click', () => {
+    const pinnedId = window.TGRenderer.getPinnedMessageId?.();
+    if (!pinnedId) return;
+
+    const pinnedBubble = document.querySelector(`.tg-bubble[data-id="${pinnedId}"]`);
+    if (!pinnedBubble) return;
+
+    pinnedBubble.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    pinnedBubble.classList.add('tg-highlight');
+    setTimeout(() => pinnedBubble.classList.remove('tg-highlight'), 2600);
+  });
+
+  /* ===============================
      EMOJI BUTTON
-  ====================================================== */
+  =============================== */
   emojiBtn?.addEventListener('click', () => {
     input.value += "😊";
     input.focus();
     updateInputState();
   });
 
-  /* ======================================================
+  /* ===============================
      INITIAL ICON RENDER
-  ====================================================== */
+  =============================== */
   if (window.lucide?.createIcons) {
     try { window.lucide.createIcons(); } catch (e) {}
   }
 
-  console.log('interactions.js fully integrated: fixed typing indicator, reply preview jumper, new message pill, ultra-real typing');
+  console.log('interactions.js fully integrated with bubble-renderer, realism engine, new message pill, reply preview, and View Pinned button');
+
 })();
