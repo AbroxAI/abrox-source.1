@@ -1,5 +1,4 @@
-// app.js — Telegram 2026 with Reply Preview + Pin Banner Jumpers + Telegram-style pulse highlight
-
+// app.js — FINAL Telegram 2026 with Reply Preview + Pin Banner Jumpers + Telegram-style pulse highlight + Fixed Admin Banner
 document.addEventListener("DOMContentLoaded", () => {
 
   const pinBanner = document.getElementById("tg-pin-banner");
@@ -10,29 +9,27 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!container) { console.error("tg-comments-container missing in DOM"); return; }
 
   /* =====================================================
-     HEADER LOGO FIX
-  ===================================================== */
-  if (headerLogo) {
-    headerLogo.src = "assets/logo.png";
-    headerLogo.alt = "Logo";
-  }
-
-  /* =====================================================
      CSS for Telegram-style highlight + pulse
   ===================================================== */
   const style = document.createElement('style');
   style.textContent = `
     .tg-highlight {
-      background-color: rgba(255, 229, 100, 0.35);
+      background-color: rgba(255, 229, 100, 0.3);
       border-radius: 14px;
       animation: tgFadePulse 2.6s ease-out forwards;
     }
     @keyframes tgFadePulse {
       0% { opacity: 1; transform: scale(1.02); }
-      15% { opacity: 0.85; transform: scale(1); }
-      80% { opacity: 0.3; transform: scale(1); }
+      20% { opacity: 1; transform: scale(1); }
       100% { opacity: 0; transform: scale(1); }
     }
+    .tg-pin-banner .pin-text {
+      flex: 1;
+      font-size: 13px;
+      line-height: 1.4;
+      white-space: pre-line;
+    }
+    .tg-pin-banner img { max-height: 50px; border-radius: 12px; object-fit:cover; }
   `;
   document.head.appendChild(style);
 
@@ -42,8 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function appendSafe(persona, text, opts = {}) {
     if (window.TGRenderer?.appendMessage) {
       const id = window.TGRenderer.appendMessage(persona, text, opts);
-      document.dispatchEvent(new CustomEvent("messageAppended", { detail: { persona, id } }));
-      if (opts.replyToText) attachReplyJump(id, opts.replyToText);
+      document.dispatchEvent(new CustomEvent("messageAppended", { detail: { persona, id, replyToText: opts.replyToText } }));
       return id;
     }
     console.warn("TGRenderer not ready");
@@ -63,8 +59,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.addEventListener("messageAppended", (ev) => {
-    const persona = ev.detail?.persona;
-    if (!persona || !persona.name) return;
+    const { persona } = ev.detail;
+    if (!persona?.name) return;
     if (typingPersons.has(persona.name)) {
       typingPersons.delete(persona.name);
       updateHeaderTyping();
@@ -74,7 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateHeaderTyping() {
     if (!headerMeta) return;
     if (typingPersons.size === 0) {
-      headerMeta.textContent = `${window.MEMBER_COUNT.toLocaleString()} members, ${window.ONLINE_COUNT.toLocaleString()} online`;
+      headerMeta.textContent = `${window.MEMBER_COUNT?.toLocaleString() || 0} members, ${window.ONLINE_COUNT?.toLocaleString() || 0} online`;
     } else if (typingPersons.size === 1) {
       const [name] = typingPersons;
       headerMeta.textContent = `${name} is typing…`;
@@ -107,10 +103,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function attachReplyJump(newMessageId, replyText) {
     const newMsgEl = document.querySelector(`[data-id="${newMessageId}"]`);
     if (!newMsgEl) return;
-
-    const replyPreview = newMsgEl.querySelector('.tg-reply-preview');
+    const replyPreview = newMsgEl.querySelector('.tg-bubble-reply');
     if (!replyPreview) return;
-
     replyPreview.style.cursor = 'pointer';
     replyPreview.addEventListener('click', () => {
       const allBubbles = Array.from(document.querySelectorAll('.tg-bubble'));
@@ -123,7 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     ADMIN BROADCAST + PIN BANNER
+     ADMIN BROADCAST + PIN BANNER FIX
   ===================================================== */
   function postAdminBroadcast() {
     const admin = window.identity?.Admin || { name: "Admin", avatar: "assets/admin.jpg", isAdmin: true };
@@ -136,7 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
 4️⃣ ⚠️ Ignore unsolicited messages.
 
 ✅ To verify or contact admin, use the Contact Admin button below.`;
-    const image = "assets/broadcast.jpg";
+    const image = "assets/admin.jpg";
     const timestamp = new Date();
 
     const id = appendSafe(admin, "", { timestamp, type: "incoming", image, caption });
@@ -147,18 +141,18 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!pinBanner) return;
 
     pinBanner.innerHTML = "";
+
     const img = document.createElement("img");
-    img.src = image;
+    img.src = image || "assets/admin.jpg";
     img.onerror = () => img.src = "assets/admin.jpg";
 
     const text = document.createElement("div");
-    text.className = "tg-pin-text";
+    text.className = "pin-text";
     text.textContent = caption || "Pinned message";
 
     const blueBtn = document.createElement("button");
     blueBtn.className = "pin-btn";
     blueBtn.textContent = "View Pinned";
-
     blueBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const el = pinnedMessageId ? document.querySelector(`[data-id="${pinnedMessageId}"]`) : null;
@@ -167,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const adminBtn = document.createElement("a");
     adminBtn.className = "glass-btn";
-    adminBtn.href = window.CONTACT_ADMIN_LINK || "https://t.me/ph_suppp";
+    adminBtn.href = window.CONTACT_ADMIN_LINK || "https://t.me/";
     adminBtn.target = "_blank";
     adminBtn.rel = "noopener";
     adminBtn.textContent = "Contact Admin";
@@ -190,9 +184,6 @@ document.addEventListener("DOMContentLoaded", () => {
     appendSafe(system, "Admin pinned a message", { timestamp: new Date(), type: "incoming" });
   }
 
-  /* =====================================================
-     INITIAL PIN
-  ===================================================== */
   const broadcast = postAdminBroadcast();
   setTimeout(() => {
     postPinNotice();
@@ -254,6 +245,13 @@ document.addEventListener("DOMContentLoaded", () => {
     inputBar.style.borderRadius = "26px";
   }
 
-  console.log("✅ app.js patched: typing fixed, yellow fade, pin banner jumpers, admin avatar and logo active");
+  /* =====================================================
+     HEADER LOGO FIX
+  ===================================================== */
+  if (headerLogo) {
+    headerLogo.src = "assets/logo.png";
+    headerLogo.onerror = () => { headerLogo.src = "assets/logo.png"; };
+  }
 
+  console.log("app.js patched: reply preview, pin banner jumper, admin avatar, caption alignment, logo, and Telegram-style highlight fixed");
 });
