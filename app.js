@@ -1,4 +1,4 @@
-// app.js — FINAL Telegram 2026 (Pinned + Realism + Joiner Safe + Ultra-Real Typing + Variable Durations)
+// app.js — FINAL Telegram 2026 with Reply Preview + Pin Banner Jumpers
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -6,10 +6,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const container = document.getElementById("tg-comments-container");
   const headerMeta = document.getElementById("tg-meta-line");
 
-  if (!container) {
-    console.error("tg-comments-container missing in DOM");
-    return;
-  }
+  if (!container) { console.error("tg-comments-container missing in DOM"); return; }
+
+  /* =====================================================
+     CSS for Telegram-style highlight
+  ===================================================== */
+  const style = document.createElement('style');
+  style.textContent = `
+    .tg-highlight {
+      background-color: rgba(255, 229, 100, 0.3);
+      border-radius: 14px;
+      transition: opacity 2.6s ease-out;
+    }
+  `;
+  document.head.appendChild(style);
 
   /* =====================================================
      SAFE APPEND WRAPPER
@@ -17,8 +27,9 @@ document.addEventListener("DOMContentLoaded", () => {
   function appendSafe(persona, text, opts = {}) {
     if (window.TGRenderer?.appendMessage) {
       const id = window.TGRenderer.appendMessage(persona, text, opts);
-      // Notify typing manager
       document.dispatchEvent(new CustomEvent("messageAppended", { detail: { persona } }));
+      // Add reply preview jumper after append
+      if (opts.replyToText) attachReplyJump(id, opts.replyToText);
       return id;
     }
     console.warn("TGRenderer not ready");
@@ -33,7 +44,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("headerTyping", (ev) => {
     const name = ev.detail?.name;
     if (!name) return;
-
     typingPersons.add(name);
     updateHeaderTyping();
   });
@@ -41,7 +51,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("messageAppended", (ev) => {
     const persona = ev.detail?.persona;
     if (!persona || !persona.name) return;
-
     if (typingPersons.has(persona.name)) {
       typingPersons.delete(persona.name);
       updateHeaderTyping();
@@ -50,7 +59,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateHeaderTyping() {
     if (!headerMeta) return;
-
     if (typingPersons.size === 0) {
       headerMeta.textContent = `${window.MEMBER_COUNT.toLocaleString()} members, ${window.ONLINE_COUNT.toLocaleString()} online`;
     } else if (typingPersons.size === 1) {
@@ -67,21 +75,42 @@ document.addEventListener("DOMContentLoaded", () => {
   ===================================================== */
   function getTypingDelay(text) {
     if (!text) return 800;
-    const speed = 40; // ms per character
-    const base = 600; // minimum delay
+    const speed = 40;
+    const base = 600;
     return Math.max(base, text.length * speed + Math.random() * 400);
   }
 
   /* =====================================================
-     ADMIN BROADCAST (Image + Caption + Glass Button)
+     REPLY PREVIEW JUMPER
+  ===================================================== */
+  function jumpToMessage(el) {
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('tg-highlight');
+    setTimeout(() => el.classList.remove('tg-highlight'), 2600);
+  }
+
+  function attachReplyJump(newMessageId, replyText) {
+    const newMsgEl = document.querySelector(`[data-id="${newMessageId}"]`);
+    if (!newMsgEl) return;
+
+    const replyPreview = newMsgEl.querySelector('.tg-bubble-reply');
+    if (!replyPreview) return;
+
+    replyPreview.style.cursor = 'pointer';
+    replyPreview.addEventListener('click', () => {
+      // Find the original bubble by matching text snippet
+      const allBubbles = Array.from(document.querySelectorAll('.tg-bubble'));
+      const target = allBubbles.find(b => b.dataset.id !== newMessageId && b.querySelector('.tg-bubble-text')?.textContent.includes(replyText));
+      if (target) jumpToMessage(target);
+    });
+  }
+
+  /* =====================================================
+     ADMIN BROADCAST + PIN BANNER
   ===================================================== */
   function postAdminBroadcast() {
-    const admin = window.identity?.Admin || {
-      name: "Admin",
-      avatar: "assets/admin.jpg",
-      isAdmin: true
-    };
-
+    const admin = window.identity?.Admin || { name: "Admin", avatar: "assets/admin.jpg", isAdmin: true };
     const caption =
 `📌 Group Rules
 
@@ -91,28 +120,17 @@ document.addEventListener("DOMContentLoaded", () => {
 4️⃣ ⚠️ Ignore unsolicited messages.
 
 ✅ To verify or contact admin, use the Contact Admin button below.`;
-
     const image = "assets/broadcast.jpg";
     const timestamp = new Date(2025, 2, 14, 10, 0, 0);
 
-    const id = appendSafe(admin, "", {
-      timestamp,
-      type: "incoming",
-      image,
-      caption
-    });
-
+    const id = appendSafe(admin, "", { timestamp, type: "incoming", image, caption });
     return { id, caption, image };
   }
 
-  /* =====================================================
-     PIN BANNER
-  ===================================================== */
   function showPinBanner(image, caption, pinnedMessageId) {
     if (!pinBanner) return;
 
     pinBanner.innerHTML = "";
-
     const img = document.createElement("img");
     img.src = image;
     img.onerror = () => img.src = "assets/admin.jpg";
@@ -125,19 +143,11 @@ document.addEventListener("DOMContentLoaded", () => {
     blueBtn.className = "pin-btn";
     blueBtn.textContent = "View Pinned";
 
-    blueBtn.onclick = (e) => {
+    blueBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-
-      const el = pinnedMessageId
-        ? document.querySelector(`[data-id="${pinnedMessageId}"]`)
-        : null;
-
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        el.classList.add("tg-highlight");
-        setTimeout(() => el.classList.remove("tg-highlight"), 2600);
-      }
-    };
+      const el = pinnedMessageId ? document.querySelector(`[data-id="${pinnedMessageId}"]`) : null;
+      if (el) jumpToMessage(el);
+    });
 
     const adminBtn = document.createElement("a");
     adminBtn.className = "glass-btn";
@@ -156,40 +166,27 @@ document.addEventListener("DOMContentLoaded", () => {
     pinBanner.appendChild(btnContainer);
 
     pinBanner.classList.remove("hidden");
-    requestAnimationFrame(() => {
-      pinBanner.classList.add("show");
-    });
+    requestAnimationFrame(() => pinBanner.classList.add("show"));
   }
 
   function postPinNotice() {
     const system = { name: "System", avatar: "assets/admin.jpg" };
-    appendSafe(system, "Admin pinned a message", {
-      timestamp: new Date(),
-      type: "incoming"
-    });
+    appendSafe(system, "Admin pinned a message", { timestamp: new Date(), type: "incoming" });
   }
 
-  /* =====================================================
-     INITIAL PIN FLOW
-  ===================================================== */
   const broadcast = postAdminBroadcast();
-
   setTimeout(() => {
     postPinNotice();
     showPinBanner(broadcast.image, broadcast.caption, broadcast.id);
   }, 1200);
 
   /* =====================================================
-     ADMIN AUTO RESPONSE (uses sendMessage event)
+     ADMIN AUTO RESPONSE
   ===================================================== */
   document.addEventListener("sendMessage", (ev) => {
     const text = ev.detail?.text || "";
-    const admin = window.identity?.Admin || {
-      name: "Admin",
-      avatar: "assets/admin.jpg"
-    };
+    const admin = window.identity?.Admin || { name: "Admin", avatar: "assets/admin.jpg" };
 
-    // Trigger ultra-real typing
     window.TGRenderer?.showTyping(admin);
     document.dispatchEvent(new CustomEvent("headerTyping", { detail: { name: admin.name } }));
 
@@ -202,13 +199,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =====================================================
-     AUTO REPLY HANDLER (Realism Reply Mode)
+     AUTO REPLY HANDLER
   ===================================================== */
   document.addEventListener("autoReply", (ev) => {
     const { parentText, persona, text } = ev.detail || {};
     if (!persona || !text) return;
 
-    // Trigger ultra-real typing
     window.TGRenderer?.showTyping(persona);
     document.dispatchEvent(new CustomEvent("headerTyping", { detail: { name: persona.name } }));
 
@@ -225,16 +221,13 @@ document.addEventListener("DOMContentLoaded", () => {
      START REALISM ENGINE
   ===================================================== */
   if (window.realism?.simulateRandomCrowdV11) {
-    setTimeout(() => {
-      window.realism.simulateRandomCrowdV11();
-    }, 800);
+    setTimeout(() => window.realism.simulateRandomCrowdV11(), 800);
   }
 
   /* =====================================================
-     SAFE INPUT BAR FIX (No White Box)
+     SAFE INPUT BAR FIX
   ===================================================== */
   const inputBar = document.querySelector(".tg-input-bar");
-
   if (inputBar) {
     inputBar.style.background = "rgba(23,33,43,0.78)";
     inputBar.style.backdropFilter = "blur(24px)";
@@ -242,6 +235,6 @@ document.addEventListener("DOMContentLoaded", () => {
     inputBar.style.borderRadius = "26px";
   }
 
-  console.log("app.js fully synced with renderer + interactions + realism + ultra-real typing with variable durations");
+  console.log("app.js patched: reply preview & pin banner jumpers + Telegram-style highlight active");
 
 });
