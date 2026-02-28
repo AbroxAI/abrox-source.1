@@ -125,7 +125,7 @@ html, body {
   font-size: 13px;
   line-height: 1.35;
   color: var(--tg-text);
-  white-space: nowrap;
+  white-space: pre-line; /* ✅ preserves multi-line text */
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: left;
