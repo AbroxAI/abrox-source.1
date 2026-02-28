@@ -32,8 +32,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (window.TGRenderer?.appendMessage) {
       const id = window.TGRenderer.appendMessage(persona, text, opts);
       document.dispatchEvent(new CustomEvent("messageAppended", { detail: { persona } }));
-      // Attach reply preview jumper after append
+
       if (opts.replyToText) attachReplyJump(id, opts.replyToText);
+
       return id;
     }
     console.warn("TGRenderer not ready");
@@ -41,21 +42,35 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ===============================
-     ULTRA-REAL TYPING MANAGER
+     ULTRA-REAL TYPING MANAGER (FIXED FREEZE)
   =============================== */
-  const typingPersons = new Set();
+  const typingPersons = new Map(); // name -> timeout
 
   document.addEventListener("headerTyping", (ev) => {
     const name = ev.detail?.name;
     if (!name) return;
-    typingPersons.add(name);
+
+    // Clear existing timeout if re-triggered
+    if (typingPersons.has(name)) {
+      clearTimeout(typingPersons.get(name));
+    }
+
+    // Auto-remove after 6 seconds (freeze protection)
+    const timeout = setTimeout(() => {
+      typingPersons.delete(name);
+      updateHeaderTyping();
+    }, 6000);
+
+    typingPersons.set(name, timeout);
     updateHeaderTyping();
   });
 
   document.addEventListener("messageAppended", (ev) => {
     const persona = ev.detail?.persona;
     if (!persona || !persona.name) return;
+
     if (typingPersons.has(persona.name)) {
+      clearTimeout(typingPersons.get(persona.name));
       typingPersons.delete(persona.name);
       updateHeaderTyping();
     }
@@ -63,14 +78,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateHeaderTyping() {
     if (!headerMeta) return;
-    if (typingPersons.size === 0) {
-      headerMeta.textContent = `${window.MEMBER_COUNT.toLocaleString()} members, ${window.ONLINE_COUNT.toLocaleString()} online`;
-    } else if (typingPersons.size === 1) {
-      const [name] = typingPersons;
-      headerMeta.textContent = `${name} is typing…`;
+
+    const names = Array.from(typingPersons.keys());
+
+    if (names.length === 0) {
+      headerMeta.textContent =
+        `${window.MEMBER_COUNT.toLocaleString()} members, ${window.ONLINE_COUNT.toLocaleString()} online`;
+    } else if (names.length === 1) {
+      headerMeta.textContent = `${names[0]} is typing…`;
     } else {
-      const names = Array.from(typingPersons).slice(0, 2).join(" & ");
-      headerMeta.textContent = `${names} are typing…`;
+      headerMeta.textContent =
+        `${names.slice(0, 2).join(" & ")} are typing…`;
     }
   }
 
@@ -85,7 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ===============================
-     JUMP TO MESSAGE + PULSE
+     JUMP TO MESSAGE + PULSE (FIXED)
   =============================== */
   function jumpToMessage(el) {
     if (!el) return;
@@ -94,13 +112,24 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => el.classList.remove('tg-highlight'), 2600);
   }
 
+  function safeJumpById(id, retries = 5) {
+    const el = document.querySelector(`[data-id="${id}"]`);
+    if (el) {
+      jumpToMessage(el);
+    } else if (retries > 0) {
+      setTimeout(() => safeJumpById(id, retries - 1), 200);
+    }
+  }
+
   function attachReplyJump(newMessageId, replyText) {
     const newMsgEl = document.querySelector(`[data-id="${newMessageId}"]`);
     if (!newMsgEl) return;
+
     const replyPreview = newMsgEl.querySelector('.tg-bubble-reply');
     if (!replyPreview) return;
 
     replyPreview.style.cursor = 'pointer';
+
     replyPreview.addEventListener('click', () => {
       const allBubbles = Array.from(document.querySelectorAll('.tg-bubble'));
       const target = allBubbles.find(b =>
@@ -115,7 +144,12 @@ document.addEventListener("DOMContentLoaded", () => {
      ADMIN BROADCAST + PIN BANNER
   =============================== */
   function postAdminBroadcast() {
-    const admin = window.identity?.Admin || { name: "Admin", avatar: "assets/admin.jpg", isAdmin: true };
+    const admin = window.identity?.Admin || {
+      name: "Admin",
+      avatar: "assets/admin.jpg",
+      isAdmin: true
+    };
+
     const caption =
 `📌 Group Rules
 1️⃣ New members are read-only until verified.
@@ -123,14 +157,23 @@ document.addEventListener("DOMContentLoaded", () => {
 3️⃣ 🚫 No screenshots in chat.
 4️⃣ ⚠️ Ignore unsolicited messages.
 ✅ To verify or contact admin, use the Contact Admin button below.`;
+
     const image = "assets/broadcast.jpg";
     const timestamp = new Date(2025, 2, 14, 10, 0, 0);
-    const id = appendSafe(admin, "", { timestamp, type: "incoming", image, caption });
+
+    const id = appendSafe(admin, "", {
+      timestamp,
+      type: "incoming",
+      image,
+      caption
+    });
+
     return { id, caption, image };
   }
 
   function showPinBanner(image, caption, pinnedMessageId) {
     if (!pinBanner) return;
+
     pinBanner.innerHTML = "";
 
     const img = document.createElement("img");
@@ -144,10 +187,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const blueBtn = document.createElement("button");
     blueBtn.className = "pin-btn";
     blueBtn.textContent = "View Pinned";
+
     blueBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const el = pinnedMessageId ? document.querySelector(`[data-id="${pinnedMessageId}"]`) : null;
-      if (el) jumpToMessage(el);
+      if (pinnedMessageId) {
+        safeJumpById(pinnedMessageId);
+      }
     });
 
     const adminBtn = document.createElement("a");
@@ -165,16 +210,21 @@ document.addEventListener("DOMContentLoaded", () => {
     pinBanner.appendChild(img);
     pinBanner.appendChild(text);
     pinBanner.appendChild(btnContainer);
+
     pinBanner.classList.remove("hidden");
     requestAnimationFrame(() => pinBanner.classList.add("show"));
   }
 
   function postPinNotice() {
     const system = { name: "System", avatar: "assets/admin.jpg" };
-    appendSafe(system, "Admin pinned a message", { timestamp: new Date(), type: "incoming" });
+    appendSafe(system, "Admin pinned a message", {
+      timestamp: new Date(),
+      type: "incoming"
+    });
   }
 
   const broadcast = postAdminBroadcast();
+
   setTimeout(() => {
     postPinNotice();
     showPinBanner(broadcast.image, broadcast.caption, broadcast.id);
@@ -191,10 +241,10 @@ document.addEventListener("DOMContentLoaded", () => {
     document.dispatchEvent(new CustomEvent("headerTyping", { detail: { name: admin.name } }));
 
     setTimeout(() => {
-      appendSafe(admin, "Please use the Contact Admin button in the pinned banner above.", {
-        timestamp: new Date(),
-        type: "incoming"
-      });
+      appendSafe(admin,
+        "Please use the Contact Admin button in the pinned banner above.",
+        { timestamp: new Date(), type: "incoming" }
+      );
     }, getTypingDelay(text));
   });
 
@@ -235,5 +285,5 @@ document.addEventListener("DOMContentLoaded", () => {
     inputBar.style.borderRadius = "26px";
   }
 
-  console.log("app.js patched: reply preview & pin banner jumpers + Telegram-style pulse highlight active");
+  console.log("app.js validated: typing freeze fixed, view pinned fixed, banner stable.");
 });
