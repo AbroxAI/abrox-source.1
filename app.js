@@ -32,9 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (window.TGRenderer?.appendMessage) {
       const id = window.TGRenderer.appendMessage(persona, text, opts);
       document.dispatchEvent(new CustomEvent("messageAppended", { detail: { persona } }));
-
       if (opts.replyToText) attachReplyJump(id, opts.replyToText);
-
       return id;
     }
     console.warn("TGRenderer not ready");
@@ -138,6 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ===============================
      ADMIN BROADCAST + PIN BANNER
   =============================== */
+  // Post the admin broadcast with plain multi-line group rules
   function postAdminBroadcast() {
     const admin = window.identity?.Admin || {
       name: "Admin",
@@ -145,7 +144,7 @@ document.addEventListener("DOMContentLoaded", () => {
       isAdmin: true
     };
 
-    // Plain multi-line group rules in chat bubble (no golden color)
+    // Plain multi-line group rules text (no golden color)
     const caption = `📌 Group Rules
 1️⃣ New members are read-only until verified.
 2️⃣ Admins do NOT DM directly.
@@ -157,6 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const image = "assets/broadcast.jpg";
     const timestamp = new Date(2025, 2, 14, 10, 0, 0);
 
+    // Send as a chat message (bubble)
     const id = appendSafe(admin, "", {
       timestamp,
       type: "incoming",
@@ -167,6 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return { id, caption, image };
   }
 
+  // Show a clean pin banner (short title only, no full broadcast)
   function showPinBanner(image, pinnedMessageId) {
     if (!pinBanner) return;
 
@@ -174,11 +175,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const img = document.createElement("img");
     img.src = image;
-    img.onerror = () => img.src = "assets/admin.jpg";
+    img.onerror = () => (img.src = "assets/admin.jpg");
 
     const text = document.createElement("div");
     text.className = "tg-pin-text";
-    text.textContent = "📌 Group Rules"; // short banner title only
+    text.textContent = "📌 Group Rules"; // short banner title
 
     const blueBtn = document.createElement("button");
     blueBtn.className = "pin-btn";
@@ -281,5 +282,5 @@ document.addEventListener("DOMContentLoaded", () => {
     inputBar.style.borderRadius = "26px";
   }
 
-  console.log("app.js fully updated: plain group rules, banner intact, typing delay fixed.");
+  console.log("app.js fully updated: group rules bubble in chat, banner clean, typing delay fixed.");
 });
