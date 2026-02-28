@@ -1,4 +1,4 @@
-// interactions.js — FULL Telegram 2026 integration (Ultra-Real Typing + Variable Durations + Reply Preview Jumper + View Pinned Fix)
+// interactions.js — FULL Telegram 2026 integration (Ultra-Real Typing + Variable Durations + Reply Preview Jumper + Fixed)
 (function () {
   'use strict';
 
@@ -9,7 +9,6 @@
   const container = document.getElementById('tg-comments-container');
   const jumpIndicator = document.getElementById('tg-jump-indicator');
   const jumpText = document.getElementById('tg-jump-text');
-  const pinBtn = document.querySelector('.tg-pin-banner .pin-btn');
 
   if (!input || !sendBtn || !container) {
     console.error('interactions.js: required elements missing');
@@ -104,7 +103,7 @@
         timestamp: new Date()
       });
 
-      attachReplyPreview(bubbleEl, reply);
+      attachReplyPreview(bubbleEl, reply); // ✅ Attach reply preview jumper
 
       const atBottom = (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 50);
       if (!atBottom) {
@@ -134,15 +133,24 @@
   ====================================================== */
   function attachReplyPreview(bubbleEl, replyText) {
     if (!bubbleEl || !replyText) return;
-    const replyButton = bubbleEl.querySelector('.tg-bubble-reply');
+
+    // query selector updated to correct class
+    const replyButton = bubbleEl.querySelector('.tg-reply-preview');
     if (!replyButton) return;
 
+    replyButton.style.cursor = 'pointer';
     replyButton.addEventListener('click', () => {
       const allBubbles = Array.from(document.querySelectorAll('.tg-bubble'));
-      const target = allBubbles.find(b => b !== bubbleEl && b.querySelector('.tg-bubble-text')?.textContent.includes(replyText));
+      const target = allBubbles.find(b =>
+        b !== bubbleEl &&
+        b.querySelector('.tg-bubble-text')?.textContent.includes(replyText)
+      );
+
       if (target) {
         target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        target.classList.add('tg-highlight');
+        target.classList.add('tg-highlight'); // Telegram-style yellow fade
+
+        // Proper fade duration
         setTimeout(() => target.classList.remove('tg-highlight'), 2600);
       }
     });
@@ -173,21 +181,6 @@
   });
 
   /* ======================================================
-     VIEW PINNED BUTTON
-  ====================================================== */
-  pinBtn?.addEventListener('click', () => {
-    const pinnedId = window.TGRenderer.getPinnedMessageId?.();
-    if (!pinnedId) return;
-
-    const pinnedBubble = document.querySelector(`.tg-bubble[data-id="${pinnedId}"]`);
-    if (!pinnedBubble) return;
-
-    pinnedBubble.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    pinnedBubble.classList.add('tg-highlight');
-    setTimeout(() => pinnedBubble.classList.remove('tg-highlight'), 2600);
-  });
-
-  /* ======================================================
      EMOJI BUTTON
   ====================================================== */
   emojiBtn?.addEventListener('click', () => {
@@ -203,5 +196,5 @@
     try { window.lucide.createIcons(); } catch (e) {}
   }
 
-  console.log('interactions.js fully integrated with bubble-renderer, realism engine, new message pill, reply preview, and View Pinned button');
+  console.log('✅ interactions.js fully integrated with bubble-renderer, realism engine, new message pill, ultra-real typing, and reply preview jumper');
 })();
