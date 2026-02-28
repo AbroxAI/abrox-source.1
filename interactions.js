@@ -1,4 +1,4 @@
-// interactions.js — FULL integration for Telegram 2026 widget
+// interactions.js — FULL Telegram 2026 integration (Ultra-Real Typing + Variable Durations)
 (function () {
   'use strict';
 
@@ -35,6 +35,16 @@
   updateInputState();
 
   /* ======================================================
+     TYPING DURATION CALCULATOR
+  ====================================================== */
+  function getTypingDelay(text) {
+    if (!text) return 800;
+    const speed = 40; // ms per character
+    const base = 600; // minimum delay
+    return Math.max(base, text.length * speed + Math.random() * 400);
+  }
+
+  /* ======================================================
      SEND MESSAGE
   ====================================================== */
   function sendMessage() {
@@ -54,8 +64,6 @@
 
     input.value = '';
     updateInputState();
-
-    // Reset jump pill since user is at bottom
     hideJump();
 
     simulateRealisticResponse(text);
@@ -72,7 +80,7 @@
   });
 
   /* ======================================================
-     REALISM ENGINE HOOK
+     REALISM ENGINE HOOK (Ultra-Real Typing)
   ====================================================== */
   function simulateRealisticResponse(userText) {
     if (!window.RealismEngine || !window.identityPool) return;
@@ -80,23 +88,21 @@
     const persona = window.identityPool.getRandomPersona?.();
     if (!persona) return;
 
-    const delay = 800 + Math.random() * 1600;
+    // Trigger ultra-real typing
+    window.TGRenderer?.showTyping(persona);
+    document.dispatchEvent(new CustomEvent('headerTyping', { detail: { name: persona.name } }));
 
-    // Trigger header typing
-    document.dispatchEvent(new CustomEvent('headerTyping', {
-      detail: { name: persona.name }
-    }));
+    const delay = getTypingDelay(userText);
 
     setTimeout(() => {
       const reply = window.RealismEngine.generateReply?.(userText, persona)
         || generateFallbackReply(userText);
 
-      const id = window.TGRenderer.appendMessage(persona, reply, {
+      window.TGRenderer.appendMessage(persona, reply, {
         type: 'incoming',
         timestamp: new Date()
       });
 
-      // If user is not at bottom, increment unseen count
       const atBottom = (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 50);
       if (!atBottom) {
         unseenCount++;
@@ -168,5 +174,5 @@
     try { window.lucide.createIcons(); } catch (e) {}
   }
 
-  console.log('interactions.js fully integrated with bubble-renderer, realism engine & new message pill');
+  console.log('interactions.js fully integrated with bubble-renderer, realism engine, new message pill, and ultra-real typing with variable durations');
 })();
