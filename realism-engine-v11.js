@@ -1,5 +1,4 @@
-// realism-engine-v11.js
-// ULTRA-REALISM ENGINE V11 — FULL POOLS RESTORED + HARDENED + TRUE Reply Support + JOINER REACTIVE
+// realism-engine-v11.js — ULTRA-REALISM ENGINE V11 (with variable typing durations)
 
 (function(){
 
@@ -180,6 +179,18 @@ function appendSafe(persona,text,opts={}){
 }
 
 /* =====================================================
+   TYPING DELAY BASED ON MESSAGE LENGTH
+===================================================== */
+
+function getTypingDelay(text){
+  if(!text) return 600 + Math.random()*400;
+  const base = 400;
+  const perChar = 35;
+  const randomFactor = Math.random()*300;
+  return Math.min(8000, base + text.length*perChar + randomFactor);
+}
+
+/* =====================================================
    TRUE REPLY LOGIC
 ===================================================== */
 
@@ -203,27 +214,31 @@ function post(count=1){
     const item = POOL.shift();
     if(!item) break;
 
+    const delay = getTypingDelay(item.text);
+
     setTimeout(()=>{
       const persona = item.persona || window.identity?.getRandomPersona?.() || { name:"User", avatar:`https://ui-avatars.com/api/?name=U` };
+
       if(window.TGRenderer?.showTyping) window.TGRenderer.showTyping(persona);
 
-      setTimeout(()=>{
-        let replyData = {};
-        if(maybe(0.28)){
-          const existing = getRandomExistingMessage();
-          if(existing) replyData = existing;
-        }
+      // Trigger ultra-real header typing
+      document.dispatchEvent(new CustomEvent('headerTyping', { detail: { name: persona.name } }));
 
-        appendSafe(persona,item.text,{
-          timestamp:item.timestamp,
-          type:"incoming",
-          id:`realism_${Date.now()}_${rand(9999)}`,
-          ...replyData
-        });
+      let replyData = {};
+      if(maybe(0.28)){
+        const existing = getRandomExistingMessage();
+        if(existing) replyData = existing;
+      }
 
-      },700+rand(500));
+      appendSafe(persona,item.text,{
+        timestamp:item.timestamp,
+        type:"incoming",
+        id:`realism_${Date.now()}_${rand(9999)}`,
+        ...replyData
+      });
 
-    }, i*150);
+    }, delay);
+
   }
 }
 
@@ -257,7 +272,7 @@ setTimeout(()=>{
   ensurePool(2000);
   post(60);
   simulate();
-  console.log("Realism Engine V11 FULL — Joiner-reactive dynamic replies active.");
+  console.log("Realism Engine V11 FULL — Joiner-reactive dynamic replies with variable typing durations active.");
 },900);
 
 })();
