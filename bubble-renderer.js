@@ -81,11 +81,11 @@
       avatar.alt = persona?.name || 'User';
       avatar.src =
         persona?.avatar ||
-        `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
+        (persona?.isAdmin ? '/assets/admin.jpg' : `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`);
 
       avatar.onerror = () => {
         avatar.src =
-          `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
+          persona?.isAdmin ? '/assets/admin.jpg' : `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
       };
 
       /* Content */
@@ -115,7 +115,7 @@
 
           target.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           target.el.classList.add('tg-highlight');
-          setTimeout(() => target.el.classList.remove('tg-highlight'), 2000);
+          setTimeout(() => target.el.classList.remove('tg-highlight'), 2600); // yellow fade duration
         });
 
         content.appendChild(replyPreview);
@@ -259,7 +259,7 @@
       showTyping: function () {}
     };
 
-    console.log('✅ FULL bubble-renderer loaded with 15 persona colors, reply preview, and jump-to-message');
+    console.log('✅ FULL bubble-renderer loaded with 15 persona colors, reply preview, pinned jump, yellow fade highlight');
   }
 
   document.readyState === 'loading'
