@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ===============================
-     ULTRA-REAL TYPING MANAGER (FIXED FREEZE)
+     ULTRA-REAL TYPING MANAGER
   =============================== */
   const typingPersons = new Map(); // name -> timeout
 
@@ -50,12 +50,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const name = ev.detail?.name;
     if (!name) return;
 
-    // Clear existing timeout if re-triggered
     if (typingPersons.has(name)) {
       clearTimeout(typingPersons.get(name));
     }
 
-    // Auto-remove after 6 seconds (freeze protection)
     const timeout = setTimeout(() => {
       typingPersons.delete(name);
       updateHeaderTyping();
@@ -103,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ===============================
-     JUMP TO MESSAGE + PULSE (FIXED)
+     JUMP TO MESSAGE + PULSE
   =============================== */
   function jumpToMessage(el) {
     if (!el) return;
@@ -156,6 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
 2️⃣ Admins do NOT DM directly.
 3️⃣ 🚫 No screenshots in chat.
 4️⃣ ⚠️ Ignore unsolicited messages.
+
 ✅ To verify or contact admin, use the Contact Admin button below.`;
 
     const image = "assets/broadcast.jpg";
@@ -181,8 +180,8 @@ document.addEventListener("DOMContentLoaded", () => {
     img.onerror = () => img.src = "assets/admin.jpg";
 
     const text = document.createElement("div");
-    text.className = "pin-text";
-    text.textContent = (caption || "Pinned message").split("\n")[0];
+    text.className = "tg-pin-text";
+    text.textContent = caption; // ✅ preserves multi-line text
 
     const blueBtn = document.createElement("button");
     blueBtn.className = "pin-btn";
@@ -231,21 +230,24 @@ document.addEventListener("DOMContentLoaded", () => {
   }, 1200);
 
   /* ===============================
-     ADMIN AUTO RESPONSE
+     ADMIN AUTO RESPONSE (typing delay fixed)
   =============================== */
   document.addEventListener("sendMessage", (ev) => {
     const text = ev.detail?.text || "";
     const admin = window.identity?.Admin || { name: "Admin", avatar: "assets/admin.jpg" };
 
+    // Show typing
     window.TGRenderer?.showTyping(admin);
     document.dispatchEvent(new CustomEvent("headerTyping", { detail: { name: admin.name } }));
 
+    // Append message only after typing delay
+    const delay = getTypingDelay(text);
     setTimeout(() => {
       appendSafe(admin,
         "Please use the Contact Admin button in the pinned banner above.",
         { timestamp: new Date(), type: "incoming" }
       );
-    }, getTypingDelay(text));
+    }, delay);
   });
 
   /* ===============================
@@ -285,5 +287,5 @@ document.addEventListener("DOMContentLoaded", () => {
     inputBar.style.borderRadius = "26px";
   }
 
-  console.log("app.js validated: typing freeze fixed, view pinned fixed, banner stable.");
+  console.log("app.js updated: typing delay fixed, group rules banner multi-line preserved, view pinned stable.");
 });
