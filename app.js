@@ -1,4 +1,4 @@
-// app.js — FINAL Telegram 2026 (Pinned + Realism + Joiner Safe + Ultra-Real Typing)
+// app.js — FINAL Telegram 2026 (Pinned + Realism + Joiner Safe + Ultra-Real Typing + Variable Durations)
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -63,10 +63,19 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
+     TYPING DURATION CALCULATOR
+  ===================================================== */
+  function getTypingDelay(text) {
+    if (!text) return 800;
+    const speed = 40; // ms per character
+    const base = 600; // minimum delay
+    return Math.max(base, text.length * speed + Math.random() * 400);
+  }
+
+  /* =====================================================
      ADMIN BROADCAST (Image + Caption + Glass Button)
   ===================================================== */
   function postAdminBroadcast() {
-
     const admin = window.identity?.Admin || {
       name: "Admin",
       avatar: "assets/admin.jpg",
@@ -100,7 +109,6 @@ document.addEventListener("DOMContentLoaded", () => {
      PIN BANNER
   ===================================================== */
   function showPinBanner(image, caption, pinnedMessageId) {
-
     if (!pinBanner) return;
 
     pinBanner.innerHTML = "";
@@ -175,42 +183,33 @@ document.addEventListener("DOMContentLoaded", () => {
      ADMIN AUTO RESPONSE (uses sendMessage event)
   ===================================================== */
   document.addEventListener("sendMessage", (ev) => {
+    const text = ev.detail?.text || "";
+    const admin = window.identity?.Admin || {
+      name: "Admin",
+      avatar: "assets/admin.jpg"
+    };
 
-    const text = ev.detail?.text?.toLowerCase() || "";
+    // Trigger ultra-real typing
+    window.TGRenderer?.showTyping(admin);
+    document.dispatchEvent(new CustomEvent("headerTyping", { detail: { name: admin.name } }));
 
-    if (text.includes("admin") || text.includes("contact")) {
-
-      const admin = window.identity?.Admin || {
-        name: "Admin",
-        avatar: "assets/admin.jpg"
-      };
-
-      window.TGRenderer?.showTyping(admin);
-
-      // Trigger ultra-real header typing
-      document.dispatchEvent(new CustomEvent("headerTyping", { detail: { name: admin.name } }));
-
-      setTimeout(() => {
-        appendSafe(
-          admin,
-          "Please use the Contact Admin button in the pinned banner above.",
-          { timestamp: new Date(), type: "incoming" }
-        );
-      }, 1600);
-    }
+    setTimeout(() => {
+      appendSafe(admin, "Please use the Contact Admin button in the pinned banner above.", {
+        timestamp: new Date(),
+        type: "incoming"
+      });
+    }, getTypingDelay(text));
   });
 
   /* =====================================================
      AUTO REPLY HANDLER (Realism Reply Mode)
   ===================================================== */
   document.addEventListener("autoReply", (ev) => {
-
     const { parentText, persona, text } = ev.detail || {};
     if (!persona || !text) return;
 
+    // Trigger ultra-real typing
     window.TGRenderer?.showTyping(persona);
-
-    // Trigger ultra-real header typing
     document.dispatchEvent(new CustomEvent("headerTyping", { detail: { name: persona.name } }));
 
     setTimeout(() => {
@@ -219,7 +218,7 @@ document.addEventListener("DOMContentLoaded", () => {
         type: "incoming",
         replyToText: parentText
       });
-    }, 1400);
+    }, getTypingDelay(text));
   });
 
   /* =====================================================
@@ -243,6 +242,6 @@ document.addEventListener("DOMContentLoaded", () => {
     inputBar.style.borderRadius = "26px";
   }
 
-  console.log("app.js fully synced with renderer + interactions + realism + ultra-real typing");
+  console.log("app.js fully synced with renderer + interactions + realism + ultra-real typing with variable durations");
 
 });
