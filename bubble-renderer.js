@@ -1,53 +1,43 @@
-// bubble-renderer.js — FULL Telegram 2026 Renderer (Complete + Blue Pill Synced + Reply Preview Fixed)
+// bubble-renderer.js — Telegram 2026 Renderer with full pin & reply preview support
 (function () {
   'use strict';
-
   function init() {
     const container = document.getElementById('tg-comments-container');
     const jumpIndicator = document.getElementById('tg-jump-indicator');
     const jumpText = document.getElementById('tg-jump-text');
-
-    if (!container) {
-      console.error('bubble-renderer: container missing');
-      return;
-    }
+    if (!container) { console.error('bubble-renderer: container missing'); return; }
 
     let unseenCount = 0;
     let lastDateKey = null;
     const MESSAGE_MAP = new Map();
+    let PINNED_MESSAGE_ID = null;
 
-    /* =====================================================
+    /* ===============================
        DATE STICKERS
-    ===================================================== */
+    =============================== */
     function formatDateKey(date) {
       const d = new Date(date);
       return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
     }
-
     function insertDateSticker(date) {
       const key = formatDateKey(date);
       if (key === lastDateKey) return;
       lastDateKey = key;
-
       const sticker = document.createElement('div');
       sticker.className = 'tg-date-sticker';
       sticker.textContent = new Date(date).toLocaleDateString([], {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
+        year: 'numeric', month: 'short', day: 'numeric'
       });
-
       container.appendChild(sticker);
     }
 
-    /* =====================================================
-       PERSONA COLOR ASSIGNMENT (up to 15 colors)
-    ===================================================== */
+    /* ===============================
+       PERSONA COLOR ASSIGNMENT
+    =============================== */
     const personaColorMap = new Map();
     const personaColors = [
       "1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"
     ];
-
     function getPersonaColor(personaName) {
       if (!personaName) return "1";
       if (!personaColorMap.has(personaName)) {
@@ -57,9 +47,9 @@
       return personaColorMap.get(personaName);
     }
 
-    /* =====================================================
+    /* ===============================
        CREATE BUBBLE
-    ===================================================== */
+    =============================== */
     function createBubble(persona, text, opts = {}) {
       const id = opts.id || ('m_' + Date.now() + '_' + Math.floor(Math.random() * 9999));
       const type = opts.type === 'outgoing' ? 'outgoing' : 'incoming';
@@ -68,6 +58,9 @@
       const replyToText = opts.replyToText || null;
       const image = opts.image || null;
       const caption = opts.caption || null;
+      const pinned = opts.pinned || false;
+
+      if (pinned) PINNED_MESSAGE_ID = id;
 
       insertDateSticker(timestamp);
 
@@ -79,48 +72,38 @@
       const avatar = document.createElement('img');
       avatar.className = 'tg-bubble-avatar';
       avatar.alt = persona?.name || 'User';
-      avatar.src =
-        persona?.avatar ||
-        `assets/admin.jpg`;
-
-      avatar.onerror = () => {
-        avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
-      };
+      avatar.src = persona?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
+      avatar.onerror = () => avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
 
       /* Content */
       const content = document.createElement('div');
       content.className = 'tg-bubble-content';
 
-      // Sender name
       const sender = document.createElement('div');
       sender.className = 'tg-bubble-sender';
       sender.textContent = persona?.name || 'User';
       sender.dataset.color = getPersonaColor(persona?.name || 'User');
       content.appendChild(sender);
 
-      // Reply preview (if any)
+      /* Reply preview */
       if (replyToText || replyToId) {
         const replyPreview = document.createElement('div');
         replyPreview.className = 'tg-reply-preview';
-        replyPreview.textContent = replyToText
-          ? (replyToText.length > 120 ? replyToText.slice(0, 117) + '...' : replyToText)
+        replyPreview.textContent = replyToText ? 
+          (replyToText.length > 120 ? replyToText.slice(0, 117) + '...' : replyToText) 
           : 'Reply';
-
-        // Scroll and highlight target
         replyPreview.addEventListener('click', () => {
           if (!replyToId) return;
           const target = MESSAGE_MAP.get(replyToId);
           if (!target) return;
-
           target.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           target.el.classList.add('tg-highlight');
           setTimeout(() => target.el.classList.remove('tg-highlight'), 2600);
         });
-
         content.appendChild(replyPreview);
       }
 
-      // Image
+      /* Image */
       if (image) {
         const img = document.createElement('img');
         img.className = 'tg-bubble-image';
@@ -131,7 +114,7 @@
         content.appendChild(img);
       }
 
-      // Text
+      /* Text */
       if (text) {
         const textEl = document.createElement('div');
         textEl.className = 'tg-bubble-text';
@@ -139,16 +122,17 @@
         content.appendChild(textEl);
       }
 
-      // Caption
+      /* Caption / pinned */
       if (caption) {
         const cap = document.createElement('div');
         cap.className = 'tg-bubble-text';
         cap.style.marginTop = '6px';
+        if (pinned) { cap.style.fontWeight = '600'; cap.style.color = '#ffd166'; }
         cap.textContent = caption;
         content.appendChild(cap);
       }
 
-      // Admin button
+      /* Admin button */
       if (persona?.isAdmin) {
         const adminBtn = document.createElement('a');
         adminBtn.className = 'glass-btn';
@@ -159,103 +143,58 @@
         content.appendChild(adminBtn);
       }
 
-      // Meta timestamp
+      /* Meta timestamp */
       const meta = document.createElement('div');
       meta.className = 'tg-bubble-meta';
-      meta.textContent = new Date(timestamp).toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      meta.textContent = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       content.appendChild(meta);
 
-      // Structure
-      if (type === 'incoming') {
-        wrapper.appendChild(avatar);
-        wrapper.appendChild(content);
-      } else {
-        wrapper.style.flexDirection = 'row-reverse';
-        wrapper.appendChild(avatar);
-        wrapper.appendChild(content);
-      }
+      /* Structure */
+      if (type === 'incoming') { wrapper.appendChild(avatar); wrapper.appendChild(content); }
+      else { wrapper.style.flexDirection = 'row-reverse'; wrapper.appendChild(avatar); wrapper.appendChild(content); }
 
-      // store in map for reply jumps
       MESSAGE_MAP.set(id, { el: wrapper, text, persona, timestamp });
-
       return wrapper;
     }
 
-    /* =====================================================
+    /* ===============================
        APPEND MESSAGE
-    ===================================================== */
+    =============================== */
     function appendMessage(persona, text, opts = {}) {
       const bubble = createBubble(persona, text, opts);
       container.appendChild(bubble);
 
-      const atBottom =
-        container.scrollTop + container.clientHeight >=
-        container.scrollHeight - 80;
+      const atBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 80;
+      if (atBottom) { container.scrollTop = container.scrollHeight; hideJump(); }
+      else { unseenCount++; updateJump(); showJump(); }
 
-      if (atBottom) {
-        container.scrollTop = container.scrollHeight;
-        hideJump();
-      } else {
-        unseenCount++;
-        updateJump();
-        showJump();
-      }
-
-      return bubble.dataset.id;
+      return true;
     }
 
-    /* =====================================================
+    /* ===============================
        BLUE NEW MESSAGE PILL
-    ===================================================== */
-    function updateJump() {
-      if (!jumpText) return;
+    =============================== */
+    function updateJump() { if (!jumpText) return; jumpText.textContent = unseenCount > 1 ? `New messages · ${unseenCount}` : 'New messages'; }
+    function showJump() { jumpIndicator?.classList.remove('hidden'); }
+    function hideJump() { unseenCount = 0; updateJump(); jumpIndicator?.classList.add('hidden'); }
 
-      jumpText.textContent =
-        unseenCount > 1
-          ? `New messages · ${unseenCount}`
-          : 'New messages';
-    }
-
-    function showJump() {
-      jumpIndicator?.classList.remove('hidden');
-    }
-
-    function hideJump() {
-      unseenCount = 0;
-      updateJump();
-      jumpIndicator?.classList.add('hidden');
-    }
-
-    jumpIndicator?.addEventListener('click', () => {
-      container.scrollTop = container.scrollHeight;
-      hideJump();
-    });
-
+    jumpIndicator?.addEventListener('click', () => { container.scrollTop = container.scrollHeight; hideJump(); });
     container.addEventListener('scroll', () => {
-      const distanceFromBottom =
-        container.scrollHeight -
-        container.scrollTop -
-        container.clientHeight;
-
+      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
       if (distanceFromBottom < 80) hideJump();
     });
 
-    /* =====================================================
-       GLOBAL API
-    ===================================================== */
+    /* ===============================
+       PINNED MESSAGE API
+    =============================== */
     window.TGRenderer = {
       appendMessage,
-      showTyping: function () {}
+      showTyping: function () {},
+      getPinnedMessageId: () => PINNED_MESSAGE_ID
     };
 
-    console.log('✅ FULL bubble-renderer loaded with 15 persona colors, reply preview, and jump-to-message');
+    console.log('✅ bubble-renderer loaded with pinned admin fix, golden caption, fallback avatars, and jump-to-message support');
   }
 
-  document.readyState === 'loading'
-    ? document.addEventListener('DOMContentLoaded', init)
-    : init();
-
+  document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', init) : init();
 })();
