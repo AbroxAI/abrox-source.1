@@ -35,13 +35,14 @@
   updateInputState();
 
   /* ======================================================
-     TYPING DURATION CALCULATOR
+     TYPING DURATION CALCULATOR (per character)
   ====================================================== */
   function getTypingDelay(text) {
     if (!text) return 800;
-    const speed = 40; // ms per character
-    const base = 600; // minimum delay
-    return Math.max(base, text.length * speed + Math.random() * 400);
+    const base = 600; // minimum typing duration
+    const perChar = 35; // milliseconds per character
+    const randomFactor = Math.random() * 400; // natural variation
+    return Math.min(8000, base + text.length * perChar + randomFactor);
   }
 
   /* ======================================================
@@ -80,7 +81,7 @@
   });
 
   /* ======================================================
-     REALISM ENGINE HOOK (Ultra-Real Typing)
+     REALISM ENGINE HOOK (Ultra-Real Typing + Variable Duration)
   ====================================================== */
   function simulateRealisticResponse(userText) {
     if (!window.RealismEngine || !window.identityPool) return;
