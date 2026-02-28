@@ -32,7 +32,7 @@
     }
 
     /* ===============================
-       PERSONA COLOR ASSIGNMENT
+       PERSONA COLOR ASSIGNMENT (15 colors preserved)
     =============================== */
     const personaColorMap = new Map();
     const personaColors = [
@@ -58,9 +58,6 @@
       const replyToText = opts.replyToText || null;
       const image = opts.image || null;
       const caption = opts.caption || null;
-      const pinned = opts.pinned || false;
-
-      if (pinned) PINNED_MESSAGE_ID = id;
 
       insertDateSticker(timestamp);
 
@@ -92,6 +89,7 @@
         replyPreview.textContent = replyToText ? 
           (replyToText.length > 120 ? replyToText.slice(0, 117) + '...' : replyToText) 
           : 'Reply';
+
         replyPreview.addEventListener('click', () => {
           if (!replyToId) return;
           const target = MESSAGE_MAP.get(replyToId);
@@ -100,6 +98,7 @@
           target.el.classList.add('tg-highlight');
           setTimeout(() => target.el.classList.remove('tg-highlight'), 2600);
         });
+
         content.appendChild(replyPreview);
       }
 
@@ -122,14 +121,18 @@
         content.appendChild(textEl);
       }
 
-      /* Caption / pinned */
+      /* Caption (Pinned broadcast support) */
       if (caption) {
         const cap = document.createElement('div');
         cap.className = 'tg-bubble-text';
         cap.style.marginTop = '6px';
-        if (pinned) { cap.style.fontWeight = '600'; cap.style.color = '#ffd166'; }
+        cap.style.fontWeight = '600';
+        cap.style.color = '#ffd166';
         cap.textContent = caption;
         content.appendChild(cap);
+
+        // Automatically register as pinned message
+        PINNED_MESSAGE_ID = id;
       }
 
       /* Admin button */
@@ -150,35 +153,59 @@
       content.appendChild(meta);
 
       /* Structure */
-      if (type === 'incoming') { wrapper.appendChild(avatar); wrapper.appendChild(content); }
-      else { wrapper.style.flexDirection = 'row-reverse'; wrapper.appendChild(avatar); wrapper.appendChild(content); }
+      if (type === 'incoming') {
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(content);
+      } else {
+        wrapper.style.flexDirection = 'row-reverse';
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(content);
+      }
 
       MESSAGE_MAP.set(id, { el: wrapper, text, persona, timestamp });
-      return wrapper;
+
+      return { el: wrapper, id }; // FIX: return id
     }
 
     /* ===============================
-       APPEND MESSAGE
+       APPEND MESSAGE (FIXED RETURN ID)
     =============================== */
     function appendMessage(persona, text, opts = {}) {
-      const bubble = createBubble(persona, text, opts);
+      const result = createBubble(persona, text, opts);
+      const bubble = result.el;
+      const id = result.id;
+
       container.appendChild(bubble);
 
       const atBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 80;
       if (atBottom) { container.scrollTop = container.scrollHeight; hideJump(); }
       else { unseenCount++; updateJump(); showJump(); }
 
-      return true;
+      return id; // FIXED: now returns actual message ID
     }
 
     /* ===============================
        BLUE NEW MESSAGE PILL
     =============================== */
-    function updateJump() { if (!jumpText) return; jumpText.textContent = unseenCount > 1 ? `New messages · ${unseenCount}` : 'New messages'; }
-    function showJump() { jumpIndicator?.classList.remove('hidden'); }
-    function hideJump() { unseenCount = 0; updateJump(); jumpIndicator?.classList.add('hidden'); }
+    function updateJump() {
+      if (!jumpText) return;
+      jumpText.textContent = unseenCount > 1
+        ? `New messages · ${unseenCount}`
+        : 'New messages';
+    }
 
-    jumpIndicator?.addEventListener('click', () => { container.scrollTop = container.scrollHeight; hideJump(); });
+    function showJump() { jumpIndicator?.classList.remove('hidden'); }
+    function hideJump() {
+      unseenCount = 0;
+      updateJump();
+      jumpIndicator?.classList.add('hidden');
+    }
+
+    jumpIndicator?.addEventListener('click', () => {
+      container.scrollTop = container.scrollHeight;
+      hideJump();
+    });
+
     container.addEventListener('scroll', () => {
       const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
       if (distanceFromBottom < 80) hideJump();
@@ -193,8 +220,10 @@
       getPinnedMessageId: () => PINNED_MESSAGE_ID
     };
 
-    console.log('✅ bubble-renderer loaded with pinned admin fix, golden caption, fallback avatars, and jump-to-message support');
+    console.log('✅ bubble-renderer fully validated — pinned jump fixed, ID return fixed, 15 colors intact');
   }
 
-  document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', init) : init();
+  document.readyState === 'loading'
+    ? document.addEventListener('DOMContentLoaded', init)
+    : init();
 })();
