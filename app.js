@@ -1,9 +1,10 @@
-// app.js — FINAL Telegram 2026 (Pinned + Realism + Joiner Safe)
+// app.js — FINAL Telegram 2026 (Pinned + Realism + Joiner Safe + Ultra-Real Typing)
 
 document.addEventListener("DOMContentLoaded", () => {
 
   const pinBanner = document.getElementById("tg-pin-banner");
   const container = document.getElementById("tg-comments-container");
+  const headerMeta = document.getElementById("tg-meta-line");
 
   if (!container) {
     console.error("tg-comments-container missing in DOM");
@@ -15,10 +16,50 @@ document.addEventListener("DOMContentLoaded", () => {
   ===================================================== */
   function appendSafe(persona, text, opts = {}) {
     if (window.TGRenderer?.appendMessage) {
-      return window.TGRenderer.appendMessage(persona, text, opts);
+      const id = window.TGRenderer.appendMessage(persona, text, opts);
+      // Notify typing manager
+      document.dispatchEvent(new CustomEvent("messageAppended", { detail: { persona } }));
+      return id;
     }
     console.warn("TGRenderer not ready");
     return null;
+  }
+
+  /* =====================================================
+     ULTRA-REAL TYPING MANAGER
+  ===================================================== */
+  const typingPersons = new Set();
+
+  document.addEventListener("headerTyping", (ev) => {
+    const name = ev.detail?.name;
+    if (!name) return;
+
+    typingPersons.add(name);
+    updateHeaderTyping();
+  });
+
+  document.addEventListener("messageAppended", (ev) => {
+    const persona = ev.detail?.persona;
+    if (!persona || !persona.name) return;
+
+    if (typingPersons.has(persona.name)) {
+      typingPersons.delete(persona.name);
+      updateHeaderTyping();
+    }
+  });
+
+  function updateHeaderTyping() {
+    if (!headerMeta) return;
+
+    if (typingPersons.size === 0) {
+      headerMeta.textContent = `${window.MEMBER_COUNT.toLocaleString()} members, ${window.ONLINE_COUNT.toLocaleString()} online`;
+    } else if (typingPersons.size === 1) {
+      const [name] = typingPersons;
+      headerMeta.textContent = `${name} is typing…`;
+    } else {
+      const names = Array.from(typingPersons).slice(0, 2).join(" & ");
+      headerMeta.textContent = `${names} are typing…`;
+    }
   }
 
   /* =====================================================
@@ -146,6 +187,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       window.TGRenderer?.showTyping(admin);
 
+      // Trigger ultra-real header typing
+      document.dispatchEvent(new CustomEvent("headerTyping", { detail: { name: admin.name } }));
+
       setTimeout(() => {
         appendSafe(
           admin,
@@ -165,6 +209,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!persona || !text) return;
 
     window.TGRenderer?.showTyping(persona);
+
+    // Trigger ultra-real header typing
+    document.dispatchEvent(new CustomEvent("headerTyping", { detail: { name: persona.name } }));
 
     setTimeout(() => {
       appendSafe(persona, text, {
@@ -196,6 +243,6 @@ document.addEventListener("DOMContentLoaded", () => {
     inputBar.style.borderRadius = "26px";
   }
 
-  console.log("app.js fully synced with renderer + interactions + realism");
+  console.log("app.js fully synced with renderer + interactions + realism + ultra-real typing");
 
 });
