@@ -1,4 +1,4 @@
-/* widget.css — Telegram 2026 replica with full integration for bubbles, interactions & joiner simulator */
+/* widget.css — Telegram 2026 full integration with bubbles, interactions & pin/jump fixes */
 
 /* variables */
 :root{
@@ -44,6 +44,17 @@ html,body{
 .tg-title{ font-size:15px; font-weight:700; }
 .tg-meta{ font-size:12px; color:var(--tg-muted); margin-top:2px; }
 
+/* header logo fallback */
+.tg-header-logo{
+  width:32px; height:32px; object-fit:contain;
+}
+.tg-header-logo::after{
+  content:"";
+  display:block;
+  background:url('assets/logo.png') center/contain no-repeat;
+  width:32px; height:32px;
+}
+
 /* icon buttons */
 .tg-back-btn, .tg-options-btn{ background:none; border:none; color:#fff; padding:6px; cursor:pointer; }
 .tg-back-btn i, .tg-options-btn i{ width:22px; height:22px; }
@@ -70,6 +81,14 @@ html,body{
 
 .tg-pin-banner img{
   max-width:100%; max-height:120px; border-radius:12px; object-fit:cover;
+}
+
+/* pin banner caption */
+.tg-pin-banner .pin-text{
+  white-space: pre-line;
+  line-height:1.4;
+  font-size:13px;
+  flex:1;
 }
 
 /* Blue “View Pinned” button */
@@ -330,6 +349,18 @@ html,body{
   transform: translateX(-50%) translateY(8px);
 }
 #tg-jump-text { white-space: nowrap; }
+
+/* Telegram-style yellow highlight for reply jump */
+.tg-highlight {
+  background-color: rgba(255, 229, 100, 0.3);
+  border-radius: 14px;
+  animation: tgFadePulse 2.6s ease-out forwards;
+}
+@keyframes tgFadePulse {
+  0% { opacity: 1; transform: scale(1.02); }
+  20% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
 
 /* input wrapper */
 .tg-input-wrapper{
