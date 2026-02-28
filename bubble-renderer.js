@@ -1,4 +1,4 @@
-// bubble-renderer.js — FULL Telegram 2026 Renderer (Complete + Blue Pill Synced + Reply Preview Fixed)
+// bubble-renderer.js — FULL Telegram 2026 Renderer (Complete + Blue Pill Synced + Reply Preview Fixed + Pinned Admin Fix)
 (function () {
   'use strict';
 
@@ -15,6 +15,7 @@
     let unseenCount = 0;
     let lastDateKey = null;
     const MESSAGE_MAP = new Map();
+    let PINNED_MESSAGE_ID = null;
 
     /* =====================================================
        DATE STICKERS
@@ -68,6 +69,9 @@
       const replyToText = opts.replyToText || null;
       const image = opts.image || null;
       const caption = opts.caption || null;
+      const pinned = opts.pinned || false;
+
+      if (pinned) PINNED_MESSAGE_ID = id; // store pinned message ID
 
       insertDateSticker(timestamp);
 
@@ -81,11 +85,11 @@
       avatar.alt = persona?.name || 'User';
       avatar.src =
         persona?.avatar ||
-        (persona?.isAdmin ? '/assets/admin.jpg' : `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`);
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
 
       avatar.onerror = () => {
         avatar.src =
-          persona?.isAdmin ? '/assets/admin.jpg' : `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
       };
 
       /* Content */
@@ -115,7 +119,7 @@
 
           target.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           target.el.classList.add('tg-highlight');
-          setTimeout(() => target.el.classList.remove('tg-highlight'), 2600); // yellow fade duration
+          setTimeout(() => target.el.classList.remove('tg-highlight'), 2600);
         });
 
         content.appendChild(replyPreview);
@@ -132,7 +136,7 @@
         content.appendChild(img);
       }
 
-      // Text (always after name)
+      // Text
       if (text) {
         const textEl = document.createElement('div');
         textEl.className = 'tg-bubble-text';
@@ -140,11 +144,15 @@
         content.appendChild(textEl);
       }
 
-      // Caption
+      // Caption / pinned message
       if (caption) {
         const cap = document.createElement('div');
         cap.className = 'tg-bubble-text';
         cap.style.marginTop = '6px';
+        if (pinned) {
+          cap.style.fontWeight = '600';
+          cap.style.color = '#ffd166'; // golden highlight for pinned
+        }
         cap.textContent = caption;
         content.appendChild(cap);
       }
@@ -160,7 +168,7 @@
         content.appendChild(adminBtn);
       }
 
-      // Meta time (smaller, normal weight)
+      // Meta time
       const meta = document.createElement('div');
       meta.className = 'tg-bubble-meta';
       meta.textContent = new Date(timestamp).toLocaleTimeString([], {
@@ -252,14 +260,15 @@
     });
 
     /* =====================================================
-       GLOBAL API
+       PINNED MESSAGE API
     ===================================================== */
     window.TGRenderer = {
       appendMessage,
-      showTyping: function () {}
+      showTyping: function () {},
+      getPinnedMessageId: () => PINNED_MESSAGE_ID
     };
 
-    console.log('✅ FULL bubble-renderer loaded with 15 persona colors, reply preview, pinned jump, yellow fade highlight');
+    console.log('✅ bubble-renderer loaded with pinned admin fix, golden caption, fallback avatars, and jump-to-message support');
   }
 
   document.readyState === 'loading'
