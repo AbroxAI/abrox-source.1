@@ -1,4 +1,4 @@
-// interactions.js — FULL Telegram 2026 integration (Ultra-Real Typing + Variable Durations)
+// interactions.js — FULL Telegram 2026 integration (Ultra-Real Typing + Variable Durations + Reply Preview Jumper)
 (function () {
   'use strict';
 
@@ -18,7 +18,7 @@
   let unseenCount = 0;
 
   /* ======================================================
-     INPUT STATE HANDLING (Blue circle send toggle)
+     INPUT STATE HANDLING
   ====================================================== */
   function updateInputState() {
     const hasText = input.value.trim().length > 0;
@@ -35,13 +35,13 @@
   updateInputState();
 
   /* ======================================================
-     TYPING DURATION CALCULATOR (per character)
+     TYPING DURATION CALCULATOR
   ====================================================== */
   function getTypingDelay(text) {
     if (!text) return 800;
-    const base = 600; // minimum typing duration
-    const perChar = 35; // milliseconds per character
-    const randomFactor = Math.random() * 400; // natural variation
+    const base = 600;
+    const perChar = 35;
+    const randomFactor = Math.random() * 400;
     return Math.min(8000, base + text.length * perChar + randomFactor);
   }
 
@@ -81,7 +81,7 @@
   });
 
   /* ======================================================
-     REALISM ENGINE HOOK (Ultra-Real Typing + Variable Duration)
+     REALISM ENGINE HOOK
   ====================================================== */
   function simulateRealisticResponse(userText) {
     if (!window.RealismEngine || !window.identityPool) return;
@@ -89,7 +89,6 @@
     const persona = window.identityPool.getRandomPersona?.();
     if (!persona) return;
 
-    // Trigger ultra-real typing
     window.TGRenderer?.showTyping(persona);
     document.dispatchEvent(new CustomEvent('headerTyping', { detail: { name: persona.name } }));
 
@@ -99,10 +98,12 @@
       const reply = window.RealismEngine.generateReply?.(userText, persona)
         || generateFallbackReply(userText);
 
-      window.TGRenderer.appendMessage(persona, reply, {
+      const bubbleEl = window.TGRenderer.appendMessage(persona, reply, {
         type: 'incoming',
         timestamp: new Date()
       });
+
+      attachReplyPreview(bubbleEl, reply); // ✅ Attach reply preview jumper
 
       const atBottom = (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 50);
       if (!atBottom) {
@@ -110,7 +111,6 @@
         updateJump();
         showJump();
       }
-
     }, delay);
   }
 
@@ -129,7 +129,26 @@
   }
 
   /* ======================================================
-     NEW MESSAGE PILL / JUMP INDICATOR
+     REPLY PREVIEW / YELLOW HIGHLIGHT
+  ====================================================== */
+  function attachReplyPreview(bubbleEl, replyText) {
+    if (!bubbleEl || !replyText) return;
+    const replyButton = bubbleEl.querySelector('.tg-bubble-reply');
+    if (!replyButton) return;
+
+    replyButton.addEventListener('click', () => {
+      const allBubbles = Array.from(document.querySelectorAll('.tg-bubble'));
+      const target = allBubbles.find(b => b !== bubbleEl && b.querySelector('.tg-bubble-text')?.textContent.includes(replyText));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.classList.add('tg-highlight'); // Telegram-style yellow fade
+        setTimeout(() => target.classList.remove('tg-highlight'), 2600);
+      }
+    });
+  }
+
+  /* ======================================================
+     NEW MESSAGE PILL
   ====================================================== */
   function updateJump() {
     if (jumpText) {
@@ -139,15 +158,8 @@
     }
   }
 
-  function showJump() {
-    jumpIndicator?.classList.remove('hidden');
-  }
-
-  function hideJump() {
-    jumpIndicator?.classList.add('hidden');
-    unseenCount = 0;
-    updateJump();
-  }
+  function showJump() { jumpIndicator?.classList.remove('hidden'); }
+  function hideJump() { jumpIndicator?.classList.add('hidden'); unseenCount = 0; updateJump(); }
 
   jumpIndicator?.addEventListener('click', () => {
     container.scrollTop = container.scrollHeight;
@@ -160,7 +172,7 @@
   });
 
   /* ======================================================
-     EMOJI BUTTON (basic insertion)
+     EMOJI BUTTON
   ====================================================== */
   emojiBtn?.addEventListener('click', () => {
     input.value += "😊";
@@ -175,5 +187,5 @@
     try { window.lucide.createIcons(); } catch (e) {}
   }
 
-  console.log('interactions.js fully integrated with bubble-renderer, realism engine, new message pill, and ultra-real typing with variable durations');
+  console.log('interactions.js fully integrated with bubble-renderer, realism engine, new message pill, ultra-real typing, and reply preview jumper');
 })();
