@@ -1,0 +1,229 @@
+/* widget.css — FULL Telegram 2026 Replica Styles */
+
+/* ====================
+   Comments Container
+==================== */
+.tg-comments-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  background-color: #171f2b;
+}
+
+/* ====================
+   Individual Bubble
+==================== */
+.tg-bubble {
+  display: flex;
+  gap: 8px;
+  max-width: 75%;
+  align-items: flex-start;
+  font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+}
+
+.tg-bubble.incoming { flex-direction: row; }
+.tg-bubble.outgoing { flex-direction: row-reverse; margin-left: auto; }
+
+/* ====================
+   Avatar
+==================== */
+.tg-bubble-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+/* ====================
+   Bubble Content
+==================== */
+.tg-bubble-content {
+  display: flex;
+  flex-direction: column;
+  background: rgba(23,33,43,0.85);
+  border-radius: 14px;
+  padding: 8px 12px;
+  color: #fff;
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+/* Sender Name */
+.tg-bubble-sender {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 2px;
+  color: #fff;
+}
+
+/* Text / Message */
+.tg-bubble-text {
+  font-size: 0.875rem;
+  margin-top: 4px;
+  white-space: pre-wrap; /* preserves line breaks */
+}
+
+/* Caption / Pinned Messages */
+.tg-bubble-caption {
+  margin-top: 6px;
+  font-weight: 600;
+  color: #ffd166;
+  line-height: 1.4;
+  white-space: pre-wrap; /* preserves line breaks for readability */
+}
+
+/* Reply Preview */
+.tg-reply-preview {
+  background: rgba(255,255,255,0.08);
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  color: #f0f0f0;
+  margin-bottom: 4px;
+  cursor: pointer;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Bubble Meta (Time) */
+.tg-bubble-meta {
+  font-size: 0.6875rem;
+  color: rgba(255,255,255,0.5);
+  margin-top: 4px;
+  align-self: flex-end;
+}
+
+/* Bubble Images */
+.tg-bubble-image {
+  margin-top: 6px;
+  width: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+/* Highlight Pulse */
+.tg-highlight {
+  background-color: rgba(255, 229, 100, 0.3);
+  border-radius: 14px;
+  animation: tgFadePulse 2.6s ease-out forwards;
+}
+
+@keyframes tgFadePulse {
+  0% { opacity: 1; transform: scale(1.02); }
+  20% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+/* ====================
+   Pin Banner Replica
+==================== */
+.tg-pin-banner {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(23,33,43,0.9);
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  width: 100%;
+  max-width: 480px;
+  margin: 12px auto;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.tg-pin-banner.show { opacity: 1; }
+.tg-pin-banner.hidden { opacity: 0; pointer-events: none; }
+
+.tg-pin-banner img {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.tg-pin-banner .pin-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  flex: 1;
+  line-height: 1.4;
+  white-space: pre-wrap; /* preserves newlines in captions */
+}
+
+.pin-btn-container {
+  display: flex;
+  gap: 6px;
+}
+
+/* Blue View Pinned Button */
+.pin-btn {
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+/* Glass Button */
+.glass-btn {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 0.8125rem;
+}
+
+/* ====================
+   Input Bar
+==================== */
+.tg-input-wrapper {
+  padding: 12px;
+  background: transparent;
+}
+
+.tg-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(23,33,43,0.78);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 26px;
+}
+
+.tg-comment-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 0.875rem;
+  padding: 6px;
+  outline: none;
+}
+
+.tg-icon-btn, .tg-send-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.tg-send-btn.hidden { display: none; }
