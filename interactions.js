@@ -1,4 +1,4 @@
-// interactions.js — FULL Telegram 2026 integration (Ultra-Real Typing + Variable Durations + Reply Preview Jumper + Fixed)
+// interactions.js — FULL Telegram 2026 integration (Ultra-Real Typing + Variable Durations + Reply Preview Jumper + Fixed Header Typing)
 (function () {
   'use strict';
 
@@ -9,6 +9,7 @@
   const container = document.getElementById('tg-comments-container');
   const jumpIndicator = document.getElementById('tg-jump-indicator');
   const jumpText = document.getElementById('tg-jump-text');
+  const headerMeta = document.getElementById('tg-meta-line');
 
   if (!input || !sendBtn || !container) {
     console.error('interactions.js: required elements missing');
@@ -16,6 +17,7 @@
   }
 
   let unseenCount = 0;
+  const typingPersons = new Set();
 
   /* ======================================================
      INPUT STATE HANDLING
@@ -81,7 +83,7 @@
   });
 
   /* ======================================================
-     REALISM ENGINE HOOK
+     REALISM ENGINE HOOK + HEADER TYPING
   ====================================================== */
   function simulateRealisticResponse(userText) {
     if (!window.RealismEngine || !window.identityPool) return;
@@ -90,7 +92,8 @@
     if (!persona) return;
 
     window.TGRenderer?.showTyping(persona);
-    document.dispatchEvent(new CustomEvent('headerTyping', { detail: { name: persona.name } }));
+    typingPersons.add(persona.name);
+    updateHeaderTyping();
 
     const delay = getTypingDelay(userText);
 
@@ -98,12 +101,15 @@
       const reply = window.RealismEngine.generateReply?.(userText, persona)
         || generateFallbackReply(userText);
 
-      const bubbleEl = window.TGRenderer.appendMessage(persona, reply, {
+      const bubbleId = window.TGRenderer.appendMessage(persona, reply, {
         type: 'incoming',
         timestamp: new Date()
       });
 
-      attachReplyPreview(bubbleEl, reply); // ✅ Attach reply preview jumper
+      attachReplyPreview(bubbleId, reply); // ✅ Attach reply preview jumper
+
+      typingPersons.delete(persona.name);
+      updateHeaderTyping();
 
       const atBottom = (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 50);
       if (!atBottom) {
@@ -129,28 +135,41 @@
   }
 
   /* ======================================================
+     HEADER TYPING UPDATE
+  ====================================================== */
+  function updateHeaderTyping() {
+    if (!headerMeta) return;
+    if (typingPersons.size === 0) {
+      headerMeta.textContent = `${window.MEMBER_COUNT?.toLocaleString() || 0} members, ${window.ONLINE_COUNT?.toLocaleString() || 0} online`;
+    } else if (typingPersons.size === 1) {
+      const [name] = typingPersons;
+      headerMeta.textContent = `${name} is typing…`;
+    } else {
+      const names = Array.from(typingPersons).slice(0, 2).join(" & ");
+      headerMeta.textContent = `${names} are typing…`;
+    }
+  }
+
+  /* ======================================================
      REPLY PREVIEW / YELLOW HIGHLIGHT
   ====================================================== */
-  function attachReplyPreview(bubbleEl, replyText) {
-    if (!bubbleEl || !replyText) return;
+  function attachReplyPreview(bubbleId, replyText) {
+    if (!bubbleId || !replyText) return;
+    const newMsgEl = document.querySelector(`[data-id="${bubbleId}"]`);
+    if (!newMsgEl) return;
 
-    // query selector updated to correct class
-    const replyButton = bubbleEl.querySelector('.tg-reply-preview');
-    if (!replyButton) return;
+    const replyPreview = newMsgEl.querySelector('.tg-bubble-reply');
+    if (!replyPreview) return;
 
-    replyButton.style.cursor = 'pointer';
-    replyButton.addEventListener('click', () => {
+    replyPreview.addEventListener('click', () => {
       const allBubbles = Array.from(document.querySelectorAll('.tg-bubble'));
       const target = allBubbles.find(b =>
-        b !== bubbleEl &&
+        b.dataset.id !== bubbleId &&
         b.querySelector('.tg-bubble-text')?.textContent.includes(replyText)
       );
-
       if (target) {
         target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        target.classList.add('tg-highlight'); // Telegram-style yellow fade
-
-        // Proper fade duration
+        target.classList.add('tg-highlight');
         setTimeout(() => target.classList.remove('tg-highlight'), 2600);
       }
     });
@@ -196,5 +215,5 @@
     try { window.lucide.createIcons(); } catch (e) {}
   }
 
-  console.log('✅ interactions.js fully integrated with bubble-renderer, realism engine, new message pill, ultra-real typing, and reply preview jumper');
+  console.log('interactions.js fully integrated: fixed typing indicator, reply preview jumper, new message pill, ultra-real typing');
 })();
