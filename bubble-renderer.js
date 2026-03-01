@@ -1,6 +1,7 @@
-// bubble-renderer.js — Telegram 2026 Renderer with full pin & reply preview support
+// bubble-renderer.js — Telegram 2026 Renderer (clean unified text system)
 (function () {
   'use strict';
+
   function init() {
     const container = document.getElementById('tg-comments-container');
     const jumpIndicator = document.getElementById('tg-jump-indicator');
@@ -19,25 +20,29 @@
       const d = new Date(date);
       return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
     }
+
     function insertDateSticker(date) {
       const key = formatDateKey(date);
       if (key === lastDateKey) return;
       lastDateKey = key;
+
       const sticker = document.createElement('div');
       sticker.className = 'tg-date-sticker';
       sticker.textContent = new Date(date).toLocaleDateString([], {
         year: 'numeric', month: 'short', day: 'numeric'
       });
+
       container.appendChild(sticker);
     }
 
     /* ===============================
-       PERSONA COLOR ASSIGNMENT (15 colors preserved)
+       PERSONA COLOR ASSIGNMENT (15 COLORS)
     =============================== */
     const personaColorMap = new Map();
     const personaColors = [
       "1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"
     ];
+
     function getPersonaColor(personaName) {
       if (!personaName) return "1";
       if (!personaColorMap.has(personaName)) {
@@ -69,13 +74,16 @@
       const avatar = document.createElement('img');
       avatar.className = 'tg-bubble-avatar';
       avatar.alt = persona?.name || 'User';
-      avatar.src = persona?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
-      avatar.onerror = () => avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
+      avatar.src = persona?.avatar || 
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
+      avatar.onerror = () =>
+        avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
 
       /* Content */
       const content = document.createElement('div');
       content.className = 'tg-bubble-content';
 
+      /* Sender */
       const sender = document.createElement('div');
       sender.className = 'tg-bubble-sender';
       sender.textContent = persona?.name || 'User';
@@ -86,14 +94,18 @@
       if (replyToText || replyToId) {
         const replyPreview = document.createElement('div');
         replyPreview.className = 'tg-reply-preview';
-        replyPreview.textContent = replyToText ? 
-          (replyToText.length > 120 ? replyToText.slice(0, 117) + '...' : replyToText) 
+
+        replyPreview.textContent = replyToText
+          ? (replyToText.length > 120
+              ? replyToText.slice(0, 117) + '...'
+              : replyToText)
           : 'Reply';
 
         replyPreview.addEventListener('click', () => {
           if (!replyToId) return;
           const target = MESSAGE_MAP.get(replyToId);
           if (!target) return;
+
           target.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           target.el.classList.add('tg-highlight');
           setTimeout(() => target.el.classList.remove('tg-highlight'), 2600);
@@ -113,26 +125,25 @@
         content.appendChild(img);
       }
 
-      /* Text */
-      if (text) {
+      /* ===============================
+         UNIFIED TEXT RENDERER
+      =============================== */
+      const finalText = caption || text;
+
+      if (finalText) {
         const textEl = document.createElement('div');
         textEl.className = 'tg-bubble-text';
-        textEl.textContent = text;
+
+        // preserve multi-line formatting
+        textEl.style.whiteSpace = 'pre-line';
+
+        textEl.textContent = finalText;
         content.appendChild(textEl);
-      }
 
-      /* Caption (Pinned broadcast support) */
-      if (caption) {
-        const cap = document.createElement('div');
-        cap.className = 'tg-bubble-text';
-        cap.style.marginTop = '6px';
-        cap.style.fontWeight = '600';
-        cap.style.color = '#ffd166';
-        cap.textContent = caption;
-        content.appendChild(cap);
-
-        // Automatically register as pinned message
-        PINNED_MESSAGE_ID = id;
+        // register pinned message if caption was used
+        if (caption) {
+          PINNED_MESSAGE_ID = id;
+        }
       }
 
       /* Admin button */
@@ -149,7 +160,10 @@
       /* Meta timestamp */
       const meta = document.createElement('div');
       meta.className = 'tg-bubble-meta';
-      meta.textContent = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      meta.textContent = new Date(timestamp).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
       content.appendChild(meta);
 
       /* Structure */
@@ -162,13 +176,13 @@
         wrapper.appendChild(content);
       }
 
-      MESSAGE_MAP.set(id, { el: wrapper, text, persona, timestamp });
+      MESSAGE_MAP.set(id, { el: wrapper, text: finalText, persona, timestamp });
 
-      return { el: wrapper, id }; // FIX: return id
+      return { el: wrapper, id };
     }
 
     /* ===============================
-       APPEND MESSAGE (FIXED RETURN ID)
+       APPEND MESSAGE
     =============================== */
     function appendMessage(persona, text, opts = {}) {
       const result = createBubble(persona, text, opts);
@@ -177,11 +191,20 @@
 
       container.appendChild(bubble);
 
-      const atBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 80;
-      if (atBottom) { container.scrollTop = container.scrollHeight; hideJump(); }
-      else { unseenCount++; updateJump(); showJump(); }
+      const atBottom =
+        container.scrollTop + container.clientHeight >=
+        container.scrollHeight - 80;
 
-      return id; // FIXED: now returns actual message ID
+      if (atBottom) {
+        container.scrollTop = container.scrollHeight;
+        hideJump();
+      } else {
+        unseenCount++;
+        updateJump();
+        showJump();
+      }
+
+      return id;
     }
 
     /* ===============================
@@ -189,12 +212,16 @@
     =============================== */
     function updateJump() {
       if (!jumpText) return;
-      jumpText.textContent = unseenCount > 1
-        ? `New messages · ${unseenCount}`
-        : 'New messages';
+      jumpText.textContent =
+        unseenCount > 1
+          ? `New messages · ${unseenCount}`
+          : 'New messages';
     }
 
-    function showJump() { jumpIndicator?.classList.remove('hidden'); }
+    function showJump() {
+      jumpIndicator?.classList.remove('hidden');
+    }
+
     function hideJump() {
       unseenCount = 0;
       updateJump();
@@ -207,12 +234,16 @@
     });
 
     container.addEventListener('scroll', () => {
-      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      const distanceFromBottom =
+        container.scrollHeight -
+        container.scrollTop -
+        container.clientHeight;
+
       if (distanceFromBottom < 80) hideJump();
     });
 
     /* ===============================
-       PINNED MESSAGE API
+       PUBLIC API
     =============================== */
     window.TGRenderer = {
       appendMessage,
@@ -220,10 +251,11 @@
       getPinnedMessageId: () => PINNED_MESSAGE_ID
     };
 
-    console.log('✅ bubble-renderer fully validated — pinned jump fixed, ID return fixed, 15 colors intact');
+    console.log('✅ bubble-renderer fully unified — no gold, clean caption, pinned intact');
   }
 
   document.readyState === 'loading'
     ? document.addEventListener('DOMContentLoaded', init)
     : init();
+
 })();
