@@ -1,4 +1,4 @@
-// realism-engine-v11.js — ULTRA-REALISM ENGINE V11 (with variable typing durations + self-replies)
+// realism-engine-v11.js — ULTRA-REALISM ENGINE V11 (fully synchronized typing + self-replies)
 
 (function(){
 
@@ -140,7 +140,7 @@ function generateComment(){
 }
 
 /* =====================================================
-   POOL & JOINER REACTIVE
+   POOL
 ===================================================== */
 
 const POOL = [];
@@ -154,19 +154,6 @@ function ensurePool(min=2000){
   }
 }
 
-// React to joiner-simulator messages
-window.addEventListener("joiner:new", (ev)=>{
-  const joiner = ev.detail;
-  if(!joiner || !joiner.name) return;
-
-  const replyCount = 1 + Math.floor(Math.random()*3);
-  for(let i=0;i<replyCount;i++){
-    const persona = window.identity?.getRandomPersona?.() || { name:"User", avatar:`https://ui-avatars.com/api/?name=U` };
-    const baseText = `Welcome ${joiner.name}! ${random(TESTIMONIALS)}`;
-    POOL.push({ text: baseText, timestamp: new Date(), persona });
-  }
-});
-
 /* =====================================================
    SAFE APPEND
 ===================================================== */
@@ -179,19 +166,7 @@ function appendSafe(persona,text,opts={}){
 }
 
 /* =====================================================
-   TYPING DELAY
-===================================================== */
-
-function getTypingDelay(text){
-  if(!text) return 600 + Math.random()*400;
-  const base = 400;
-  const perChar = 35;
-  const randomFactor = Math.random()*300;
-  return Math.min(8000, base + text.length*perChar + randomFactor);
-}
-
-/* =====================================================
-   RANDOM EXISTING MESSAGE (for reply preview & self-replies)
+   RANDOM EXISTING MESSAGE
 ===================================================== */
 
 function getRandomExistingMessage(){
@@ -205,59 +180,65 @@ function getRandomExistingMessage(){
 }
 
 /* =====================================================
-   POSTING (WITH SELF-REPLIES)
+   POSTING (FULLY SYNCHRONIZED)
 ===================================================== */
 
-function post(count=1){
+async function post(count=1){
   ensurePool(Math.max(1000,count));
+
   for(let i=0;i<count;i++){
     const item = POOL.shift();
     if(!item) break;
 
-    const delay = getTypingDelay(item.text);
+    const persona =
+      item.persona ||
+      window.identity?.getRandomPersona?.() || {
+        name:"User",
+        avatar:`https://ui-avatars.com/api/?name=U`
+      };
 
-    setTimeout(()=>{
-      const persona = item.persona || window.identity?.getRandomPersona?.() || { name:"User", avatar:`https://ui-avatars.com/api/?name=U` };
+    document.dispatchEvent(
+      new CustomEvent('headerTyping', { detail: { name: persona.name } })
+    );
 
-      if(window.TGRenderer?.showTyping) window.TGRenderer.showTyping(persona);
+    if(window.TGRenderer?.showTyping){
+      await window.TGRenderer.showTyping(persona, item.text);
+    }
 
-      // Ultra-real header typing
-      document.dispatchEvent(new CustomEvent('headerTyping', { detail: { name: persona.name } }));
+    let replyData = {};
 
-      let replyData = {};
+    if(maybe(0.28)){
+      const existing = getRandomExistingMessage();
+      if(existing) replyData = existing;
+    }
 
-      // 28% chance to reply to another existing message
-      if(maybe(0.28)){
-        const existing = getRandomExistingMessage();
-        if(existing) replyData = existing;
-      }
+    if(maybe(0.12)){
+      const selfMessages = Array.from(document.querySelectorAll('.tg-bubble'))
+        .filter(b => b.dataset.persona === persona.name);
 
-      // 12% chance to reply to own previous message
-      if(maybe(0.12)){
-        const selfMessages = Array.from(document.querySelectorAll('.tg-bubble'))
-          .filter(b => b.dataset.persona === persona.name);
-        if(selfMessages.length){
-          const selfTarget = selfMessages[Math.floor(Math.random()*selfMessages.length)];
-          const selfText = selfTarget.querySelector('.tg-bubble-text')?.textContent;
-          if(selfText){
-            replyData = { replyToId: selfTarget.dataset.id, replyToText: selfText.slice(0,120) };
-          }
+      if(selfMessages.length){
+        const selfTarget = selfMessages[Math.floor(Math.random()*selfMessages.length)];
+        const selfText = selfTarget.querySelector('.tg-bubble-text')?.textContent;
+        if(selfText){
+          replyData = {
+            replyToId: selfTarget.dataset.id,
+            replyToText: selfText.slice(0,120)
+          };
         }
       }
+    }
 
-      appendSafe(persona,item.text,{
-        timestamp:item.timestamp,
-        type:"incoming",
-        id:`realism_${Date.now()}_${rand(9999)}`,
-        ...replyData
-      });
-
-    }, delay);
+    appendSafe(persona,item.text,{
+      timestamp:item.timestamp,
+      type:"incoming",
+      id:`realism_${Date.now()}_${rand(9999)}`,
+      ...replyData
+    });
   }
 }
 
 /* =====================================================
-   SCHEDULER & SIMULATE
+   SCHEDULER
 ===================================================== */
 
 let started=false;
@@ -266,8 +247,9 @@ function schedule(){
   const min=20000;
   const max=90000;
   const interval=min+Math.random()*(max-min);
-  setTimeout(()=>{
-    post(1);
+
+  setTimeout(async ()=>{
+    await post(1);
     schedule();
   },interval);
 }
@@ -279,14 +261,14 @@ function simulate(){
 }
 
 /* =====================================================
-   START REALISM ENGINE
+   START
 ===================================================== */
 
-setTimeout(()=>{
+setTimeout(async ()=>{
   ensurePool(2000);
-  post(60);
+  await post(60);
   simulate();
-  console.log("Realism Engine V11 FULL — Joiner-reactive dynamic replies WITH self-replies active.");
+  console.log("Realism Engine V11 FULL — Fully synchronized typing active.");
 },900);
 
 })();
