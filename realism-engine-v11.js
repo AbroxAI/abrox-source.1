@@ -1,5 +1,4 @@
-// realism-engine-v11.js — ULTRA-REALISM ENGINE V11 (fully synchronized typing + staggered crowd + self-replies)
-
+// realism-engine-v11-fixed.js — ULTRA-REALISM ENGINE V11 (fully synchronized typing + staggered crowd + self-replies)
 (function(){
 
 /* =====================================================
@@ -155,44 +154,6 @@ function ensurePool(min=2000){
 }
 
 /* =====================================================
-   SAFE APPEND
-===================================================== */
-
-function appendSafe(persona,text,opts={}){
-  if(window.TGRenderer?.appendMessage){
-    return window.TGRenderer.appendMessage(persona,text,opts);
-  }
-  return null;
-}
-
-/* =====================================================
-   RANDOM EXISTING MESSAGE
-===================================================== */
-
-function getRandomExistingMessage(){
-  const messages = Array.from(document.querySelectorAll('.tg-bubble'));
-  if(messages.length < 5) return null;
-  const target = messages[Math.floor(Math.random() * messages.length)];
-  const id = target.dataset.id;
-  const text = target.querySelector('.tg-bubble-text')?.textContent;
-  if(!id || !text) return null;
-  return { replyToId: id, replyToText: text.slice(0,120) };
-}
-
-/* =====================================================
-   TYPING QUEUE (SYNC FIX)
-===================================================== */
-
-let typingQueue = Promise.resolve();
-
-function queuedTyping(persona, message){
-  typingQueue = typingQueue.then(()=>{
-    return window.TGRenderer?.showTyping(persona, message) || Promise.resolve();
-  });
-  return typingQueue;
-}
-
-/* =====================================================
    POSTING (FULLY SYNCHRONIZED)
 ===================================================== */
 
@@ -202,10 +163,15 @@ async function postMessage(item){
     avatar:`https://ui-avatars.com/api/?name=U`
   };
 
+  // Dispatch header typing
   document.dispatchEvent(new CustomEvent('headerTyping', { detail: { name: persona.name } }));
 
-  await queuedTyping(persona, item.text);
+  // WAIT FOR TYPING based on message length
+  if(window.TGRenderer?.showTyping){
+    await window.TGRenderer.showTyping(persona, item.text);
+  }
 
+  // Decide replies
   let replyData = {};
 
   if(maybe(0.28)){
@@ -237,6 +203,20 @@ async function postMessage(item){
 }
 
 /* =====================================================
+   RANDOM EXISTING MESSAGE HELPER
+===================================================== */
+
+function getRandomExistingMessage(){
+  const messages = Array.from(document.querySelectorAll('.tg-bubble'));
+  if(messages.length < 5) return null;
+  const target = messages[Math.floor(Math.random() * messages.length)];
+  const id = target.dataset.id;
+  const text = target.querySelector('.tg-bubble-text')?.textContent;
+  if(!id || !text) return null;
+  return { replyToId: id, replyToText: text.slice(0,120) };
+}
+
+/* =====================================================
    CROWD SIMULATION (STAGGERED)
 ===================================================== */
 
@@ -249,6 +229,7 @@ async function simulateCrowd(count = 60, minDelay=400, maxDelay=1200){
 
     await postMessage(item);
 
+    // Random pause before next message
     const pause = minDelay + Math.random() * (maxDelay - minDelay);
     await new Promise(res => setTimeout(res, pause));
   }
@@ -274,8 +255,8 @@ function schedule(){
 function simulate(){
   if(started) return;
   started=true;
-  simulateCrowd(60, 400, 1200);
-  schedule();
+  simulateCrowd(60, 400, 1200); // initial staggered crowd
+  schedule();                  // continuous schedule
 }
 
 /* =====================================================
@@ -286,7 +267,18 @@ setTimeout(async ()=>{
   ensurePool(2000);
   await simulateCrowd(60,400,1200);
   simulate();
-  console.log("Realism Engine V11 FULL — Fully synchronized typing + staggered crowd active.");
+  console.log("Realism Engine V11 FIXED — Fully synchronized typing + staggered crowd active.");
 },900);
+
+/* =====================================================
+   SAFE APPEND HELPER
+===================================================== */
+
+function appendSafe(persona,text,opts={}){
+  if(window.TGRenderer?.appendMessage){
+    return window.TGRenderer.appendMessage(persona,text,opts);
+  }
+  return null;
+}
 
 })();
