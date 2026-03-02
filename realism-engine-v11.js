@@ -1,4 +1,5 @@
 // realism-engine-v11.js — ULTRA-REALISM ENGINE V11 (fully synchronized typing + staggered crowd + self-replies)
+
 (function(){
 
 /* =====================================================
@@ -179,6 +180,19 @@ function getRandomExistingMessage(){
 }
 
 /* =====================================================
+   TYPING QUEUE (SYNC FIX)
+===================================================== */
+
+let typingQueue = Promise.resolve();
+
+function queuedTyping(persona, message){
+  typingQueue = typingQueue.then(()=>{
+    return window.TGRenderer?.showTyping(persona, message) || Promise.resolve();
+  });
+  return typingQueue;
+}
+
+/* =====================================================
    POSTING (FULLY SYNCHRONIZED)
 ===================================================== */
 
@@ -190,9 +204,7 @@ async function postMessage(item){
 
   document.dispatchEvent(new CustomEvent('headerTyping', { detail: { name: persona.name } }));
 
-  if(window.TGRenderer?.showTyping){
-    await window.TGRenderer.showTyping(persona, item.text);
-  }
+  await queuedTyping(persona, item.text);
 
   let replyData = {};
 
@@ -237,7 +249,6 @@ async function simulateCrowd(count = 60, minDelay=400, maxDelay=1200){
 
     await postMessage(item);
 
-    // Random pause before next message
     const pause = minDelay + Math.random() * (maxDelay - minDelay);
     await new Promise(res => setTimeout(res, pause));
   }
@@ -263,8 +274,8 @@ function schedule(){
 function simulate(){
   if(started) return;
   started=true;
-  simulateCrowd(60, 400, 1200); // initial staggered crowd
-  schedule();                  // continuous schedule
+  simulateCrowd(60, 400, 1200);
+  schedule();
 }
 
 /* =====================================================
