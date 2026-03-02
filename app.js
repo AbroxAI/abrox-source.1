@@ -1,4 +1,4 @@
-// app.js — Telegram 2026 final integration (FULLY FIXED + QUEUED TYPING)
+// app.js — Telegram 2026 final integration (FULLY FIXED + QUEUED TYPING + AUTO CLEANUP)
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -36,6 +36,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const id = window.TGRenderer.appendMessage(persona, text, opts);
+
+    // remove any active typing bubble for this persona
+    if (window.TGRenderer?.hideTyping) window.TGRenderer.hideTyping(persona.name);
 
     document.dispatchEvent(
       new CustomEvent("messageAppended", { detail: { persona } })
@@ -217,7 +220,6 @@ document.addEventListener("DOMContentLoaded", () => {
       new CustomEvent("headerTyping", { detail: { name: admin.name } })
     );
 
-    // WAIT FOR TYPING QUEUE
     await queuedTyping(admin, text);
 
     appendSafe(
@@ -265,5 +267,5 @@ document.addEventListener("DOMContentLoaded", () => {
     inputBar.style.borderRadius = "26px";
   }
 
-  console.log("✅ app.js fully fixed — messages now always follow typing, typing queued, broadcast normal.");
+  console.log("✅ app.js fully fixed — messages now always follow typing, typing queue synced, header auto-updates.");
 });
