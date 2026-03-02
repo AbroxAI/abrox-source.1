@@ -32,7 +32,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (window.TGRenderer?.appendMessage) {
       const id = window.TGRenderer.appendMessage(persona, text, opts);
       document.dispatchEvent(new CustomEvent("messageAppended", { detail: { persona } }));
-      if (opts.replyToText) attachReplyJump(id, opts.replyToText);
       return id;
     }
     console.warn("TGRenderer not ready");
@@ -40,9 +39,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ===============================
-     ULTRA-REAL TYPING MANAGER
+     HEADER TYPING MANAGER
   =============================== */
-  const typingPersons = new Map(); // name -> timeout
+  const typingPersons = new Map();
 
   document.addEventListener("headerTyping", (ev) => {
     const name = ev.detail?.name;
@@ -53,7 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const timeout = setTimeout(() => {
       typingPersons.delete(name);
       updateHeaderTyping();
-    }, 6000);
+    }, 7000);
 
     typingPersons.set(name, timeout);
     updateHeaderTyping();
@@ -86,17 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ===============================
-     TYPING DURATION CALCULATOR
-  =============================== */
-  function getTypingDelay(text) {
-    if (!text) return 800;
-    const speed = 40;
-    const base = 600;
-    return Math.max(base, text.length * speed + Math.random() * 400);
-  }
-
-  /* ===============================
-     JUMP TO MESSAGE + PULSE
+     JUMP TO MESSAGE
   =============================== */
   function jumpToMessage(el) {
     if (!el) return;
@@ -107,36 +96,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function safeJumpById(id, retries = 5) {
     const el = document.querySelector(`[data-id="${id}"]`);
-    if (el) {
-      jumpToMessage(el);
-    } else if (retries > 0) {
-      setTimeout(() => safeJumpById(id, retries - 1), 200);
-    }
-  }
-
-  function attachReplyJump(newMessageId, replyText) {
-    const newMsgEl = document.querySelector(`[data-id="${newMessageId}"]`);
-    if (!newMsgEl) return;
-
-    const replyPreview = newMsgEl.querySelector('.tg-bubble-reply');
-    if (!replyPreview) return;
-
-    replyPreview.style.cursor = 'pointer';
-
-    replyPreview.addEventListener('click', () => {
-      const allBubbles = Array.from(document.querySelectorAll('.tg-bubble'));
-      const target = allBubbles.find(b =>
-        b.dataset.id !== newMessageId &&
-        b.querySelector('.tg-bubble-text')?.textContent.includes(replyText)
-      );
-      if (target) jumpToMessage(target);
-    });
+    if (el) jumpToMessage(el);
+    else if (retries > 0) setTimeout(() => safeJumpById(id, retries - 1), 200);
   }
 
   /* ===============================
      ADMIN BROADCAST + PIN BANNER
   =============================== */
-  // Post the admin broadcast with plain multi-line group rules
   function postAdminBroadcast() {
     const admin = window.identity?.Admin || {
       name: "Admin",
@@ -144,7 +110,6 @@ document.addEventListener("DOMContentLoaded", () => {
       isAdmin: true
     };
 
-    // Plain multi-line group rules text (no golden color)
     const caption = `📌 Group Rules
 1️⃣ New members are read-only until verified.
 2️⃣ Admins do NOT DM directly.
@@ -156,7 +121,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const image = "assets/broadcast.jpg";
     const timestamp = new Date(2025, 2, 14, 10, 0, 0);
 
-    // Send as a chat message (bubble)
     const id = appendSafe(admin, "", {
       timestamp,
       type: "incoming",
@@ -167,7 +131,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return { id, caption, image };
   }
 
-  // Show a clean pin banner (short title only, no full broadcast)
   function showPinBanner(image, pinnedMessageId) {
     if (!pinBanner) return;
 
@@ -179,12 +142,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const text = document.createElement("div");
     text.className = "tg-pin-text";
-    text.textContent = "📌 Group Rules"; // short banner title
+    text.textContent = "📌 Group Rules";
 
     const blueBtn = document.createElement("button");
     blueBtn.className = "pin-btn";
     blueBtn.textContent = "View Pinned";
-
     blueBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       if (pinnedMessageId) safeJumpById(pinnedMessageId);
@@ -226,54 +188,44 @@ document.addEventListener("DOMContentLoaded", () => {
   }, 1200);
 
   /* ===============================
-     ADMIN AUTO RESPONSE (typing delay fixed)
+     ADMIN AUTO RESPONSE (FIXED ORDER)
   =============================== */
-  document.addEventListener("sendMessage", (ev) => {
+  document.addEventListener("sendMessage", async (ev) => {
     const text = ev.detail?.text || "";
     const admin = window.identity?.Admin || { name: "Admin", avatar: "assets/admin.jpg" };
 
-    // Show typing
-    window.TGRenderer?.showTyping(admin);
     document.dispatchEvent(new CustomEvent("headerTyping", { detail: { name: admin.name } }));
 
-    // Append message only after typing delay
-    setTimeout(() => {
-      appendSafe(admin,
-        "Please use the Contact Admin button in the pinned banner above.",
-        { timestamp: new Date(), type: "incoming" }
-      );
-    }, getTypingDelay(text));
+    await window.TGRenderer?.showTyping(admin, text);
+
+    appendSafe(admin,
+      "Please use the Contact Admin button in the pinned banner above.",
+      { timestamp: new Date(), type: "incoming" }
+    );
   });
 
   /* ===============================
-     AUTO REPLY HANDLER
+     AUTO REPLY HANDLER (FIXED ORDER)
   =============================== */
-  document.addEventListener("autoReply", (ev) => {
+  document.addEventListener("autoReply", async (ev) => {
     const { parentText, persona, text } = ev.detail || {};
     if (!persona || !text) return;
 
-    window.TGRenderer?.showTyping(persona);
     document.dispatchEvent(new CustomEvent("headerTyping", { detail: { name: persona.name } }));
 
-    setTimeout(() => {
-      appendSafe(persona, text, {
-        timestamp: new Date(),
-        type: "incoming",
-        replyToText: parentText
-      });
-    }, getTypingDelay(text));
+    await window.TGRenderer?.showTyping(persona, text);
+
+    appendSafe(persona, text, {
+      timestamp: new Date(),
+      type: "incoming",
+      replyToText: parentText
+    });
   });
 
-  /* ===============================
-     START REALISM ENGINE
-  =============================== */
   if (window.realism?.simulateRandomCrowdV11) {
     setTimeout(() => window.realism.simulateRandomCrowdV11(), 800);
   }
 
-  /* ===============================
-     SAFE INPUT BAR FIX
-  =============================== */
   const inputBar = document.querySelector(".tg-input-bar");
   if (inputBar) {
     inputBar.style.background = "rgba(23,33,43,0.78)";
@@ -282,5 +234,5 @@ document.addEventListener("DOMContentLoaded", () => {
     inputBar.style.borderRadius = "26px";
   }
 
-  console.log("app.js fully updated: group rules bubble in chat, banner clean, typing delay fixed.");
+  console.log("app.js fully updated: async typing fully synchronized.");
 });
