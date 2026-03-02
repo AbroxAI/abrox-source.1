@@ -1,4 +1,5 @@
-// bubble-renderer.js — Telegram 2026 Renderer (clean unified text system)
+// bubble-renderer.js — Telegram 2026 Renderer (clean unified text system + fixed typing sync)
+
 (function () {
   'use strict';
 
@@ -36,7 +37,7 @@
     }
 
     /* ===============================
-       PERSONA COLOR ASSIGNMENT (15 COLORS)
+       PERSONA COLOR ASSIGNMENT
     =============================== */
     const personaColorMap = new Map();
     const personaColors = [
@@ -69,6 +70,7 @@
       const wrapper = document.createElement('div');
       wrapper.className = `tg-bubble ${type}`;
       wrapper.dataset.id = id;
+      wrapper.dataset.persona = persona?.name || 'User';
 
       const avatar = document.createElement('img');
       avatar.className = 'tg-bubble-avatar';
@@ -217,11 +219,8 @@
     });
 
     /* ===============================
-       ULTRA REALISTIC TYPING SYSTEM
+       FIXED TYPING SYSTEM
     =============================== */
-
-    let typingTimeout = null;
-    let typingActive = false;
 
     function calculateTypingDuration(message) {
       if (!message) return 1200;
@@ -244,12 +243,6 @@
 
       return new Promise((resolve) => {
 
-        if (typingActive) {
-          clearTimeout(typingTimeout);
-          hideTyping();
-        }
-
-        typingActive = true;
         const duration = customDuration || calculateTypingDuration(message);
 
         const typingBubble = document.createElement('div');
@@ -281,8 +274,9 @@
         container.appendChild(typingBubble);
         container.scrollTop = container.scrollHeight;
 
-        typingTimeout = setTimeout(() => {
-          hideTyping();
+        setTimeout(() => {
+          const existing = container.querySelector('[data-typing="true"]');
+          if (existing) existing.remove();
           resolve();
         }, duration);
       });
@@ -291,7 +285,6 @@
     function hideTyping() {
       const existing = container.querySelector('[data-typing="true"]');
       if (existing) existing.remove();
-      typingActive = false;
     }
 
     window.TGRenderer = {
@@ -301,7 +294,7 @@
       getPinnedMessageId: () => PINNED_MESSAGE_ID
     };
 
-    console.log('✅ bubble-renderer fully integrated — dynamic typing active');
+    console.log('✅ bubble-renderer fixed — typing fully synchronized');
   }
 
   document.readyState === 'loading'
