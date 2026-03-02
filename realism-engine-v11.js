@@ -1,10 +1,9 @@
-// realism-engine-v11-fixed.js — ULTRA-REALISM ENGINE V11 (fully synchronized typing + staggered crowd + self-replies)
+// realism-engine-v11-fixed-for-app.js — Fully synchronized with current app.js & bubble-renderer.js
 (function(){
 
 /* =====================================================
-   FULL ORIGINAL DATA POOLS
+   DATA POOLS
 ===================================================== */
-
 const ASSETS = [
   "EUR/USD","USD/JPY","GBP/USD","AUD/USD","BTC/USD","ETH/USD","USD/CHF","EUR/JPY","NZD/USD",
   "US30","NAS100","SPX500","DAX30","FTSE100","GOLD","SILVER","WTI","BRENT",
@@ -70,13 +69,11 @@ const EMOJIS = [
 ];
 
 /* =====================================================
-   UTILITIES
+   UTILITY FUNCTIONS
 ===================================================== */
-
 function random(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function maybe(p){ return Math.random() < p; }
 function rand(max=9999){ return Math.floor(Math.random()*max); }
-
 function hash(str){
   let h = 5381;
   for(let i=0;i<str.length;i++) h = ((h<<5)+h)+str.charCodeAt(i);
@@ -84,30 +81,23 @@ function hash(str){
 }
 
 /* =====================================================
-   DEDUPE
+   DEDUPLICATION
 ===================================================== */
-
 const GENERATED = new Set();
 const QUEUE = [];
-
 function mark(text){
   const fp = hash(text.toLowerCase());
   if(GENERATED.has(fp)) return false;
   GENERATED.add(fp);
   QUEUE.push(fp);
-  while(QUEUE.length > 50000){
-    GENERATED.delete(QUEUE.shift());
-  }
+  while(QUEUE.length > 50000) GENERATED.delete(QUEUE.shift());
   return true;
 }
 
 /* =====================================================
-   GENERATION
+   COMMENT GENERATION
 ===================================================== */
-
-function generateTimestamp(days=120){
-  return new Date(Date.now() - Math.random()*days*86400000);
-}
+function generateTimestamp(days=120){ return new Date(Date.now() - Math.random()*days*86400000); }
 
 function generateComment(){
   const templates = [
@@ -121,27 +111,17 @@ function generateComment(){
   ];
 
   let text = random(templates)();
-
-  if(maybe(0.35)){
-    const extras = ["good execution","tight stop","wide stop","no slippage","perfect timing","partial TP hit"];
-    text += " — " + random(extras);
-  }
-
+  if(maybe(0.35)) text += " — " + random(["good execution","tight stop","wide stop","no slippage","perfect timing","partial TP hit"]);
   if(maybe(0.45)) text += " " + random(EMOJIS);
 
-  let tries = 0;
-  while(!mark(text) && tries < 30){
-    text += " " + rand(999);
-    tries++;
-  }
-
+  let tries=0;
+  while(!mark(text) && tries<30){ text += " " + rand(999); tries++; }
   return { text, timestamp: generateTimestamp() };
 }
 
 /* =====================================================
    POOL
 ===================================================== */
-
 const POOL = [];
 window.realismEngineV11Pool = POOL;
 window.realismEngineV11EMOJIS = EMOJIS;
@@ -149,31 +129,47 @@ window.realismEngineV11EMOJIS = EMOJIS;
 function ensurePool(min=2000){
   while(POOL.length < min){
     POOL.push(generateComment());
-    if(POOL.length > 10000) break;
+    if(POOL.length>10000) break;
   }
 }
 
 /* =====================================================
-   POSTING (FULLY SYNCHRONIZED)
+   SAFE APPEND HELPER
 ===================================================== */
+function appendSafe(persona,text,opts={}){
+  if(window.TGRenderer?.appendMessage) return window.TGRenderer.appendMessage(persona,text,opts);
+  return null;
+}
 
+/* =====================================================
+   RANDOM EXISTING MESSAGE
+===================================================== */
+function getRandomExistingMessage(){
+  const messages = Array.from(document.querySelectorAll('.tg-bubble'));
+  if(messages.length<5) return null;
+  const target = messages[Math.floor(Math.random()*messages.length)];
+  const id = target.dataset.id;
+  const text = target.querySelector('.tg-bubble-text')?.textContent;
+  if(!id || !text) return null;
+  return { replyToId: id, replyToText: text.slice(0,120) };
+}
+
+/* =====================================================
+   POST MESSAGE (QUEUED TYPING)
+===================================================== */
 async function postMessage(item){
-  const persona = item.persona || window.identity?.getRandomPersona?.() || {
-    name:"User",
-    avatar:`https://ui-avatars.com/api/?name=U`
-  };
+  const persona = item.persona || window.identity?.getRandomPersona?.() || { name:"User", avatar:`https://ui-avatars.com/api/?name=U` };
 
-  // Dispatch header typing
-  document.dispatchEvent(new CustomEvent('headerTyping', { detail: { name: persona.name } }));
+  // Dispatch typing
+  document.dispatchEvent(new CustomEvent('headerTyping',{ detail:{ name: persona.name } }));
 
-  // WAIT FOR TYPING based on message length
+  // WAIT for typing bubble before sending
   if(window.TGRenderer?.showTyping){
-    await window.TGRenderer.showTyping(persona, item.text);
+    await window.TGRenderer.showTyping(persona,item.text);
   }
 
-  // Decide replies
+  // Determine reply
   let replyData = {};
-
   if(maybe(0.28)){
     const existing = getRandomExistingMessage();
     if(existing) replyData = existing;
@@ -186,41 +182,23 @@ async function postMessage(item){
       const selfTarget = selfMessages[Math.floor(Math.random()*selfMessages.length)];
       const selfText = selfTarget.querySelector('.tg-bubble-text')?.textContent;
       if(selfText){
-        replyData = {
-          replyToId: selfTarget.dataset.id,
-          replyToText: selfText.slice(0,120)
-        };
+        replyData = { replyToId: selfTarget.dataset.id, replyToText: selfText.slice(0,120) };
       }
     }
   }
 
   appendSafe(persona,item.text,{
-    timestamp:item.timestamp,
-    type:"incoming",
-    id:`realism_${Date.now()}_${rand(9999)}`,
+    timestamp: item.timestamp,
+    type: "incoming",
+    id: `realism_${Date.now()}_${rand(9999)}`,
     ...replyData
   });
 }
 
 /* =====================================================
-   RANDOM EXISTING MESSAGE HELPER
-===================================================== */
-
-function getRandomExistingMessage(){
-  const messages = Array.from(document.querySelectorAll('.tg-bubble'));
-  if(messages.length < 5) return null;
-  const target = messages[Math.floor(Math.random() * messages.length)];
-  const id = target.dataset.id;
-  const text = target.querySelector('.tg-bubble-text')?.textContent;
-  if(!id || !text) return null;
-  return { replyToId: id, replyToText: text.slice(0,120) };
-}
-
-/* =====================================================
    CROWD SIMULATION (STAGGERED)
 ===================================================== */
-
-async function simulateCrowd(count = 60, minDelay=400, maxDelay=1200){
+async function simulateCrowd(count=60, minDelay=400, maxDelay=1200){
   ensurePool(count);
 
   for(let i=0;i<count;i++){
@@ -229,24 +207,21 @@ async function simulateCrowd(count = 60, minDelay=400, maxDelay=1200){
 
     await postMessage(item);
 
-    // Random pause before next message
-    const pause = minDelay + Math.random() * (maxDelay - minDelay);
-    await new Promise(res => setTimeout(res, pause));
+    const pause = minDelay + Math.random()*(maxDelay-minDelay);
+    await new Promise(res => setTimeout(res,pause));
   }
 }
 
 /* =====================================================
    SCHEDULER
 ===================================================== */
-
 let started=false;
 
 function schedule(){
-  const min=20000;
-  const max=90000;
+  const min=20000, max=90000;
   const interval=min+Math.random()*(max-min);
 
-  setTimeout(async ()=>{
+  setTimeout(async()=>{
     await simulateCrowd(1);
     schedule();
   },interval);
@@ -255,30 +230,18 @@ function schedule(){
 function simulate(){
   if(started) return;
   started=true;
-  simulateCrowd(60, 400, 1200); // initial staggered crowd
-  schedule();                  // continuous schedule
+  simulateCrowd(60,400,1200);
+  schedule();
 }
 
 /* =====================================================
-   START
+   START ENGINE
 ===================================================== */
-
 setTimeout(async ()=>{
   ensurePool(2000);
   await simulateCrowd(60,400,1200);
   simulate();
-  console.log("Realism Engine V11 FIXED — Fully synchronized typing + staggered crowd active.");
+  console.log("✅ Realism Engine V11 — Fully synchronized typing + staggered crowd ready.");
 },900);
-
-/* =====================================================
-   SAFE APPEND HELPER
-===================================================== */
-
-function appendSafe(persona,text,opts={}){
-  if(window.TGRenderer?.appendMessage){
-    return window.TGRenderer.appendMessage(persona,text,opts);
-  }
-  return null;
-}
 
 })();
