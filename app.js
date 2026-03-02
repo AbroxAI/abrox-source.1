@@ -1,4 +1,4 @@
-// app.js — Telegram 2026 final integration (FULLY FIXED + TYPING SYNCHRONIZED)
+// app.js — Telegram 2026 final integration (FULLY FIXED + QUEUED TYPING)
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -53,9 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const name = ev.detail?.name;
     if (!name) return;
 
-    if (typingPersons.has(name)) {
-      clearTimeout(typingPersons.get(name));
-    }
+    if (typingPersons.has(name)) clearTimeout(typingPersons.get(name));
 
     const timeout = setTimeout(() => {
       typingPersons.delete(name);
@@ -79,9 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateHeaderTyping() {
     if (!headerMeta) return;
-
     const names = Array.from(typingPersons.keys());
-
     if (names.length === 0) {
       headerMeta.textContent =
         `${window.MEMBER_COUNT?.toLocaleString?.() || "0"} members, ` +
@@ -115,7 +111,6 @@ document.addEventListener("DOMContentLoaded", () => {
      ADMIN BROADCAST (NORMAL TEXT)
   =============================== */
   function postAdminBroadcast() {
-
     const admin = window.identity?.Admin || {
       name: "Admin",
       avatar: "assets/admin.jpg",
@@ -193,29 +188,37 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const broadcast = postAdminBroadcast();
-
   setTimeout(() => {
     postPinNotice();
     showPinBanner(broadcast.image, broadcast.id);
   }, 1200);
 
   /* ===============================
-     ADMIN AUTO RESPONSE (FIXED ORDER)
+     TYPING QUEUE SYSTEM
+  =============================== */
+  let typingQueue = Promise.resolve();
+
+  function queuedTyping(persona, message) {
+    // enqueue typing and return promise that resolves after typing finishes
+    typingQueue = typingQueue.then(() => {
+      return window.TGRenderer?.showTyping(persona, message) || Promise.resolve();
+    });
+    return typingQueue;
+  }
+
+  /* ===============================
+     ADMIN AUTO RESPONSE
   =============================== */
   document.addEventListener("sendMessage", async (ev) => {
-
     const text = ev.detail?.text || "";
-    const admin = window.identity?.Admin || {
-      name: "Admin",
-      avatar: "assets/admin.jpg"
-    };
+    const admin = window.identity?.Admin || { name: "Admin", avatar: "assets/admin.jpg" };
 
     document.dispatchEvent(
       new CustomEvent("headerTyping", { detail: { name: admin.name } })
     );
 
-    // WAIT FOR TYPING (CRITICAL FIX)
-    await window.TGRenderer.showTyping(admin, text);
+    // WAIT FOR TYPING QUEUE
+    await queuedTyping(admin, text);
 
     appendSafe(
       admin,
@@ -225,10 +228,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* ===============================
-     AUTO REPLY HANDLER (FIXED ORDER)
+     AUTO REPLY HANDLER
   =============================== */
   document.addEventListener("autoReply", async (ev) => {
-
     const { parentText, persona, text } = ev.detail || {};
     if (!persona || !text) return;
 
@@ -236,8 +238,7 @@ document.addEventListener("DOMContentLoaded", () => {
       new CustomEvent("headerTyping", { detail: { name: persona.name } })
     );
 
-    // WAIT FOR TYPING (CRITICAL FIX)
-    await window.TGRenderer.showTyping(persona, text);
+    await queuedTyping(persona, text);
 
     appendSafe(persona, text, {
       timestamp: new Date(),
@@ -264,5 +265,5 @@ document.addEventListener("DOMContentLoaded", () => {
     inputBar.style.borderRadius = "26px";
   }
 
-  console.log("✅ app.js fully fixed — no race conditions, typing synchronized, broadcast normal.");
+  console.log("✅ app.js fully fixed — messages now always follow typing, typing queued, broadcast normal.");
 });
