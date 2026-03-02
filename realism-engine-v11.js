@@ -268,7 +268,7 @@ setTimeout(async ()=>{
   ensurePool(2000);
   await post(60);
   simulate();
-  console.log("Realism Engine V11 FULL — Fully synchronized typing active.");
+  console.log("Realism Engine V11 — Fully synchronized typing active.");
 },900);
 
 })();
