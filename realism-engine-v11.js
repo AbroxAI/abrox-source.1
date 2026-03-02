@@ -1,5 +1,4 @@
-// realism-engine-v11.js — ULTRA-REALISM ENGINE V11 (fully synchronized typing + self-replies)
-
+// realism-engine-v11.js — ULTRA-REALISM ENGINE V11 (fully synchronized typing + staggered crowd + self-replies)
 (function(){
 
 /* =====================================================
@@ -183,57 +182,64 @@ function getRandomExistingMessage(){
    POSTING (FULLY SYNCHRONIZED)
 ===================================================== */
 
-async function post(count=1){
-  ensurePool(Math.max(1000,count));
+async function postMessage(item){
+  const persona = item.persona || window.identity?.getRandomPersona?.() || {
+    name:"User",
+    avatar:`https://ui-avatars.com/api/?name=U`
+  };
+
+  document.dispatchEvent(new CustomEvent('headerTyping', { detail: { name: persona.name } }));
+
+  if(window.TGRenderer?.showTyping){
+    await window.TGRenderer.showTyping(persona, item.text);
+  }
+
+  let replyData = {};
+
+  if(maybe(0.28)){
+    const existing = getRandomExistingMessage();
+    if(existing) replyData = existing;
+  }
+
+  if(maybe(0.12)){
+    const selfMessages = Array.from(document.querySelectorAll('.tg-bubble'))
+      .filter(b => b.dataset.persona === persona.name);
+    if(selfMessages.length){
+      const selfTarget = selfMessages[Math.floor(Math.random()*selfMessages.length)];
+      const selfText = selfTarget.querySelector('.tg-bubble-text')?.textContent;
+      if(selfText){
+        replyData = {
+          replyToId: selfTarget.dataset.id,
+          replyToText: selfText.slice(0,120)
+        };
+      }
+    }
+  }
+
+  appendSafe(persona,item.text,{
+    timestamp:item.timestamp,
+    type:"incoming",
+    id:`realism_${Date.now()}_${rand(9999)}`,
+    ...replyData
+  });
+}
+
+/* =====================================================
+   CROWD SIMULATION (STAGGERED)
+===================================================== */
+
+async function simulateCrowd(count = 60, minDelay=400, maxDelay=1200){
+  ensurePool(count);
 
   for(let i=0;i<count;i++){
     const item = POOL.shift();
     if(!item) break;
 
-    const persona =
-      item.persona ||
-      window.identity?.getRandomPersona?.() || {
-        name:"User",
-        avatar:`https://ui-avatars.com/api/?name=U`
-      };
+    await postMessage(item);
 
-    document.dispatchEvent(
-      new CustomEvent('headerTyping', { detail: { name: persona.name } })
-    );
-
-    if(window.TGRenderer?.showTyping){
-      await window.TGRenderer.showTyping(persona, item.text);
-    }
-
-    let replyData = {};
-
-    if(maybe(0.28)){
-      const existing = getRandomExistingMessage();
-      if(existing) replyData = existing;
-    }
-
-    if(maybe(0.12)){
-      const selfMessages = Array.from(document.querySelectorAll('.tg-bubble'))
-        .filter(b => b.dataset.persona === persona.name);
-
-      if(selfMessages.length){
-        const selfTarget = selfMessages[Math.floor(Math.random()*selfMessages.length)];
-        const selfText = selfTarget.querySelector('.tg-bubble-text')?.textContent;
-        if(selfText){
-          replyData = {
-            replyToId: selfTarget.dataset.id,
-            replyToText: selfText.slice(0,120)
-          };
-        }
-      }
-    }
-
-    appendSafe(persona,item.text,{
-      timestamp:item.timestamp,
-      type:"incoming",
-      id:`realism_${Date.now()}_${rand(9999)}`,
-      ...replyData
-    });
+    // Random pause before next message
+    const pause = minDelay + Math.random() * (maxDelay - minDelay);
+    await new Promise(res => setTimeout(res, pause));
   }
 }
 
@@ -249,7 +255,7 @@ function schedule(){
   const interval=min+Math.random()*(max-min);
 
   setTimeout(async ()=>{
-    await post(1);
+    await simulateCrowd(1);
     schedule();
   },interval);
 }
@@ -257,7 +263,8 @@ function schedule(){
 function simulate(){
   if(started) return;
   started=true;
-  schedule();
+  simulateCrowd(60, 400, 1200); // initial staggered crowd
+  schedule();                  // continuous schedule
 }
 
 /* =====================================================
@@ -266,9 +273,9 @@ function simulate(){
 
 setTimeout(async ()=>{
   ensurePool(2000);
-  await post(60);
+  await simulateCrowd(60,400,1200);
   simulate();
-  console.log("Realism Engine V11 — Fully synchronized typing active.");
+  console.log("Realism Engine V11 FULL — Fully synchronized typing + staggered crowd active.");
 },900);
 
 })();
