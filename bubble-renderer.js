@@ -1,4 +1,4 @@
-// bubble-renderer.js — Telegram 2026 Renderer (clean unified text system + fixed typing sync)
+// bubble-renderer.js — Telegram 2026 Renderer (fully synchronized typing + queued messages)
 
 (function () {
   'use strict';
@@ -164,27 +164,25 @@
       return { el: wrapper, id };
     }
 
+    /* ===============================
+       MESSAGE APPEND
+    =============================== */
     function appendMessage(persona, text, opts = {}) {
       const result = createBubble(persona, text, opts);
-      const bubble = result.el;
-      const id = result.id;
-
-      container.appendChild(bubble);
+      container.appendChild(result.el);
 
       const atBottom =
         container.scrollTop + container.clientHeight >=
         container.scrollHeight - 80;
 
-      if (atBottom) {
-        container.scrollTop = container.scrollHeight;
-        hideJump();
-      } else {
+      if (atBottom) container.scrollTop = container.scrollHeight;
+      else {
         unseenCount++;
         updateJump();
         showJump();
       }
 
-      return id;
+      return result.id;
     }
 
     function updateJump() {
@@ -195,10 +193,7 @@
           : 'New messages';
     }
 
-    function showJump() {
-      jumpIndicator?.classList.remove('hidden');
-    }
-
+    function showJump() { jumpIndicator?.classList.remove('hidden'); }
     function hideJump() {
       unseenCount = 0;
       updateJump();
@@ -212,74 +207,73 @@
 
     container.addEventListener('scroll', () => {
       const distanceFromBottom =
-        container.scrollHeight -
-        container.scrollTop -
-        container.clientHeight;
+        container.scrollHeight - container.scrollTop - container.clientHeight;
       if (distanceFromBottom < 80) hideJump();
     });
 
     /* ===============================
-       FIXED TYPING SYSTEM
+       TYPING QUEUE SYSTEM
     =============================== */
+    let typingQueue = Promise.resolve();
 
     function calculateTypingDuration(message) {
       if (!message) return 1200;
-
       const baseSpeed = 45;
       const minTime = 1000;
       const maxTime = 6000;
-
       let duration = message.length * baseSpeed;
       duration += Math.random() * 800;
-
       if (duration < minTime) duration = minTime;
       if (duration > maxTime) duration = maxTime;
-
       return Math.floor(duration);
     }
 
     function showTyping(persona, message = "", customDuration = null) {
       if (!persona || !container) return Promise.resolve();
 
-      return new Promise((resolve) => {
+      const duration = customDuration || calculateTypingDuration(message);
 
-        const duration = customDuration || calculateTypingDuration(message);
+      // enqueue typing so messages follow sequentially
+      typingQueue = typingQueue.then(() => {
+        return new Promise((resolve) => {
+          const typingBubble = document.createElement('div');
+          typingBubble.className = 'tg-bubble incoming tg-typing';
+          typingBubble.dataset.typing = 'true';
 
-        const typingBubble = document.createElement('div');
-        typingBubble.className = 'tg-bubble incoming tg-typing';
-        typingBubble.dataset.typing = 'true';
+          const avatar = document.createElement('img');
+          avatar.className = 'tg-bubble-avatar';
+          avatar.src = persona.avatar;
+          avatar.alt = persona.name;
 
-        const avatar = document.createElement('img');
-        avatar.className = 'tg-bubble-avatar';
-        avatar.src = persona.avatar;
-        avatar.alt = persona.name;
+          const content = document.createElement('div');
+          content.className = 'tg-bubble-content';
 
-        const content = document.createElement('div');
-        content.className = 'tg-bubble-content';
+          const sender = document.createElement('div');
+          sender.className = 'tg-bubble-sender';
+          sender.dataset.color = getPersonaColor(persona.name);
+          sender.textContent = persona.name;
 
-        const sender = document.createElement('div');
-        sender.className = 'tg-bubble-sender';
-        sender.dataset.color = getPersonaColor(persona.name);
-        sender.textContent = persona.name;
+          const dots = document.createElement('div');
+          dots.className = 'tg-typing-dots';
+          dots.textContent = 'typing…';
 
-        const dots = document.createElement('div');
-        dots.className = 'tg-typing-dots';
-        dots.textContent = 'typing…';
+          content.appendChild(sender);
+          content.appendChild(dots);
+          typingBubble.appendChild(avatar);
+          typingBubble.appendChild(content);
 
-        content.appendChild(sender);
-        content.appendChild(dots);
-        typingBubble.appendChild(avatar);
-        typingBubble.appendChild(content);
+          container.appendChild(typingBubble);
+          container.scrollTop = container.scrollHeight;
 
-        container.appendChild(typingBubble);
-        container.scrollTop = container.scrollHeight;
-
-        setTimeout(() => {
-          const existing = container.querySelector('[data-typing="true"]');
-          if (existing) existing.remove();
-          resolve();
-        }, duration);
+          setTimeout(() => {
+            const existing = container.querySelector('[data-typing="true"]');
+            if (existing) existing.remove();
+            resolve();
+          }, duration);
+        });
       });
+
+      return typingQueue;
     }
 
     function hideTyping() {
@@ -294,7 +288,7 @@
       getPinnedMessageId: () => PINNED_MESSAGE_ID
     };
 
-    console.log('✅ bubble-renderer fixed — typing fully synchronized');
+    console.log('✅ bubble-renderer fully fixed — typing is now queued and synchronized with message length.');
   }
 
   document.readyState === 'loading'
