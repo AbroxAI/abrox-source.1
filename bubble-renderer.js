@@ -1,4 +1,4 @@
-// bubble-renderer.js — Telegram 2026 Renderer (fully synchronized typing + queued messages)
+// bubble-renderer.js — Telegram 2026 Renderer (fully synchronized typing + queued messages + auto-clean)
 
 (function () {
   'use strict';
@@ -171,6 +171,9 @@
       const result = createBubble(persona, text, opts);
       container.appendChild(result.el);
 
+      // remove typing bubble for this persona immediately
+      hideTyping(persona.name);
+
       const atBottom =
         container.scrollTop + container.clientHeight >=
         container.scrollHeight - 80;
@@ -233,12 +236,11 @@
 
       const duration = customDuration || calculateTypingDuration(message);
 
-      // enqueue typing so messages follow sequentially
       typingQueue = typingQueue.then(() => {
         return new Promise((resolve) => {
           const typingBubble = document.createElement('div');
           typingBubble.className = 'tg-bubble incoming tg-typing';
-          typingBubble.dataset.typing = 'true';
+          typingBubble.dataset.typing = persona.name || 'unknown';
 
           const avatar = document.createElement('img');
           avatar.className = 'tg-bubble-avatar';
@@ -266,7 +268,7 @@
           container.scrollTop = container.scrollHeight;
 
           setTimeout(() => {
-            const existing = container.querySelector('[data-typing="true"]');
+            const existing = container.querySelector(`[data-typing="${persona.name}"]`);
             if (existing) existing.remove();
             resolve();
           }, duration);
@@ -276,8 +278,8 @@
       return typingQueue;
     }
 
-    function hideTyping() {
-      const existing = container.querySelector('[data-typing="true"]');
+    function hideTyping(personaName) {
+      const existing = container.querySelector(`[data-typing="${personaName}"]`);
       if (existing) existing.remove();
     }
 
@@ -288,7 +290,7 @@
       getPinnedMessageId: () => PINNED_MESSAGE_ID
     };
 
-    console.log('✅ bubble-renderer fully fixed — typing is now queued and synchronized with message length.');
+    console.log('✅ bubble-renderer fully fixed — typing queued, removed after message, follows message length.');
   }
 
   document.readyState === 'loading'
