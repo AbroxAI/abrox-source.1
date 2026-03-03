@@ -1,5 +1,4 @@
-// bubble-renderer.js — Telegram 2026 Renderer (fully synchronized typing + auto-clean + NO internal queue)
-
+// bubble-renderer.js — Telegram 2026 Renderer (fully synchronized typing + auto-clean + Promise-based typing)
 (function () {
   'use strict';
 
@@ -218,7 +217,7 @@
     });
 
     /* ===============================
-       TYPING SYSTEM (FIXED)
+       TYPING SYSTEM (PROMISE-BASED)
     =============================== */
     function calculateTypingDuration(message) {
       if (!message) return 1200;
@@ -237,8 +236,6 @@
       const duration = customDuration || calculateTypingDuration(message);
 
       return new Promise((resolve) => {
-
-        // Clear existing typing and cancel any previous timer
         hideTyping(persona.name);
 
         const typingBubble = document.createElement('div');
@@ -266,7 +263,6 @@
         content.appendChild(dots);
         typingBubble.appendChild(avatar);
         typingBubble.appendChild(content);
-
         container.appendChild(typingBubble);
         container.scrollTop = container.scrollHeight;
 
@@ -282,8 +278,6 @@
     function hideTyping(personaName) {
       const existing = container.querySelector(`[data-typing="${personaName}"]`);
       if (existing) existing.remove();
-
-      // Cancel any pending typing timer
       if (activeTypingTimers.has(personaName)) {
         clearTimeout(activeTypingTimers.get(personaName));
         activeTypingTimers.delete(personaName);
@@ -297,7 +291,7 @@
       getPinnedMessageId: () => PINNED_MESSAGE_ID
     };
 
-    console.log('✅ bubble-renderer stabilized — no internal queue, no ghost typing, fully synchronized.');
+    console.log('✅ bubble-renderer updated — Promise-based typing fully compatible with Realism Engine V11');
   }
 
   document.readyState === 'loading'
