@@ -14,6 +14,9 @@
     const MESSAGE_MAP = new Map();
     let PINNED_MESSAGE_ID = null;
 
+    // Track active typing timers per persona
+    const activeTypingTimers = new Map();
+
     /* ===============================
        DATE STICKERS
     =============================== */
@@ -215,7 +218,7 @@
     });
 
     /* ===============================
-       TYPING SYSTEM (NO INTERNAL QUEUE)
+       TYPING SYSTEM (FIXED)
     =============================== */
     function calculateTypingDuration(message) {
       if (!message) return 1200;
@@ -235,7 +238,7 @@
 
       return new Promise((resolve) => {
 
-        // Clear existing typing first
+        // Clear existing typing and cancel any previous timer
         hideTyping(persona.name);
 
         const typingBubble = document.createElement('div');
@@ -267,17 +270,24 @@
         container.appendChild(typingBubble);
         container.scrollTop = container.scrollHeight;
 
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           hideTyping(persona.name);
           resolve();
         }, duration);
 
+        activeTypingTimers.set(persona.name, timer);
       });
     }
 
     function hideTyping(personaName) {
       const existing = container.querySelector(`[data-typing="${personaName}"]`);
       if (existing) existing.remove();
+
+      // Cancel any pending typing timer
+      if (activeTypingTimers.has(personaName)) {
+        clearTimeout(activeTypingTimers.get(personaName));
+        activeTypingTimers.delete(personaName);
+      }
     }
 
     window.TGRenderer = {
