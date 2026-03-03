@@ -89,6 +89,8 @@ function hash(str){
 
 const GENERATED = new Set();
 const QUEUE = [];
+
+// Pool and emojis exposed globally
 const POOL = [];
 window.realismEngineV11Pool = POOL;
 window.realismEngineV11EMOJIS = EMOJIS;
@@ -175,9 +177,12 @@ function queuedTyping(persona,message){
   return typingQueue;
 }
 
-// clear any typing immediately after a message is sent
+// ✅ FIX: clear typing immediately after persona sends a message
 document.addEventListener("messageAppended", (ev)=>{
-  window.TGRenderer?.hideTyping();
+  const persona = ev.detail?.persona;
+  if(persona?.name){
+    window.TGRenderer?.hideTyping(persona.name);
+  }
   typingQueue = Promise.resolve();
 });
 
@@ -188,13 +193,10 @@ document.addEventListener("messageAppended", (ev)=>{
 async function postMessage(item){
   const persona = item.persona || window.identity?.getRandomPersona?.() || { name:"User", avatar:`https://ui-avatars.com/api/?name=U` };
 
-  // Dispatch header typing
   document.dispatchEvent(new CustomEvent('headerTyping',{ detail:{ name: persona.name } }));
 
-  // Wait for typing before appending
   await queuedTyping(persona,item.text);
 
-  // Decide replies
   let replyData = {};
   if(maybe(0.28)){
     const existing = getRandomExistingMessage();
@@ -265,8 +267,8 @@ function schedule(){
 function simulate(){
   if(started) return;
   started=true;
-  simulateCrowd(60,400,1200); // initial staggered crowd
-  schedule();                  // continuous schedule
+  simulateCrowd(60,400,1200);
+  schedule();
 }
 
 /* =====================================================
@@ -275,7 +277,7 @@ function simulate(){
 
 function appendSafe(persona,text,opts={}){
   if(window.TGRenderer?.appendMessage){
-    window.TGRenderer.hideTyping(); // clear typing
+    if(persona?.name) window.TGRenderer.hideTyping(persona.name); // clear typing for this persona
     return window.TGRenderer.appendMessage(persona,text,opts);
   }
   return null;
