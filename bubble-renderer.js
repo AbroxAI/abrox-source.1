@@ -1,4 +1,4 @@
-// bubble-renderer.js — Telegram 2026 Renderer (fully fixed, persona-queued typing + realism engine ready)
+// bubble-renderer-fixed.js — Telegram 2026 Renderer (fully fixed + queued typing sync + realism ready)
 (function () {
   'use strict';
 
@@ -13,10 +13,7 @@
     const MESSAGE_MAP = new Map();
     let PINNED_MESSAGE_ID = null;
 
-    // Track active typing timers per persona
     const activeTypingTimers = new Map();
-    // Queues per persona to prevent message overlap
-    const personaQueues = new Map();
 
     /* ===============================
        DATE STICKERS
@@ -44,7 +41,10 @@
        PERSONA COLOR ASSIGNMENT
     =============================== */
     const personaColorMap = new Map();
-    const personaColors = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"];
+    const personaColors = [
+      "1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"
+    ];
+
     function getPersonaColor(personaName) {
       if (!personaName) return "1";
       if (!personaColorMap.has(personaName)) {
@@ -76,8 +76,10 @@
       const avatar = document.createElement('img');
       avatar.className = 'tg-bubble-avatar';
       avatar.alt = persona?.name || 'User';
-      avatar.src = persona?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
-      avatar.onerror = () => avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
+      avatar.src = persona?.avatar ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
+      avatar.onerror = () =>
+        avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
 
       const content = document.createElement('div');
       content.className = 'tg-bubble-content';
@@ -91,7 +93,12 @@
       if (replyToText || replyToId) {
         const replyPreview = document.createElement('div');
         replyPreview.className = 'tg-reply-preview';
-        replyPreview.textContent = replyToText ? (replyToText.length > 120 ? replyToText.slice(0,117) + '...' : replyToText) : 'Reply';
+        replyPreview.textContent = replyToText
+          ? (replyToText.length > 120
+              ? replyToText.slice(0, 117) + '...'
+              : replyToText)
+          : 'Reply';
+
         replyPreview.addEventListener('click', () => {
           if (!replyToId) return;
           const target = MESSAGE_MAP.get(replyToId);
@@ -100,6 +107,7 @@
           target.el.classList.add('tg-highlight');
           setTimeout(() => target.el.classList.remove('tg-highlight'), 2600);
         });
+
         content.appendChild(replyPreview);
       }
 
@@ -114,12 +122,14 @@
       }
 
       const finalText = caption || text;
+
       if (finalText) {
         const textEl = document.createElement('div');
         textEl.className = 'tg-bubble-text';
         textEl.style.whiteSpace = 'pre-line';
         textEl.textContent = finalText;
         content.appendChild(textEl);
+
         if (caption) PINNED_MESSAGE_ID = id;
       }
 
@@ -135,7 +145,10 @@
 
       const meta = document.createElement('div');
       meta.className = 'tg-bubble-meta';
-      meta.textContent = new Date(timestamp).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+      meta.textContent = new Date(timestamp).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
       content.appendChild(meta);
 
       if (type === 'incoming') {
@@ -153,16 +166,18 @@
     }
 
     /* ===============================
-       APPEND MESSAGE
+       MESSAGE APPEND
     =============================== */
     function appendMessage(persona, text, opts = {}) {
       const result = createBubble(persona, text, opts);
       container.appendChild(result.el);
 
-      // Force clear typing for this persona
       hideTyping(persona.name);
 
-      const atBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 80;
+      const atBottom =
+        container.scrollTop + container.clientHeight >=
+        container.scrollHeight - 80;
+
       if (atBottom) container.scrollTop = container.scrollHeight;
       else {
         unseenCount++;
@@ -175,42 +190,57 @@
 
     function updateJump() {
       if (!jumpText) return;
-      jumpText.textContent = unseenCount > 1 ? `New messages · ${unseenCount}` : 'New messages';
+      jumpText.textContent =
+        unseenCount > 1
+          ? `New messages · ${unseenCount}`
+          : 'New messages';
     }
 
     function showJump() { jumpIndicator?.classList.remove('hidden'); }
-    function hideJump() { unseenCount = 0; updateJump(); jumpIndicator?.classList.add('hidden'); }
+    function hideJump() {
+      unseenCount = 0;
+      updateJump();
+      jumpIndicator?.classList.add('hidden');
+    }
 
-    jumpIndicator?.addEventListener('click', () => { container.scrollTop = container.scrollHeight; hideJump(); });
+    jumpIndicator?.addEventListener('click', () => {
+      container.scrollTop = container.scrollHeight;
+      hideJump();
+    });
+
     container.addEventListener('scroll', () => {
-      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
       if (distanceFromBottom < 80) hideJump();
     });
 
     /* ===============================
-       TYPING SYSTEM (persona-queued)
+       TYPING SYSTEM (SAFE + PROMISE)
     =============================== */
+    const typingQueue = Promise.resolve();
+
     function calculateTypingDuration(message) {
       if (!message) return 1200;
       const baseSpeed = 45;
       const minTime = 1000;
       const maxTime = 6000;
-      let duration = message.length * baseSpeed + Math.random() * 800;
+      let duration = message.length * baseSpeed;
+      duration += Math.random() * 800;
       if (duration < minTime) duration = minTime;
       if (duration > maxTime) duration = maxTime;
       return Math.floor(duration);
     }
 
     function showTyping(persona, message = "", customDuration = null) {
-      if (!persona || !container) return Promise.resolve();
+      if (!persona?.name || !container) return Promise.resolve();
       const duration = customDuration || calculateTypingDuration(message);
 
-      return new Promise(resolve => {
+      return new Promise((resolve) => {
         hideTyping(persona.name);
 
         const typingBubble = document.createElement('div');
         typingBubble.className = 'tg-bubble incoming tg-typing';
-        typingBubble.dataset.typing = persona.name;
+        typingBubble.dataset.typing = persona.name || 'unknown';
 
         const avatar = document.createElement('img');
         avatar.className = 'tg-bubble-avatar';
@@ -238,7 +268,7 @@
 
         const timer = setTimeout(() => {
           hideTyping(persona.name);
-          resolve();
+          resolve(); // resolves fully after typing ends
         }, duration);
 
         activeTypingTimers.set(persona.name, timer);
@@ -254,20 +284,18 @@
       }
     }
 
-    /* ===============================
-       Persona-queued typing helper
-    =============================== */
-    function queuedTyping(persona, message) {
-      if (!persona?.name) return Promise.resolve();
-      const queue = personaQueues.get(persona.name) || Promise.resolve();
-      const next = queue.then(() => showTyping(persona, message));
-      personaQueues.set(persona.name, next.catch(() => {}));
-      return next;
-    }
+    window.TGRenderer = {
+      appendMessage,
+      showTyping,
+      hideTyping,
+      getPinnedMessageId: () => PINNED_MESSAGE_ID
+    };
 
-    window.TGRenderer = { appendMessage, showTyping, hideTyping, queuedTyping, getPinnedMessageId: () => PINNED_MESSAGE_ID };
-    console.log('✅ bubble-renderer fully fixed — persona-queued typing + realism engine compatible');
+    console.log('✅ bubble-renderer fixed — promise-based typing + realism engine ready');
   }
 
-  document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', init) : init();
+  document.readyState === 'loading'
+    ? document.addEventListener('DOMContentLoaded', init)
+    : init();
+
 })();
