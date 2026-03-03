@@ -204,6 +204,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function queuedTyping(persona, message) {
     // enqueue typing and return promise that resolves after typing finishes
     typingQueue = typingQueue.then(() => {
+      // show typing and wait until typing completes
       return window.TGRenderer?.showTyping(persona, message) || Promise.resolve();
     });
     return typingQueue;
@@ -267,5 +268,5 @@ document.addEventListener("DOMContentLoaded", () => {
     inputBar.style.borderRadius = "26px";
   }
 
-  console.log("✅ app.js fully fixed — messages now always follow typing, typing queue synced, header auto-updates.");
+  console.log("✅ app.js fixed — queued typing synced, messages always follow typing, header auto-updates.");
 });
