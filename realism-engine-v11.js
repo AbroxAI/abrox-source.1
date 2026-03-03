@@ -1,9 +1,10 @@
-// realism-engine-v11-synced.js — ULTRA-REALISM ENGINE V11 (fully queued + member message clears typing)
+// realism-engine-v11-fully-synced-fixed.js — ULTRA-REALISM ENGINE V11 (fully queued + typing cleared on member message)
 (function(){
 
 /* =====================================================
    DATA POOLS
 ===================================================== */
+
 const ASSETS = [
   "EUR/USD","USD/JPY","GBP/USD","AUD/USD","BTC/USD","ETH/USD","USD/CHF","EUR/JPY","NZD/USD",
   "US30","NAS100","SPX500","DAX30","FTSE100","GOLD","SILVER","WTI","BRENT",
@@ -74,45 +75,33 @@ const EMOJIS = [
 function random(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function maybe(p){ return Math.random() < p; }
 function rand(max=9999){ return Math.floor(Math.random()*max); }
-function hash(str){
-  let h=5381; for(let i=0;i<str.length;i++) h=((h<<5)+h)+str.charCodeAt(i); return (h>>>0).toString(36);
-}
+function hash(str){ let h=5381; for(let i=0;i<str.length;i++) h=((h<<5)+h)+str.charCodeAt(i); return (h>>>0).toString(36); }
 
 /* =====================================================
    DEDUPE
 ===================================================== */
 const GENERATED = new Set();
 const QUEUE = [];
-function mark(text){
-  const fp = hash(text.toLowerCase());
-  if(GENERATED.has(fp)) return false;
-  GENERATED.add(fp);
-  QUEUE.push(fp);
-  while(QUEUE.length > 50000) GENERATED.delete(QUEUE.shift());
-  return true;
-}
+function mark(text){ const fp=hash(text.toLowerCase()); if(GENERATED.has(fp)) return false; GENERATED.add(fp); QUEUE.push(fp); while(QUEUE.length>50000) GENERATED.delete(QUEUE.shift()); return true; }
 
 /* =====================================================
    COMMENT GENERATION
 ===================================================== */
 function generateTimestamp(days=120){ return new Date(Date.now() - Math.random()*days*86400000); }
 function generateComment(){
-  const templates = [
-    () => `Guys, ${random(TESTIMONIALS)}`,
-    () => `Anyone trading ${random(ASSETS)} on ${random(BROKERS)}?`,
-    () => `Signal for ${random(ASSETS)} ${random(TIMEFRAMES)} is ${random(RESULT_WORDS)}`,
-    () => `Abrox alerted ${random(ASSETS)} ${random(TIMEFRAMES)} — ${random(RESULT_WORDS)}`,
-    () => `Closed ${random(ASSETS)} on ${random(TIMEFRAMES)} — ${random(RESULT_WORDS)}`,
-    () => `Scalped ${random(ASSETS)} on ${random(BROKERS)}, result ${random(RESULT_WORDS)}`,
-    () => `Testimonial: ${random(TESTIMONIALS)}`
+  const templates=[
+    ()=>`Guys, ${random(TESTIMONIALS)}`,
+    ()=>`Anyone trading ${random(ASSETS)} on ${random(BROKERS)}?`,
+    ()=>`Signal for ${random(ASSETS)} ${random(TIMEFRAMES)} is ${random(RESULT_WORDS)}`,
+    ()=>`Abrox alerted ${random(ASSETS)} ${random(TIMEFRAMES)} — ${random(RESULT_WORDS)}`,
+    ()=>`Closed ${random(ASSETS)} on ${random(TIMEFRAMES)} — ${random(RESULT_WORDS)}`,
+    ()=>`Scalped ${random(ASSETS)} on ${random(BROKERS)}, result ${random(RESULT_WORDS)}`,
+    ()=>`Testimonial: ${random(TESTIMONIALS)}`
   ];
-
-  let text = random(templates)();
-  if(maybe(0.35)){ const extras = ["good execution","tight stop","wide stop","no slippage","perfect timing","partial TP hit"]; text+=" — "+random(extras);}
+  let text=random(templates)();
+  if(maybe(0.35)){ const extras=["good execution","tight stop","wide stop","no slippage","perfect timing","partial TP hit"]; text+=" — "+random(extras);}
   if(maybe(0.45)) text+=" "+random(EMOJIS);
-
-  let tries=0;
-  while(!mark(text) && tries<30){ text+=" "+rand(999); tries++; }
+  let tries=0; while(!mark(text) && tries<30){ text+=" "+rand(999); tries++; }
   return { text, timestamp: generateTimestamp() };
 }
 
@@ -120,29 +109,27 @@ function generateComment(){
    POOL
 ===================================================== */
 const POOL=[];
-window.realismEngineV11Pool = POOL;
-window.realismEngineV11EMOJIS = EMOJIS;
+window.realismEngineV11Pool=POOL;
+window.realismEngineV11EMOJIS=EMOJIS;
 function ensurePool(min=2000){ while(POOL.length<min){ POOL.push(generateComment()); if(POOL.length>10000) break; } }
 
 /* =====================================================
    TYPING QUEUE + CLEAR ON MEMBER MESSAGE
 ===================================================== */
-let typingQueue = Promise.resolve();
-function queuedTyping(persona, message){
-  // enqueue typing and return promise
-  typingQueue = typingQueue.then(()=>{
+let typingQueue=Promise.resolve();
+function queuedTyping(persona,message){
+  typingQueue=typingQueue.then(()=>{
     if(!window.TGRenderer?.showTyping) return Promise.resolve();
-    return window.TGRenderer.showTyping(persona, message);
+    return window.TGRenderer.showTyping(persona,message);
   });
   return typingQueue;
 }
 
-// listen for real messages from members to clear typing
-document.addEventListener("messageAppended", (ev)=>{
-  const persona = ev.detail?.persona;
+// clear typing immediately when a member sends a real message
+document.addEventListener("messageAppended",(ev)=>{
+  const persona=ev.detail?.persona;
   if(!persona?.name) return;
-  // clear any queued typing for this persona
-  typingQueue = Promise.resolve();
+  typingQueue=Promise.resolve();
   window.TGRenderer?.hideTyping();
 });
 
@@ -150,33 +137,30 @@ document.addEventListener("messageAppended", (ev)=>{
    RANDOM EXISTING MESSAGE HELPER
 ===================================================== */
 function getRandomExistingMessage(){
-  const messages = Array.from(document.querySelectorAll('.tg-bubble'));
-  if(messages.length < 5) return null;
-  const target = messages[Math.floor(Math.random()*messages.length)];
-  const id = target.dataset.id;
-  const text = target.querySelector('.tg-bubble-text')?.textContent;
-  if(!id || !text) return null;
-  return { replyToId: id, replyToText: text.slice(0,120) };
+  const messages=Array.from(document.querySelectorAll('.tg-bubble'));
+  if(messages.length<5) return null;
+  const target=messages[Math.floor(Math.random()*messages.length)];
+  const id=target.dataset.id;
+  const text=target.querySelector('.tg-bubble-text')?.textContent;
+  if(!id||!text) return null;
+  return { replyToId:id, replyToText:text.slice(0,120) };
 }
 
 /* =====================================================
-   POST MESSAGE (QUEUED + TYPING)
+   POST MESSAGE (FULLY SYNC)
 ===================================================== */
 async function postMessage(item){
-  const persona = item.persona || window.identity?.getRandomPersona?.() || { name:"User", avatar:`https://ui-avatars.com/api/?name=U` };
-
+  const persona=item.persona || window.identity?.getRandomPersona?.() || {name:"User", avatar:`https://ui-avatars.com/api/?name=U`};
   document.dispatchEvent(new CustomEvent('headerTyping',{detail:{name:persona.name}}));
+  await queuedTyping(persona,item.text);
 
-  // await typing before appending
-  await queuedTyping(persona, item.text);
-
-  let replyData = {};
+  let replyData={};
   if(maybe(0.28)){ const existing=getRandomExistingMessage(); if(existing) replyData=existing; }
   if(maybe(0.12)){
-    const selfMessages = Array.from(document.querySelectorAll('.tg-bubble')).filter(b=>b.dataset.persona===persona.name);
+    const selfMessages=Array.from(document.querySelectorAll('.tg-bubble')).filter(b=>b.dataset.persona===persona.name);
     if(selfMessages.length){
-      const selfTarget = selfMessages[Math.floor(Math.random()*selfMessages.length)];
-      const selfText = selfTarget.querySelector('.tg-bubble-text')?.textContent;
+      const selfTarget=selfMessages[Math.floor(Math.random()*selfMessages.length)];
+      const selfText=selfTarget.querySelector('.tg-bubble-text')?.textContent;
       if(selfText){ replyData={replyToId:selfTarget.dataset.id, replyToText:selfText.slice(0,120]}; }
     }
   }
@@ -211,16 +195,16 @@ function simulate(){ if(started) return; started=true; simulateCrowd(60,400,1200
 /* =====================================================
    SAFE APPEND
 ===================================================== */
-function appendSafe(persona,text,opts={}){ if(window.TGRenderer?.appendMessage){ return window.TGRenderer.appendMessage(persona,text,opts); } return null; }
+function appendSafe(persona,text,opts={}){ if(window.TGRenderer?.appendMessage){ window.TGRenderer.hideTyping(); return window.TGRenderer.appendMessage(persona,text,opts); } return null; }
 
 /* =====================================================
-   START
+   START ENGINE
 ===================================================== */
 setTimeout(async()=>{
   ensurePool(2000);
   await simulateCrowd(60,400,1200);
   simulate();
-  console.log("✅ Realism Engine V11 — Fully queued, typing always synced, clears after member message.");
+  console.log("✅ Realism Engine V11 — fully synced, typing queued, clears after member message.");
 },900);
 
 })();
