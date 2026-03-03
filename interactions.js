@@ -1,4 +1,4 @@
-// interactions.js — Telegram 2026 interactions with ultra-real typing + reply preview + pinned view
+// interactions.js — Telegram 2026 interactions with ultra-real typing + reply preview + pinned view (Fixed)
 (function () {
   'use strict';
 
@@ -84,27 +84,37 @@
   });
 
   /* ===============================
-     REALISM ENGINE HOOK
+     REALISM ENGINE HOOK (FIXED)
   =============================== */
-  function simulateRealisticResponse(userText) {
+  function queuedTyping(persona, message) {
+    if (!persona?.name || !window.TGRenderer?.showTyping) return Promise.resolve();
+    window.TGRenderer.showTyping(persona, message); // show typing
+    return Promise.resolve(); // immediately resolves, non-blocking
+  }
+
+  async function simulateRealisticResponse(userText) {
     if (!window.RealismEngine || !window.identityPool) return;
 
     const persona = window.identityPool.getRandomPersona?.();
     if (!persona) return;
 
-    window.TGRenderer?.showTyping(persona);
     document.dispatchEvent(new CustomEvent('headerTyping', { detail: { name: persona.name } }));
 
     const delay = getTypingDelay(userText);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       const reply = window.RealismEngine.generateReply?.(userText, persona)
         || generateFallbackReply(userText);
 
-      const bubbleEl = window.TGRenderer.appendMessage(persona, reply, {
+      // ✅ show typing non-blocking
+      await queuedTyping(persona, reply);
+
+      // ✅ append message and immediately clear typing
+      const bubbleEl = window.TGRenderer?.appendMessage(persona, reply, {
         type: 'incoming',
         timestamp: new Date()
       });
+      window.TGRenderer?.hideTyping(persona.name);
 
       attachReplyPreview(bubbleEl, reply);
 
@@ -208,6 +218,6 @@
     try { window.lucide.createIcons(); } catch (e) {}
   }
 
-  console.log('interactions.js fully integrated with bubble-renderer, realism engine, new message pill, reply preview, and View Pinned button');
+  console.log('interactions.js fully integrated with bubble-renderer, realism engine (typing fix applied), new message pill, reply preview, and View Pinned button');
 
 })();
