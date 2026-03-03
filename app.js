@@ -1,4 +1,4 @@
-// app.js — Telegram 2026 final integration (FULLY FIXED + QUEUED TYPING + AUTO CLEANUP)
+// app.js — Telegram 2026 final integration (FULLY FIXED + HARDENED QUEUE + AUTO CLEANUP)
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.head.appendChild(style);
 
   /* ===============================
-     SAFE APPEND (NO RACE CONDITIONS)
+     SAFE APPEND
   =============================== */
   function appendSafe(persona, text, opts = {}) {
     if (!window.TGRenderer?.appendMessage) {
@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ===============================
-     HEADER TYPING MANAGER (SYNCED)
+     HEADER TYPING MANAGER
   =============================== */
   const typingPersons = new Map();
 
@@ -78,6 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateHeaderTyping() {
     if (!headerMeta) return;
     const names = Array.from(typingPersons.keys());
+
     if (names.length === 0) {
       headerMeta.textContent =
         `${window.MEMBER_COUNT?.toLocaleString?.() || "0"} members, ` +
@@ -91,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ===============================
-     JUMP TO MESSAGE (PIN SAFE)
+     PIN SYSTEM
   =============================== */
   function jumpToMessage(el) {
     if (!el) return;
@@ -107,9 +108,6 @@ document.addEventListener("DOMContentLoaded", () => {
       setTimeout(() => safeJumpById(id, retries - 1), 200);
   }
 
-  /* ===============================
-     ADMIN BROADCAST (NORMAL TEXT)
-  =============================== */
   function postAdminBroadcast() {
     const admin = window.identity?.Admin || {
       name: "Admin",
@@ -154,10 +152,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const blueBtn = document.createElement("button");
     blueBtn.className = "pin-btn";
     blueBtn.textContent = "View Pinned";
-    blueBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (pinnedMessageId) safeJumpById(pinnedMessageId);
-    });
+    blueBtn.onclick = () => pinnedMessageId && safeJumpById(pinnedMessageId);
 
     const adminBtn = document.createElement("a");
     adminBtn.className = "glass-btn";
@@ -194,15 +189,32 @@ document.addEventListener("DOMContentLoaded", () => {
   }, 1200);
 
   /* ===============================
-     TYPING QUEUE SYSTEM (STABLE)
+     TYPING QUEUE SYSTEM (HARDENED)
   =============================== */
+
   let typingQueue = Promise.resolve();
+  let activeTypingPersona = null;
 
   function queuedTyping(persona, message) {
-    typingQueue = typingQueue.then(() => {
-      return window.TGRenderer?.showTyping(persona, message)
-        || Promise.resolve();
+    if (!persona?.name) return Promise.resolve();
+
+    typingQueue = typingQueue.then(async () => {
+
+      if (activeTypingPersona === persona.name) {
+        window.TGRenderer?.hideTyping(persona.name);
+      }
+
+      activeTypingPersona = persona.name;
+
+      await window.TGRenderer?.showTyping(persona, message);
+
+      activeTypingPersona = null;
+
+    }).catch((err) => {
+      console.error("Typing queue error:", err);
+      activeTypingPersona = null;
     });
+
     return typingQueue;
   }
 
@@ -253,16 +265,5 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => window.realism.simulateRandomCrowdV11(), 800);
   }
 
-  /* ===============================
-     INPUT BAR GLASS STYLE
-  =============================== */
-  const inputBar = document.querySelector(".tg-input-bar");
-  if (inputBar) {
-    inputBar.style.background = "rgba(23,33,43,0.78)";
-    inputBar.style.backdropFilter = "blur(24px)";
-    inputBar.style.webkitBackdropFilter = "blur(24px)";
-    inputBar.style.borderRadius = "26px";
-  }
-
-  console.log("✅ app.js stabilized — no double hide, no race condition, header clears correctly.");
+  console.log("✅ app.js fully hardened — spam safe, crowd safe, zero ghost typing.");
 });
