@@ -1,4 +1,4 @@
-// app.js — Telegram 2026 final integration (FULLY FIXED + HARDENED QUEUE + AUTO CLEANUP)
+// app.js — Telegram 2026 final integration (optimized + fully queued typing + realism engine ready)
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -189,28 +189,22 @@ document.addEventListener("DOMContentLoaded", () => {
   }, 1200);
 
   /* ===============================
-     TYPING QUEUE SYSTEM (HARDENED)
+     TYPING QUEUE SYSTEM (FULLY COMPATIBLE)
   =============================== */
 
   let typingQueue = Promise.resolve();
   let activeTypingPersona = null;
 
-  function queuedTyping(persona, message) {
+  async function queuedTyping(persona, message) {
     if (!persona?.name) return Promise.resolve();
 
     typingQueue = typingQueue.then(async () => {
-
-      if (activeTypingPersona === persona.name) {
-        window.TGRenderer?.hideTyping(persona.name);
-      }
-
       activeTypingPersona = persona.name;
-
-      await window.TGRenderer?.showTyping(persona, message);
-
+      if (window.TGRenderer?.showTyping) {
+        await window.TGRenderer.showTyping(persona, message); // resolves after typing finishes
+      }
       activeTypingPersona = null;
-
-    }).catch((err) => {
+    }).catch(err => {
       console.error("Typing queue error:", err);
       activeTypingPersona = null;
     });
@@ -265,5 +259,5 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => window.realism.simulateRandomCrowdV11(), 800);
   }
 
-  console.log("✅ app.js fully hardened — spam safe, crowd safe, zero ghost typing.");
+  console.log("✅ app.js fully optimized — queued typing, realism engine ready, zero ghost typing.");
 });
