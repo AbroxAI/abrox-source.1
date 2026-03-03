@@ -37,8 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const id = window.TGRenderer.appendMessage(persona, text, opts);
 
-    // remove any active typing bubble for this persona
-    if (window.TGRenderer?.hideTyping) window.TGRenderer.hideTyping(persona.name);
+    // ⚡ removed immediate hideTyping here — now handled in queuedTyping
 
     document.dispatchEvent(
       new CustomEvent("messageAppended", { detail: { persona } })
@@ -197,15 +196,17 @@ document.addEventListener("DOMContentLoaded", () => {
   }, 1200);
 
   /* ===============================
-     TYPING QUEUE SYSTEM
+     TYPING QUEUE SYSTEM (FIXED)
   =============================== */
   let typingQueue = Promise.resolve();
 
   function queuedTyping(persona, message) {
-    // enqueue typing and return promise that resolves after typing finishes
     typingQueue = typingQueue.then(() => {
-      // show typing and wait until typing completes
-      return window.TGRenderer?.showTyping(persona, message) || Promise.resolve();
+      return window.TGRenderer?.showTyping(persona, message)
+        .then(() => {
+          // ✅ hide typing immediately after the typing finishes
+          window.TGRenderer?.hideTyping(persona.name);
+        }) || Promise.resolve();
     });
     return typingQueue;
   }
