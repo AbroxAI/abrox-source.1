@@ -97,7 +97,7 @@
     const reply = window.realism.generateReply?.(userText, persona) 
                   || generateFallbackReply(userText);
 
-    // ✅ queued typing ensures the bubble appears only after typing ends
+    // queued typing ensures the bubble appears only after typing ends
     await queuedTyping(persona, reply);
 
     const bubbleEl = window.TGRenderer?.appendMessage(persona, reply, {
