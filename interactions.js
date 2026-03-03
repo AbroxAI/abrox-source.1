@@ -1,4 +1,4 @@
-// interactions.js — Telegram 2026 interactions with ultra-real typing + reply preview + pinned view (Fully Fixed)
+// interactions-v11-full-sync.js — Telegram 2026 interactions fully integrated with Realism Engine
 (function () {
   'use strict';
 
@@ -36,39 +36,21 @@
   updateInputState();
 
   /* ===============================
-     TYPING DURATION CALCULATOR
+     QUEUED TYPING (SYNCED WITH REALISM ENGINE)
   =============================== */
-  function getTypingDelay(text) {
-    if (!text) return 800;
-    const base = 600;
-    const perChar = 35;
-    const randomFactor = Math.random() * 400;
-    return Math.min(8000, base + text.length * perChar + randomFactor);
-  }
-
-  /* ===============================
-     ULTRA-HUMANIZED TYPING (CONFIRMED)
-  =============================== */
-  function queuedTyping(persona, message) {
+  async function queuedTyping(persona, message) {
     if (!persona?.name || !window.TGRenderer?.showTyping) return Promise.resolve();
-
-    window.TGRenderer.showTyping(persona, message);
-
-    const min=600, perChar=35, max=8000;
-    const delay = Math.min(max, min + (message?.length||10)*perChar + Math.random()*400);
-
-    return new Promise(resolve => {
-      setTimeout(() => {
-        window.TGRenderer.hideTyping(persona.name);
-        resolve();
-      }, delay);
-    });
+    const duration = window.TGRenderer.calculateTypingDuration
+                      ? window.TGRenderer.calculateTypingDuration(message)
+                      : 1200;
+    await window.TGRenderer.showTyping(persona, message, duration);
+    window.TGRenderer.hideTyping(persona.name);
   }
 
   /* ===============================
      SEND MESSAGE
   =============================== */
-  function sendMessage() {
+  async function sendMessage() {
     const text = input.value.trim();
     if (!text) return;
 
@@ -78,7 +60,7 @@
       isAdmin: false
     };
 
-    const id = window.TGRenderer?.appendMessage(me, text, {
+    window.TGRenderer?.appendMessage(me, text, {
       type: 'outgoing',
       timestamp: new Date()
     });
@@ -87,11 +69,9 @@
     updateInputState();
     hideJump();
 
-    simulateRealisticResponse(text);
+    await simulateRealisticResponse(text);
 
     document.dispatchEvent(new CustomEvent('sendMessage', { detail: { text } }));
-
-    return id;
   }
 
   sendBtn.addEventListener('click', sendMessage);
@@ -106,17 +86,18 @@
      REALISM ENGINE HOOK
   =============================== */
   async function simulateRealisticResponse(userText) {
-    if (!window.RealismEngine || !window.identityPool) return;
+    if (!window.realism || !window.identityPool) return;
 
     const persona = window.identityPool.getRandomPersona?.();
     if (!persona) return;
 
     document.dispatchEvent(new CustomEvent('headerTyping', { detail: { name: persona.name } }));
 
-    const reply = window.RealismEngine.generateReply?.(userText, persona)
-      || generateFallbackReply(userText);
+    // Generate reply using realism engine or fallback
+    const reply = window.realism.generateReply?.(userText, persona) 
+                  || generateFallbackReply(userText);
 
-    // ✅ realistic typing before posting
+    // ✅ queued typing ensures the bubble appears only after typing ends
     await queuedTyping(persona, reply);
 
     const bubbleEl = window.TGRenderer?.appendMessage(persona, reply, {
@@ -149,7 +130,7 @@
   }
 
   /* ===============================
-     REPLY PREVIEW / YELLOW HIGHLIGHT
+     REPLY PREVIEW / HIGHLIGHT
   =============================== */
   function attachReplyPreview(bubbleEl, replyText) {
     if (!bubbleEl || !replyText) return;
@@ -161,7 +142,6 @@
       const target = allBubbles.find(b =>
         b !== bubbleEl && b.querySelector('.tg-bubble-text')?.textContent.includes(replyText)
       );
-
       if (target) {
         target.scrollIntoView({ behavior: 'smooth', block: 'center' });
         target.classList.add('tg-highlight');
@@ -225,6 +205,5 @@
     try { window.lucide.createIcons(); } catch (e) {}
   }
 
-  console.log('interactions.js fully integrated with bubble-renderer and realism engine — typing fix applied.');
-
+  console.log('interactions.js fully synced with Realism Engine V11 — messages only appear after typing ends, ultra-humanized flow.');
 })();
