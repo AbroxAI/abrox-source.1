@@ -1,170 +1,302 @@
-// app.js — Telegram 2026 FINAL (true per-persona typing sync)
+// bubble-renderer-fixed.js — Telegram 2026 Renderer (fully fixed + queued typing sync + realism ready)
+(function () {
+'use strict';
 
-document.addEventListener("DOMContentLoaded", () => {
+function init() {
+const container = document.getElementById('tg-comments-container');
+const jumpIndicator = document.getElementById('tg-jump-indicator');
+const jumpText = document.getElementById('tg-jump-text');
+if (!container) { console.error('bubble-renderer: container missing'); return; }
 
-  const container = document.getElementById("tg-comments-container");
-  const headerMeta = document.getElementById("tg-meta-line");
-  const pinBanner = document.getElementById("tg-pin-banner");
+let unseenCount = 0;  
+let lastDateKey = null;  
+const MESSAGE_MAP = new Map();  
+let PINNED_MESSAGE_ID = null;  
 
-  if (!container) {
-    console.error("tg-comments-container missing");
-    return;
-  }
+const activeTypingTimers = new Map();  
 
-  /* ===============================
-     HEADER TYPING STATE (REAL SYNC)
-  =============================== */
+/* ===============================  
+   DATE STICKERS  
+=============================== */  
+function formatDateKey(date) {  
+  const d = new Date(date);  
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;  
+}  
 
-  const headerTyping = new Set(); // active persona names typing
+function insertDateSticker(date) {  
+  const key = formatDateKey(date);  
+  if (key === lastDateKey) return;  
+  lastDateKey = key;  
 
-  function updateHeader() {
-    if (!headerMeta) return;
+  const sticker = document.createElement('div');  
+  sticker.className = 'tg-date-sticker';  
+  sticker.textContent = new Date(date).toLocaleDateString([], {  
+    year: 'numeric', month: 'short', day: 'numeric'  
+  });  
 
-    if (headerTyping.size === 0) {
-      headerMeta.textContent =
-        `${window.MEMBER_COUNT?.toLocaleString?.() || "0"} members, ` +
-        `${window.ONLINE_COUNT?.toLocaleString?.() || "0"} online`;
-      return;
-    }
+  container.appendChild(sticker);  
+}  
 
-    const names = Array.from(headerTyping);
+/* ===============================  
+   PERSONA COLOR ASSIGNMENT  
+=============================== */  
+const personaColorMap = new Map();  
+const personaColors = [  
+  "1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"  
+];  
 
-    if (names.length === 1) {
-      headerMeta.textContent = `${names[0]} is typing…`;
-    } else if (names.length === 2) {
-      headerMeta.textContent = `${names[0]} & ${names[1]} are typing…`;
-    } else {
-      headerMeta.textContent =
-        `${names.slice(0, 2).join(" & ")} and others are typing…`;
-    }
-  }
+function getPersonaColor(personaName) {  
+  if (!personaName) return "1";  
+  if (!personaColorMap.has(personaName)) {  
+    const assigned = personaColors[personaColorMap.size % personaColors.length];  
+    personaColorMap.set(personaName, assigned);  
+  }  
+  return personaColorMap.get(personaName);  
+}  
 
-  function startHeaderTyping(name) {
-    headerTyping.add(name);
-    updateHeader();
-  }
+/* ===============================  
+   CREATE BUBBLE  
+=============================== */  
+function createBubble(persona, text, opts = {}) {  
+  const id = opts.id || ('m_' + Date.now() + '_' + Math.floor(Math.random() * 9999));  
+  const type = opts.type === 'outgoing' ? 'outgoing' : 'incoming';  
+  const timestamp = opts.timestamp || new Date();  
+  const replyToId = opts.replyToId || null;  
+  const replyToText = opts.replyToText || null;  
+  const image = opts.image || null;  
+  const caption = opts.caption || null;  
 
-  function stopHeaderTyping(name) {
-    headerTyping.delete(name);
-    updateHeader();
-  }
+  insertDateSticker(timestamp);  
 
-  /* ===============================
-     SAFE MESSAGE APPEND
-  =============================== */
+  const wrapper = document.createElement('div');  
+  wrapper.className = `tg-bubble ${type}`;  
+  wrapper.dataset.id = id;  
+  wrapper.dataset.persona = persona?.name || 'User';  
 
-  function appendSafe(persona, text, opts = {}) {
-    if (!window.TGRenderer?.appendMessage) return;
+  const avatar = document.createElement('img');  
+  avatar.className = 'tg-bubble-avatar';  
+  avatar.alt = persona?.name || 'User';  
+  avatar.src = persona?.avatar ||  
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;  
+  avatar.onerror = () =>  
+    avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;  
 
-    window.TGRenderer.appendMessage(persona, text, opts);
+  const content = document.createElement('div');  
+  content.className = 'tg-bubble-content';  
 
-    stopHeaderTyping(persona.name);
-  }
+  const sender = document.createElement('div');  
+  sender.className = 'tg-bubble-sender';  
+  sender.textContent = persona?.name || 'User';  
+  sender.dataset.color = getPersonaColor(persona?.name || 'User');  
+  content.appendChild(sender);  
 
-  /* ===============================
-     TRUE PER-PERSONA TYPING FLOW
-  =============================== */
+  if (replyToText || replyToId) {  
+    const replyPreview = document.createElement('div');  
+    replyPreview.className = 'tg-reply-preview';  
+    replyPreview.textContent = replyToText  
+      ? (replyToText.length > 120  
+          ? replyToText.slice(0, 117) + '...'  
+          : replyToText)  
+      : 'Reply';  
 
-  async function sendWithTyping(persona, message, opts = {}) {
-    if (!persona?.name) return;
+    replyPreview.addEventListener('click', () => {  
+      if (!replyToId) return;  
+      const target = MESSAGE_MAP.get(replyToId);  
+      if (!target) return;  
+      target.el.scrollIntoView({ behavior: 'smooth', block: 'center' });  
+      target.el.classList.add('tg-highlight');  
+      setTimeout(() => target.el.classList.remove('tg-highlight'), 2600);  
+    });  
 
-    startHeaderTyping(persona.name);
+    content.appendChild(replyPreview);  
+  }  
 
-    // Wait for typing bubble to complete
-    await window.TGRenderer.showTyping(persona, message);
+  if (image) {  
+    const img = document.createElement('img');  
+    img.className = 'tg-bubble-image';  
+    img.src = image;  
+    img.style.width = '100%';  
+    img.style.borderRadius = '12px';  
+    img.onerror = () => img.remove();  
+    content.appendChild(img);  
+  }  
 
-    // Typing bubble finished → now append message
-    appendSafe(persona, message, {
-      timestamp: new Date(),
-      type: "incoming",
-      ...opts
-    });
-  }
+  const finalText = caption || text;  
 
-  /* ===============================
-     ADMIN AUTO RESPONSE
-  =============================== */
+  if (finalText) {  
+    const textEl = document.createElement('div');  
+    textEl.className = 'tg-bubble-text';  
+    textEl.style.whiteSpace = 'pre-line';  
+    textEl.textContent = finalText;  
+    content.appendChild(textEl);  
 
-  document.addEventListener("sendMessage", async (ev) => {
-    const text = ev.detail?.text || "";
+    if (caption) PINNED_MESSAGE_ID = id;  
+  }  
 
-    const admin = window.identity?.Admin || {
-      name: "Admin",
-      avatar: "assets/admin.jpg",
-      isAdmin: true
-    };
+  if (persona?.isAdmin) {  
+    const adminBtn = document.createElement('a');  
+    adminBtn.className = 'glass-btn';  
+    adminBtn.href = window.CONTACT_ADMIN_LINK || 'https://t.me/';  
+    adminBtn.target = '_blank';  
+    adminBtn.textContent = 'Contact Admin';  
+    adminBtn.style.marginTop = '8px';  
+    content.appendChild(adminBtn);  
+  }  
 
-    await sendWithTyping(
-      admin,
-      "Please use the Contact Admin button in the pinned banner above."
-    );
-  });
+  const meta = document.createElement('div');  
+  meta.className = 'tg-bubble-meta';  
+  meta.textContent = new Date(timestamp).toLocaleTimeString([], {  
+    hour: '2-digit',  
+    minute: '2-digit'  
+  });  
+  content.appendChild(meta);  
 
-  /* ===============================
-     AUTO REPLY HANDLER
-  =============================== */
+  if (type === 'incoming') {  
+    wrapper.appendChild(avatar);  
+    wrapper.appendChild(content);  
+  } else {  
+    wrapper.style.flexDirection = 'row-reverse';  
+    wrapper.appendChild(avatar);  
+    wrapper.appendChild(content);  
+  }  
 
-  document.addEventListener("autoReply", async (ev) => {
-    const { persona, text, parentText } = ev.detail || {};
-    if (!persona || !text) return;
+  MESSAGE_MAP.set(id, { el: wrapper, text: finalText, persona, timestamp });  
 
-    await sendWithTyping(persona, text, {
-      replyToText: parentText
-    });
-  });
+  return { el: wrapper, id };  
+}  
 
-  /* ===============================
-     PIN SYSTEM
-  =============================== */
+/* ===============================  
+   MESSAGE APPEND  
+=============================== */  
+function appendMessage(persona, text, opts = {}) {  
+  const result = createBubble(persona, text, opts);  
+  container.appendChild(result.el);  
 
-  function postAdminBroadcast() {
-    const admin = window.identity?.Admin || {
-      name: "Admin",
-      avatar: "assets/admin.jpg",
-      isAdmin: true
-    };
+  hideTyping(persona.name); // removes typing immediately when message appears  
 
-    const caption = `📌 Group Rules
-1️⃣ New members are read-only until verified.
-2️⃣ Admins do NOT DM directly.
-3️⃣ 🚫 No screenshots in chat.
-4️⃣ ⚠️ Ignore unsolicited messages.
+  const atBottom =  
+    container.scrollTop + container.clientHeight >=  
+    container.scrollHeight - 80;  
 
-✅ To verify or contact admin, use the Contact Admin button below.`;
+  if (atBottom) container.scrollTop = container.scrollHeight;  
+  else {  
+    unseenCount++;  
+    updateJump();  
+    showJump();  
+  }  
 
-    const id = window.TGRenderer.appendMessage(admin, caption, {
-      timestamp: new Date(2025, 2, 14, 10, 0, 0),
-      type: "incoming"
-    });
+  return result.id;  
+}  
 
-    return id;
-  }
+function updateJump() {  
+  if (!jumpText) return;  
+  jumpText.textContent =  
+    unseenCount > 1  
+      ? `New messages · ${unseenCount}`  
+      : 'New messages';  
+}  
 
-  function postPinNotice() {
-    const system = { name: "System", avatar: "assets/admin.jpg" };
+function showJump() { jumpIndicator?.classList.remove('hidden'); }  
+function hideJump() {  
+  unseenCount = 0;  
+  updateJump();  
+  jumpIndicator?.classList.add('hidden');  
+}  
 
-    window.TGRenderer.appendMessage(
-      system,
-      "Admin pinned a message",
-      { timestamp: new Date(), type: "incoming" }
-    );
-  }
+jumpIndicator?.addEventListener('click', () => {  
+  container.scrollTop = container.scrollHeight;  
+  hideJump();  
+});  
 
-  const pinnedId = postAdminBroadcast();
+container.addEventListener('scroll', () => {  
+  const distanceFromBottom =  
+    container.scrollHeight - container.scrollTop - container.clientHeight;  
+  if (distanceFromBottom < 80) hideJump();  
+});  
 
-  setTimeout(() => {
-    postPinNotice();
-  }, 1200);
+/* ===============================  
+   TYPING SYSTEM (PROMISE + QUEUE FIX)  
+=============================== */  
+const activeTyping = new Map();  
 
-  /* ===============================
-     START REALISM ENGINE
-  =============================== */
+function calculateTypingDuration(message) {  
+  if (!message) return 1200;  
+  const baseSpeed = 45;  
+  const minTime = 1000;  
+  const maxTime = 6000;  
+  let duration = message.length * baseSpeed;  
+  duration += Math.random() * 800;  
+  if (duration < minTime) duration = minTime;  
+  if (duration > maxTime) duration = maxTime;  
+  return Math.floor(duration);  
+}  
 
-  if (window.realism?.simulateRandomCrowdV11) {
-    setTimeout(() => {
-      window.realism.simulateRandomCrowdV11();
-    }, 800);
-  }
+function showTyping(persona, message = "", customDuration = null) {  
+  if (!persona?.name || !container) return Promise.resolve();  
+  const duration = customDuration || calculateTypingDuration(message);  
 
-  console.log("✅ app.js FINAL — typing fully synchronized, multi-safe, ghost-proof");
-});
+  return new Promise((resolve) => {  
+    hideTyping(persona.name);  
+
+    const typingBubble = document.createElement('div');  
+    typingBubble.className = 'tg-bubble incoming tg-typing';  
+    typingBubble.dataset.typing = persona.name;  
+
+    const avatar = document.createElement('img');  
+    avatar.className = 'tg-bubble-avatar';  
+    avatar.src = persona.avatar;  
+    avatar.alt = persona.name;  
+
+    const content = document.createElement('div');  
+    content.className = 'tg-bubble-content';  
+
+    const sender = document.createElement('div');  
+    sender.className = 'tg-bubble-sender';  
+    sender.dataset.color = getPersonaColor(persona.name);  
+    sender.textContent = persona.name;  
+
+    const dots = document.createElement('div');  
+    dots.className = 'tg-typing-dots';  
+    dots.textContent = 'typing…';  
+
+    content.appendChild(sender);  
+    content.appendChild(dots);  
+    typingBubble.appendChild(avatar);  
+    typingBubble.appendChild(content);  
+    container.appendChild(typingBubble);  
+    container.scrollTop = container.scrollHeight;  
+
+    const timer = setTimeout(() => {  
+      hideTyping(persona.name);  
+      resolve();  
+    }, duration);  
+
+    activeTyping.set(persona.name, timer);  
+  });  
+}  
+
+function hideTyping(personaName) {  
+  const existing = container.querySelector(`[data-typing="${personaName}"]`);  
+  if (existing) existing.remove();  
+  if (activeTyping.has(personaName)) {  
+    clearTimeout(activeTyping.get(personaName));  
+    activeTyping.delete(personaName);  
+  }  
+}  
+
+window.TGRenderer = {  
+  appendMessage,  
+  showTyping,  
+  hideTyping,  
+  getPinnedMessageId: () => PINNED_MESSAGE_ID,  
+  calculateTypingDuration  
+};  
+
+console.log('✅ bubble-renderer FIXED — queued typing + realism ready');
+}
+
+document.readyState === 'loading'
+? document.addEventListener('DOMContentLoaded', init)
+: init();
+
+})();
