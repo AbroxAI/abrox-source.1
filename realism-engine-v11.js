@@ -1,4 +1,4 @@
-// realism-engine-v11-human-fixed-sync.js — ULTRA-REALISM ENGINE V11 (fully queued typing + staggered crowd + self-replies + ultra-human typing)
+// realism-engine-v11-human-fixed-sync.js — ULTRA-REALISM ENGINE V11 (queued, staggered, thinking pauses)
 (function(){
 
 /* =====================================================
@@ -150,32 +150,33 @@ function generateComment(){
 }
 
 /* =====================================================
-   ULTRA-HUMANIZED TYPING QUEUE
+   ULTRA-HUMAN TYPING QUEUE WITH THINKING PAUSES
 ===================================================== */
 
 let typingQueue = Promise.resolve();
+const activeTypingPersonas = new Set();
 
 function humanTypingDuration(message){
   if(!message) return 400;
-  let duration = 0;
-  const len = message.length;
-
-  // Base timing with punctuation awareness
-  const punct = (message.match(/[.,!?]/g) || []).length;
-  const emojiCount = (message.match(/[\u{1F300}-\u{1F6FF}]/gu) || []).length;
-  duration = 200 + len*35 + punct*150 - emojiCount*30 + Math.random()*500;
-
-  if(len>50) duration += 300 + Math.random()*700; // extra thinking on long messages
-  if(duration>7500) duration=7500;
-  if(duration<400) duration=400;
-
-  return Math.floor(duration);
+  let duration = 200 + message.length*35 + (message.match(/[.,!?]/g)||[]).length*150 + Math.random()*500;
+  const emojis = (message.match(/[\u{1F300}-\u{1F6FF}]/gu)||[]).length;
+  duration -= emojis*30;
+  if(message.length>50) duration += 300 + Math.random()*700;
+  return Math.min(Math.max(duration,400),7500);
 }
 
-function queuedTyping(persona,message){
-  typingQueue = typingQueue.then(()=>{
+function queuedTypingWithPause(persona,message){
+  typingQueue = typingQueue.then(async ()=>{
+    if(activeTypingPersonas.has(persona.name)) return;
+    activeTypingPersonas.add(persona.name);
+
+    // ✅ random thinking pause before typing bubble
+    const thinkingPause = 200 + Math.random()*600;
+    await new Promise(res=>setTimeout(res, thinkingPause));
+
     const duration = humanTypingDuration(message);
-    return window.TGRenderer?.showTyping?.(persona,message,duration) || Promise.resolve();
+    await window.TGRenderer?.showTyping?.(persona,message,duration);
+    activeTypingPersonas.delete(persona.name);
   });
   return typingQueue;
 }
@@ -184,8 +185,8 @@ document.addEventListener("messageAppended", (ev)=>{
   const persona = ev.detail?.persona;
   if(persona?.name){
     window.TGRenderer?.hideTyping(persona.name);
+    activeTypingPersonas.delete(persona.name);
   }
-  typingQueue = Promise.resolve();
 });
 
 /* =====================================================
@@ -212,7 +213,8 @@ async function postMessage(item){
   }
 
   document.dispatchEvent(new CustomEvent('headerTyping',{ detail:{ name: persona.name } }));
-  await queuedTyping(persona, item.text);
+
+  await queuedTypingWithPause(persona, item.text); // ✅ message waits for thinking + typing
 
   appendSafe(persona, item.text, {
     timestamp: item.timestamp,
@@ -293,7 +295,7 @@ setTimeout(async ()=>{
   ensurePool(2000);
   await simulateCrowd(60,400,1200);
   simulate();
-  console.log("✅ Realism Engine V11 fully synced — ultra-human typing, queued, self-replies included, timers fixed, context-aware typing.");
+  console.log("✅ Realism Engine V11 fully synced — ultra-human typing, thinking pauses, queued, sequential personas, self-replies included.");
 },900);
 
 })();
