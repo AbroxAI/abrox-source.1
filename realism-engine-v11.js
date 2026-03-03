@@ -90,7 +90,6 @@ function hash(str){
 const GENERATED = new Set();
 const QUEUE = [];
 
-// Pool and emojis exposed globally
 const POOL = [];
 window.realismEngineV11Pool = POOL;
 window.realismEngineV11EMOJIS = EMOJIS;
@@ -177,7 +176,7 @@ function queuedTyping(persona,message){
   return typingQueue;
 }
 
-// ✅ FIX: clear typing immediately after persona sends a message
+// ✅ clear typing immediately after persona sends a message
 document.addEventListener("messageAppended", (ev)=>{
   const persona = ev.detail?.persona;
   if(persona?.name){
@@ -187,35 +186,43 @@ document.addEventListener("messageAppended", (ev)=>{
 });
 
 /* =====================================================
-   POST MESSAGE
+   POST MESSAGE (FULLY QUEUED SELF-REPLIES)
 ===================================================== */
 
 async function postMessage(item){
   const persona = item.persona || window.identity?.getRandomPersona?.() || { name:"User", avatar:`https://ui-avatars.com/api/?name=U` };
 
-  document.dispatchEvent(new CustomEvent('headerTyping',{ detail:{ name: persona.name } }));
-
-  await queuedTyping(persona,item.text);
-
+  // Determine if self-reply and queue typing
   let replyData = {};
-  if(maybe(0.28)){
-    const existing = getRandomExistingMessage();
-    if(existing) replyData = existing;
-  }
+
+  // Check for self-reply
   if(maybe(0.12)){
     const selfMessages = Array.from(document.querySelectorAll('.tg-bubble'))
       .filter(b=>b.dataset.persona===persona.name);
     if(selfMessages.length){
       const selfTarget = selfMessages[Math.floor(Math.random()*selfMessages.length)];
       const selfText = selfTarget.querySelector('.tg-bubble-text')?.textContent;
-      if(selfText) replyData={ replyToId: selfTarget.dataset.id, replyToText: selfText.slice(0,120) };
+      if(selfText) replyData = { replyToId: selfTarget.dataset.id, replyToText: selfText.slice(0,120) };
     }
   }
 
-  appendSafe(persona,item.text,{
-    timestamp:item.timestamp,
-    type:"incoming",
-    id:`realism_${Date.now()}_${rand(9999)}`,
+  // Check for reply to existing message
+  if(maybe(0.28)){
+    const existing = getRandomExistingMessage();
+    if(existing) replyData = existing;
+  }
+
+  // Trigger typing for this persona
+  document.dispatchEvent(new CustomEvent('headerTyping',{ detail:{ name: persona.name } }));
+
+  // ✅ queue typing even for self-replies
+  await queuedTyping(persona, item.text);
+
+  // Append the message
+  appendSafe(persona, item.text, {
+    timestamp: item.timestamp,
+    type: "incoming",
+    id: `realism_${Date.now()}_${rand(9999)}`,
     ...replyData
   });
 }
@@ -291,7 +298,7 @@ setTimeout(async ()=>{
   ensurePool(2000);
   await simulateCrowd(60,400,1200);
   simulate();
-  console.log("✅ Realism Engine V11 fully synced — humanized typing, queued, cleared after member message, messages follow typing.");
+  console.log("✅ Realism Engine V11 fully synced — humanized typing, queued, self-replies included, messages follow typing.");
 },900);
 
 })();
