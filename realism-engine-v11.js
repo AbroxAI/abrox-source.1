@@ -1,4 +1,4 @@
-// realism-engine-v11-human-fixed-sync.js — ULTRA-REALISM ENGINE V11 (fully queued typing + staggered crowd + self-replies + ultra-human typing + fixed typing order)
+// realism-engine-v11-human-fixed-sync-integrated.js — FULLY INTEGRATED WITH BUBBLE RENDERER
 (function(){
 
 /* =====================================================
@@ -155,41 +155,15 @@ function generateComment(){
 
 let typingQueue = Promise.resolve();
 
-function humanTypingDuration(message){
-  if(!message) return 400;
-  let duration = 0;
-  const len = message.length;
-
-  const punct = (message.match(/[.,!?]/g) || []).length;
-  const emojiCount = (message.match(/[\u{1F300}-\u{1F6FF}]/gu) || []).length;
-  duration = 200 + len*35 + punct*150 - emojiCount*30 + Math.random()*500;
-
-  if(len>50) duration += 300 + Math.random()*700;
-  if(duration>7500) duration=7500;
-  if(duration<400) duration=400;
-
-  return Math.floor(duration);
-}
-
 function queuedTyping(persona,message){
   typingQueue = typingQueue.then(()=>{
     return new Promise(resolve => {
-      // ✅ FIX: wait for showTyping to finish before appending
-      window.TGRenderer?.showTyping?.(persona,message)?.then(() => {
-        resolve();
-      });
+      // ✅ wait for showTyping to complete fully before resolving
+      window.TGRenderer?.showTyping?.(persona,message)?.then(resolve);
     });
   });
   return typingQueue;
 }
-
-document.addEventListener("messageAppended", (ev)=>{
-  const persona = ev.detail?.persona;
-  if(persona?.name){
-    window.TGRenderer?.hideTyping(persona.name);
-  }
-  typingQueue = Promise.resolve();
-});
 
 /* =====================================================
    POST MESSAGE
