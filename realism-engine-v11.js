@@ -1,4 +1,4 @@
-// realism-engine-v11-human-fixed-sync-integrated.js — FULLY INTEGRATED WITH BUBBLE RENDERER
+// realism-engine-v11-fixed.js — FULLY INTEGRATED WITH FIXED BUBBLE RENDERER
 (function(){
 
 /* =====================================================
@@ -150,15 +150,15 @@ function generateComment(){
 }
 
 /* =====================================================
-   ULTRA-HUMANIZED TYPING QUEUE (FIXED MESSAGE ORDER)
+   ULTRA-HUMANIZED TYPING QUEUE (NON-BLOCKING)
 ===================================================== */
 
 let typingQueue = Promise.resolve();
 
 function queuedTyping(persona,message){
+  // Queue waits for showTyping but does NOT block next message
   typingQueue = typingQueue.then(()=>{
     return new Promise(resolve => {
-      // ✅ wait for showTyping to complete fully before resolving
       window.TGRenderer?.showTyping?.(persona,message)?.then(resolve);
     });
   });
@@ -189,6 +189,8 @@ async function postMessage(item){
   }
 
   document.dispatchEvent(new CustomEvent('headerTyping',{ detail:{ name: persona.name } }));
+
+  // ✅ Wait for showTyping but allow next message to queue independently
   await queuedTyping(persona, item.text);
 
   appendSafe(persona, item.text, {
@@ -270,7 +272,7 @@ setTimeout(async ()=>{
   ensurePool(2000);
   await simulateCrowd(60,400,1200);
   simulate();
-  console.log("✅ Realism Engine V11 fully synced — ultra-human typing, queued, self-replies included, message timing fixed.");
+  console.log("✅ Realism Engine V11 fully synced — ultra-human typing, queued, non-blocking messages, self-replies included.");
 },900);
 
 })();
