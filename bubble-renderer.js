@@ -1,4 +1,4 @@
-// bubble-renderer.js — Telegram 2026 Renderer (fully synchronized typing + queued messages + auto-clean)
+// bubble-renderer.js — Telegram 2026 Renderer (fully synchronized typing + auto-clean + NO internal queue)
 
 (function () {
   'use strict';
@@ -171,7 +171,7 @@
       const result = createBubble(persona, text, opts);
       container.appendChild(result.el);
 
-      // remove typing bubble for this persona after message append
+      // Force clear typing for this persona
       hideTyping(persona.name);
 
       const atBottom =
@@ -215,10 +215,8 @@
     });
 
     /* ===============================
-       TYPING QUEUE SYSTEM (FIXED)
+       TYPING SYSTEM (NO INTERNAL QUEUE)
     =============================== */
-    let typingQueue = Promise.resolve();
-
     function calculateTypingDuration(message) {
       if (!message) return 1200;
       const baseSpeed = 45;
@@ -235,47 +233,46 @@
       if (!persona || !container) return Promise.resolve();
       const duration = customDuration || calculateTypingDuration(message);
 
-      // enqueue typing so messages follow typing
-      typingQueue = typingQueue.then(() => {
-        return new Promise((resolve) => {
-          const typingBubble = document.createElement('div');
-          typingBubble.className = 'tg-bubble incoming tg-typing';
-          typingBubble.dataset.typing = persona.name || 'unknown';
+      return new Promise((resolve) => {
 
-          const avatar = document.createElement('img');
-          avatar.className = 'tg-bubble-avatar';
-          avatar.src = persona.avatar;
-          avatar.alt = persona.name;
+        // Clear existing typing first
+        hideTyping(persona.name);
 
-          const content = document.createElement('div');
-          content.className = 'tg-bubble-content';
+        const typingBubble = document.createElement('div');
+        typingBubble.className = 'tg-bubble incoming tg-typing';
+        typingBubble.dataset.typing = persona.name || 'unknown';
 
-          const sender = document.createElement('div');
-          sender.className = 'tg-bubble-sender';
-          sender.dataset.color = getPersonaColor(persona.name);
-          sender.textContent = persona.name;
+        const avatar = document.createElement('img');
+        avatar.className = 'tg-bubble-avatar';
+        avatar.src = persona.avatar;
+        avatar.alt = persona.name;
 
-          const dots = document.createElement('div');
-          dots.className = 'tg-typing-dots';
-          dots.textContent = 'typing…';
+        const content = document.createElement('div');
+        content.className = 'tg-bubble-content';
 
-          content.appendChild(sender);
-          content.appendChild(dots);
-          typingBubble.appendChild(avatar);
-          typingBubble.appendChild(content);
+        const sender = document.createElement('div');
+        sender.className = 'tg-bubble-sender';
+        sender.dataset.color = getPersonaColor(persona.name);
+        sender.textContent = persona.name;
 
-          container.appendChild(typingBubble);
-          container.scrollTop = container.scrollHeight;
+        const dots = document.createElement('div');
+        dots.className = 'tg-typing-dots';
+        dots.textContent = 'typing…';
 
-          setTimeout(() => {
-            const existing = container.querySelector(`[data-typing="${persona.name}"]`);
-            if (existing) existing.remove();
-            resolve();
-          }, duration);
-        });
+        content.appendChild(sender);
+        content.appendChild(dots);
+        typingBubble.appendChild(avatar);
+        typingBubble.appendChild(content);
+
+        container.appendChild(typingBubble);
+        container.scrollTop = container.scrollHeight;
+
+        setTimeout(() => {
+          hideTyping(persona.name);
+          resolve();
+        }, duration);
+
       });
-
-      return typingQueue;
     }
 
     function hideTyping(personaName) {
@@ -290,7 +287,7 @@
       getPinnedMessageId: () => PINNED_MESSAGE_ID
     };
 
-    console.log('✅ bubble-renderer fixed — queued typing, messages follow typing, typing cleared automatically.');
+    console.log('✅ bubble-renderer stabilized — no internal queue, no ghost typing, fully synchronized.');
   }
 
   document.readyState === 'loading'
