@@ -1,4 +1,4 @@
-// realism-engine-v11-human-fixed-sync-integrated.js — FULLY INTEGRATED WITH BUBBLE RENDERER (FIXED)
+// realism-engine-v11-human-fixed-sync-integrated.js — FULLY INTEGRATED WITH BUBBLE RENDERER (CONFIRMED FIX)
 (function(){
 
 /* =====================================================
@@ -95,12 +95,22 @@ function generateComment(){
 }
 
 /* =====================================================
-   ULTRA-HUMANIZED TYPING (FIXED)
+   ULTRA-HUMANIZED TYPING (CONFIRMED)
 ===================================================== */
 function queuedTyping(persona,message){
   if(!persona?.name || !window.TGRenderer?.showTyping) return Promise.resolve();
+
   window.TGRenderer.showTyping(persona,message);
-  return Promise.resolve(); // ✅ non-blocking
+
+  const min=600, perChar=35, max=8000;
+  const delay = Math.min(max, min + (message?.length||10)*perChar + Math.random()*400);
+
+  return new Promise(resolve=>{
+    setTimeout(()=>{
+      window.TGRenderer.hideTyping(persona.name); // ✅ typing cleared automatically
+      resolve(); // ✅ now post the message
+    }, delay);
+  });
 }
 
 /* =====================================================
@@ -182,7 +192,6 @@ function simulate(){ if(started) return; started=true; simulateCrowd(60,400,1200
 ===================================================== */
 function appendSafe(persona,text,opts={}){
   if(window.TGRenderer?.appendMessage){
-    if(persona?.name) window.TGRenderer.hideTyping(persona.name); // ✅ Typing cleared immediately
     return window.TGRenderer.appendMessage(persona,text,opts);
   }
   return null;
