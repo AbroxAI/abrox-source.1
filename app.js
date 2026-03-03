@@ -1,302 +1,257 @@
-// bubble-renderer-fixed.js — Telegram 2026 Renderer (fully fixed + queued typing sync + realism ready)
-(function () {
-'use strict';
+// app-fixed.js — Telegram 2026 final integration (fully queued typing + realism engine ready + fixed)
+document.addEventListener("DOMContentLoaded", () => {
 
-function init() {
-const container = document.getElementById('tg-comments-container');
-const jumpIndicator = document.getElementById('tg-jump-indicator');
-const jumpText = document.getElementById('tg-jump-text');
-if (!container) { console.error('bubble-renderer: container missing'); return; }
+const pinBanner = document.getElementById("tg-pin-banner");
+const container = document.getElementById("tg-comments-container");
+const headerMeta = document.getElementById("tg-meta-line");
 
-let unseenCount = 0;  
-let lastDateKey = null;  
-const MESSAGE_MAP = new Map();  
-let PINNED_MESSAGE_ID = null;  
+if (!container) { console.error("tg-comments-container missing in DOM"); return; }
 
-const activeTypingTimers = new Map();  
+/* ===============================
+Telegram-style highlight pulse
+=============================== */
+const style = document.createElement('style');
+style.textContent = `
+.tg-highlight { 
+  background-color: rgba(255, 229, 100, 0.3); 
+  border-radius: 14px; 
+  animation: tgFadePulse 2.6s ease-out forwards; 
+} 
+@keyframes tgFadePulse { 
+  0% { opacity: 1; transform: scale(1.02); } 
+  20% { opacity: 1; transform: scale(1); } 
+  100% { opacity: 0; transform: scale(1); } 
+}`;
+document.head.appendChild(style);
 
-/* ===============================  
-   DATE STICKERS  
-=============================== */  
-function formatDateKey(date) {  
-  const d = new Date(date);  
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;  
-}  
+/* ===============================
+SAFE APPEND
+=============================== */
+function appendSafe(persona, text, opts = {}) {
+  if (!window.TGRenderer?.appendMessage) {
+    console.warn("TGRenderer not ready");
+    return null;
+  }
 
-function insertDateSticker(date) {  
-  const key = formatDateKey(date);  
-  if (key === lastDateKey) return;  
-  lastDateKey = key;  
+  const id = window.TGRenderer.appendMessage(persona, text, opts);  
 
-  const sticker = document.createElement('div');  
-  sticker.className = 'tg-date-sticker';  
-  sticker.textContent = new Date(date).toLocaleDateString([], {  
-    year: 'numeric', month: 'short', day: 'numeric'  
-  });  
+  document.dispatchEvent(
+    new CustomEvent("messageAppended", { detail: { persona } })
+  );  
 
-  container.appendChild(sticker);  
-}  
-
-/* ===============================  
-   PERSONA COLOR ASSIGNMENT  
-=============================== */  
-const personaColorMap = new Map();  
-const personaColors = [  
-  "1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"  
-];  
-
-function getPersonaColor(personaName) {  
-  if (!personaName) return "1";  
-  if (!personaColorMap.has(personaName)) {  
-    const assigned = personaColors[personaColorMap.size % personaColors.length];  
-    personaColorMap.set(personaName, assigned);  
-  }  
-  return personaColorMap.get(personaName);  
-}  
-
-/* ===============================  
-   CREATE BUBBLE  
-=============================== */  
-function createBubble(persona, text, opts = {}) {  
-  const id = opts.id || ('m_' + Date.now() + '_' + Math.floor(Math.random() * 9999));  
-  const type = opts.type === 'outgoing' ? 'outgoing' : 'incoming';  
-  const timestamp = opts.timestamp || new Date();  
-  const replyToId = opts.replyToId || null;  
-  const replyToText = opts.replyToText || null;  
-  const image = opts.image || null;  
-  const caption = opts.caption || null;  
-
-  insertDateSticker(timestamp);  
-
-  const wrapper = document.createElement('div');  
-  wrapper.className = `tg-bubble ${type}`;  
-  wrapper.dataset.id = id;  
-  wrapper.dataset.persona = persona?.name || 'User';  
-
-  const avatar = document.createElement('img');  
-  avatar.className = 'tg-bubble-avatar';  
-  avatar.alt = persona?.name || 'User';  
-  avatar.src = persona?.avatar ||  
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;  
-  avatar.onerror = () =>  
-    avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;  
-
-  const content = document.createElement('div');  
-  content.className = 'tg-bubble-content';  
-
-  const sender = document.createElement('div');  
-  sender.className = 'tg-bubble-sender';  
-  sender.textContent = persona?.name || 'User';  
-  sender.dataset.color = getPersonaColor(persona?.name || 'User');  
-  content.appendChild(sender);  
-
-  if (replyToText || replyToId) {  
-    const replyPreview = document.createElement('div');  
-    replyPreview.className = 'tg-reply-preview';  
-    replyPreview.textContent = replyToText  
-      ? (replyToText.length > 120  
-          ? replyToText.slice(0, 117) + '...'  
-          : replyToText)  
-      : 'Reply';  
-
-    replyPreview.addEventListener('click', () => {  
-      if (!replyToId) return;  
-      const target = MESSAGE_MAP.get(replyToId);  
-      if (!target) return;  
-      target.el.scrollIntoView({ behavior: 'smooth', block: 'center' });  
-      target.el.classList.add('tg-highlight');  
-      setTimeout(() => target.el.classList.remove('tg-highlight'), 2600);  
-    });  
-
-    content.appendChild(replyPreview);  
-  }  
-
-  if (image) {  
-    const img = document.createElement('img');  
-    img.className = 'tg-bubble-image';  
-    img.src = image;  
-    img.style.width = '100%';  
-    img.style.borderRadius = '12px';  
-    img.onerror = () => img.remove();  
-    content.appendChild(img);  
-  }  
-
-  const finalText = caption || text;  
-
-  if (finalText) {  
-    const textEl = document.createElement('div');  
-    textEl.className = 'tg-bubble-text';  
-    textEl.style.whiteSpace = 'pre-line';  
-    textEl.textContent = finalText;  
-    content.appendChild(textEl);  
-
-    if (caption) PINNED_MESSAGE_ID = id;  
-  }  
-
-  if (persona?.isAdmin) {  
-    const adminBtn = document.createElement('a');  
-    adminBtn.className = 'glass-btn';  
-    adminBtn.href = window.CONTACT_ADMIN_LINK || 'https://t.me/';  
-    adminBtn.target = '_blank';  
-    adminBtn.textContent = 'Contact Admin';  
-    adminBtn.style.marginTop = '8px';  
-    content.appendChild(adminBtn);  
-  }  
-
-  const meta = document.createElement('div');  
-  meta.className = 'tg-bubble-meta';  
-  meta.textContent = new Date(timestamp).toLocaleTimeString([], {  
-    hour: '2-digit',  
-    minute: '2-digit'  
-  });  
-  content.appendChild(meta);  
-
-  if (type === 'incoming') {  
-    wrapper.appendChild(avatar);  
-    wrapper.appendChild(content);  
-  } else {  
-    wrapper.style.flexDirection = 'row-reverse';  
-    wrapper.appendChild(avatar);  
-    wrapper.appendChild(content);  
-  }  
-
-  MESSAGE_MAP.set(id, { el: wrapper, text: finalText, persona, timestamp });  
-
-  return { el: wrapper, id };  
-}  
-
-/* ===============================  
-   MESSAGE APPEND  
-=============================== */  
-function appendMessage(persona, text, opts = {}) {  
-  const result = createBubble(persona, text, opts);  
-  container.appendChild(result.el);  
-
-  hideTyping(persona.name); // removes typing immediately when message appears  
-
-  const atBottom =  
-    container.scrollTop + container.clientHeight >=  
-    container.scrollHeight - 80;  
-
-  if (atBottom) container.scrollTop = container.scrollHeight;  
-  else {  
-    unseenCount++;  
-    updateJump();  
-    showJump();  
-  }  
-
-  return result.id;  
-}  
-
-function updateJump() {  
-  if (!jumpText) return;  
-  jumpText.textContent =  
-    unseenCount > 1  
-      ? `New messages · ${unseenCount}`  
-      : 'New messages';  
-}  
-
-function showJump() { jumpIndicator?.classList.remove('hidden'); }  
-function hideJump() {  
-  unseenCount = 0;  
-  updateJump();  
-  jumpIndicator?.classList.add('hidden');  
-}  
-
-jumpIndicator?.addEventListener('click', () => {  
-  container.scrollTop = container.scrollHeight;  
-  hideJump();  
-});  
-
-container.addEventListener('scroll', () => {  
-  const distanceFromBottom =  
-    container.scrollHeight - container.scrollTop - container.clientHeight;  
-  if (distanceFromBottom < 80) hideJump();  
-});  
-
-/* ===============================  
-   TYPING SYSTEM (PROMISE + QUEUE FIX)  
-=============================== */  
-const activeTyping = new Map();  
-
-function calculateTypingDuration(message) {  
-  if (!message) return 1200;  
-  const baseSpeed = 45;  
-  const minTime = 1000;  
-  const maxTime = 6000;  
-  let duration = message.length * baseSpeed;  
-  duration += Math.random() * 800;  
-  if (duration < minTime) duration = minTime;  
-  if (duration > maxTime) duration = maxTime;  
-  return Math.floor(duration);  
-}  
-
-function showTyping(persona, message = "", customDuration = null) {  
-  if (!persona?.name || !container) return Promise.resolve();  
-  const duration = customDuration || calculateTypingDuration(message);  
-
-  return new Promise((resolve) => {  
-    hideTyping(persona.name);  
-
-    const typingBubble = document.createElement('div');  
-    typingBubble.className = 'tg-bubble incoming tg-typing';  
-    typingBubble.dataset.typing = persona.name;  
-
-    const avatar = document.createElement('img');  
-    avatar.className = 'tg-bubble-avatar';  
-    avatar.src = persona.avatar;  
-    avatar.alt = persona.name;  
-
-    const content = document.createElement('div');  
-    content.className = 'tg-bubble-content';  
-
-    const sender = document.createElement('div');  
-    sender.className = 'tg-bubble-sender';  
-    sender.dataset.color = getPersonaColor(persona.name);  
-    sender.textContent = persona.name;  
-
-    const dots = document.createElement('div');  
-    dots.className = 'tg-typing-dots';  
-    dots.textContent = 'typing…';  
-
-    content.appendChild(sender);  
-    content.appendChild(dots);  
-    typingBubble.appendChild(avatar);  
-    typingBubble.appendChild(content);  
-    container.appendChild(typingBubble);  
-    container.scrollTop = container.scrollHeight;  
-
-    const timer = setTimeout(() => {  
-      hideTyping(persona.name);  
-      resolve();  
-    }, duration);  
-
-    activeTyping.set(persona.name, timer);  
-  });  
-}  
-
-function hideTyping(personaName) {  
-  const existing = container.querySelector(`[data-typing="${personaName}"]`);  
-  if (existing) existing.remove();  
-  if (activeTyping.has(personaName)) {  
-    clearTimeout(activeTyping.get(personaName));  
-    activeTyping.delete(personaName);  
-  }  
-}  
-
-window.TGRenderer = {  
-  appendMessage,  
-  showTyping,  
-  hideTyping,  
-  getPinnedMessageId: () => PINNED_MESSAGE_ID,  
-  calculateTypingDuration  
-};  
-
-console.log('✅ bubble-renderer FIXED — queued typing + realism ready');
+  return id;
 }
 
-document.readyState === 'loading'
-? document.addEventListener('DOMContentLoaded', init)
-: init();
+/* ===============================
+HEADER TYPING MANAGER
+=============================== */
+const typingPersons = new Map();
 
-})();
+document.addEventListener("headerTyping", (ev) => {
+  const name = ev.detail?.name;
+  if (!name) return;
+
+  if (typingPersons.has(name)) clearTimeout(typingPersons.get(name));  
+
+  const timeout = setTimeout(() => {  
+    typingPersons.delete(name);  
+    updateHeaderTyping();  
+  }, 7000);  
+
+  typingPersons.set(name, timeout);  
+  updateHeaderTyping();
+});
+
+document.addEventListener("messageAppended", (ev) => {
+  const persona = ev.detail?.persona;
+  if (!persona?.name) return;
+
+  if (typingPersons.has(persona.name)) {  
+    clearTimeout(typingPersons.get(persona.name));  
+    typingPersons.delete(persona.name);  
+    updateHeaderTyping();  
+  }
+});
+
+function updateHeaderTyping() {
+  if (!headerMeta) return;
+  const names = Array.from(typingPersons.keys());
+
+  if (names.length === 0) {  
+    headerMeta.textContent = 
+      `${window.MEMBER_COUNT?.toLocaleString?.() || "0"} members, ` +  
+      `${window.ONLINE_COUNT?.toLocaleString?.() || "0"} online`;  
+  } else if (names.length === 1) {  
+    headerMeta.textContent = `${names[0]} is typing…`;  
+  } else {  
+    headerMeta.textContent = 
+      `${names.slice(0, 2).join(" & ")} are typing…`;  
+  }
+}
+
+/* ===============================
+PIN SYSTEM
+=============================== */
+function jumpToMessage(el) {
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.add("tg-highlight");
+  setTimeout(() => el.classList.remove("tg-highlight"), 2600);
+}
+
+function safeJumpById(id, retries = 6) {
+  const el = document.querySelector(`[data-id="${id}"]`);
+  if (el) jumpToMessage(el);
+  else if (retries > 0)
+    setTimeout(() => safeJumpById(id, retries - 1), 200);
+}
+
+function postAdminBroadcast() {
+  const admin = window.identity?.Admin || {
+    name: "Admin",
+    avatar: "assets/admin.jpg",
+    isAdmin: true
+  };
+
+  const caption = `📌 Group Rules
+
+1️⃣ New members are read-only until verified.
+2️⃣ Admins do NOT DM directly.
+3️⃣ 🚫 No screenshots in chat.
+4️⃣ ⚠️ Ignore unsolicited messages.
+
+✅ To verify or contact admin, use the Contact Admin button below.`;
+
+  const image = "assets/broadcast.jpg";  
+  const timestamp = new Date(2025, 2, 14, 10, 0, 0);  
+
+  const id = appendSafe(admin, "", {  
+    timestamp,  
+    type: "incoming",  
+    image,  
+    caption  
+  });  
+
+  return { id, image };
+}
+
+function showPinBanner(image, pinnedMessageId) {
+  if (!pinBanner) return;
+
+  pinBanner.innerHTML = "";  
+
+  const img = document.createElement("img");  
+  img.src = image;  
+  img.onerror = () => (img.src = "assets/admin.jpg");  
+
+  const text = document.createElement("div");  
+  text.className = "tg-pin-text";  
+  text.textContent = "📌 Group Rules";  
+
+  const blueBtn = document.createElement("button");  
+  blueBtn.className = "pin-btn";  
+  blueBtn.textContent = "View Pinned";  
+  blueBtn.onclick = () => pinnedMessageId && safeJumpById(pinnedMessageId);  
+
+  const adminBtn = document.createElement("a");  
+  adminBtn.className = "glass-btn";  
+  adminBtn.href = window.CONTACT_ADMIN_LINK || "https://t.me/";  
+  adminBtn.target = "_blank";  
+  adminBtn.rel = "noopener";  
+  adminBtn.textContent = "Contact Admin";  
+
+  const btnContainer = document.createElement("div");  
+  btnContainer.className = "pin-btn-container";  
+  btnContainer.appendChild(blueBtn);  
+  btnContainer.appendChild(adminBtn);  
+
+  pinBanner.appendChild(img);  
+  pinBanner.appendChild(text);  
+  pinBanner.appendChild(btnContainer);  
+
+  pinBanner.classList.remove("hidden");  
+  requestAnimationFrame(() => pinBanner.classList.add("show"));
+}
+
+function postPinNotice() {
+  const system = { name: "System", avatar: "assets/admin.jpg" };
+  appendSafe(system, "Admin pinned a message", {
+    timestamp: new Date(),
+    type: "incoming"
+  });
+}
+
+const broadcast = postAdminBroadcast();
+setTimeout(() => {
+  postPinNotice();
+  showPinBanner(broadcast.image, broadcast.id);
+}, 1200);
+
+/* ===============================
+TYPING QUEUE SYSTEM (FULLY FIXED)
+=============================== */
+let typingQueue = Promise.resolve();
+
+async function queuedTyping(persona, message) {
+  if (!persona?.name) return Promise.resolve();
+
+  typingQueue = typingQueue.then(async () => {  
+    if (window.TGRenderer?.showTyping) {  
+      await window.TGRenderer.showTyping(persona, message);  
+    }  
+  }).catch(err => {  
+    console.error("Typing queue error:", err);  
+  });  
+
+  return typingQueue;
+}
+
+/* ===============================
+ADMIN AUTO RESPONSE
+=============================== */
+document.addEventListener("sendMessage", async (ev) => {
+  const text = ev.detail?.text || "";
+  const admin = window.identity?.Admin || { name: "Admin", avatar: "assets/admin.jpg" };
+
+  document.dispatchEvent(
+    new CustomEvent("headerTyping", { detail: { name: admin.name } })
+  );  
+
+  await queuedTyping(admin, text);  
+
+  appendSafe(
+    admin,  
+    "Please use the Contact Admin button in the pinned banner above.",  
+    { timestamp: new Date(), type: "incoming" }  
+  );
+});
+
+/* ===============================
+AUTO REPLY HANDLER
+=============================== */
+document.addEventListener("autoReply", async (ev) => {
+  const { parentText, persona, text } = ev.detail || {};
+  if (!persona || !text) return;
+
+  document.dispatchEvent(
+    new CustomEvent("headerTyping", { detail: { name: persona.name } })
+  );  
+
+  await queuedTyping(persona, text);  
+
+  appendSafe(persona, text, {
+    timestamp: new Date(),  
+    type: "incoming",  
+    replyToText: parentText  
+  });
+});
+
+/* ===============================
+START REALISM ENGINE
+=============================== */
+if (window.realism?.simulateRandomCrowdV11) {
+  setTimeout(() => window.realism.simulateRandomCrowdV11(), 800);
+}
+
+console.log("✅ app.js fixed — queued typing, realism engine ready, no ghost typing, messages flow continuously.");
+});
