@@ -1,4 +1,4 @@
-// realism-engine-v11-human-fixed.js — ULTRA-REALISM ENGINE V11 (fully queued typing + staggered crowd + self-replies + humanized typing)
+// realism-engine-v11-human-fixed-sync.js — ULTRA-REALISM ENGINE V11 (fully queued typing + staggered crowd + self-replies + humanized typing)
 (function(){
 
 /* =====================================================
@@ -84,11 +84,14 @@ function hash(str){
 }
 
 /* =====================================================
-   DEDUPE
+   DEDUPE & QUEUE
 ===================================================== */
 
 const GENERATED = new Set();
 const QUEUE = [];
+const POOL = [];
+window.realismEngineV11Pool = POOL;
+window.realismEngineV11EMOJIS = EMOJIS;
 
 function mark(text){
   const fp = hash(text.toLowerCase());
@@ -99,6 +102,13 @@ function mark(text){
     GENERATED.delete(QUEUE.shift());
   }
   return true;
+}
+
+function ensurePool(min=2000){
+  while(POOL.length < min){
+    POOL.push(generateComment());
+    if(POOL.length > 10000) break;
+  }
 }
 
 /* =====================================================
@@ -136,21 +146,6 @@ function generateComment(){
   }
 
   return { text, timestamp: generateTimestamp() };
-}
-
-/* =====================================================
-   POOL
-===================================================== */
-
-const POOL = [];
-window.realismEngineV11Pool = POOL;
-window.realismEngineV11EMOJIS = EMOJIS;
-
-function ensurePool(min=2000){
-  while(POOL.length < min){
-    POOL.push(generateComment());
-    if(POOL.length > 10000) break;
-  }
 }
 
 /* =====================================================
@@ -280,8 +275,7 @@ function simulate(){
 
 function appendSafe(persona,text,opts={}){
   if(window.TGRenderer?.appendMessage){
-    // ensure typing cleared
-    window.TGRenderer.hideTyping();
+    window.TGRenderer.hideTyping(); // clear typing
     return window.TGRenderer.appendMessage(persona,text,opts);
   }
   return null;
