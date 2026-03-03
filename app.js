@@ -37,8 +37,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const id = window.TGRenderer.appendMessage(persona, text, opts);
 
-    // ⚡ removed immediate hideTyping here — now handled in queuedTyping
-
     document.dispatchEvent(
       new CustomEvent("messageAppended", { detail: { persona } })
     );
@@ -196,17 +194,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }, 1200);
 
   /* ===============================
-     TYPING QUEUE SYSTEM (FIXED)
+     TYPING QUEUE SYSTEM (STABLE)
   =============================== */
   let typingQueue = Promise.resolve();
 
   function queuedTyping(persona, message) {
     typingQueue = typingQueue.then(() => {
       return window.TGRenderer?.showTyping(persona, message)
-        .then(() => {
-          // ✅ hide typing immediately after the typing finishes
-          window.TGRenderer?.hideTyping(persona.name);
-        }) || Promise.resolve();
+        || Promise.resolve();
     });
     return typingQueue;
   }
@@ -269,5 +264,5 @@ document.addEventListener("DOMContentLoaded", () => {
     inputBar.style.borderRadius = "26px";
   }
 
-  console.log("✅ app.js fixed — queued typing synced, messages always follow typing, header auto-updates.");
+  console.log("✅ app.js stabilized — no double hide, no race condition, header clears correctly.");
 });
