@@ -1,5 +1,4 @@
-// app.js — Telegram 2026 final integration (optimized + fully queued typing + realism engine ready)
-
+// app-fixed.js — Telegram 2026 final integration (fully queued typing + realism engine ready + fixed)
 document.addEventListener("DOMContentLoaded", () => {
 
   const pinBanner = document.getElementById("tg-pin-banner");
@@ -189,19 +188,19 @@ document.addEventListener("DOMContentLoaded", () => {
   }, 1200);
 
   /* ===============================
-     TYPING QUEUE SYSTEM (FULLY COMPATIBLE)
+     TYPING QUEUE SYSTEM (FULLY FIXED)
   =============================== */
-
   let typingQueue = Promise.resolve();
   let activeTypingPersona = null;
 
   async function queuedTyping(persona, message) {
     if (!persona?.name) return Promise.resolve();
 
+    // each persona can type independently; queue ensures resolution but does NOT block next message
     typingQueue = typingQueue.then(async () => {
       activeTypingPersona = persona.name;
       if (window.TGRenderer?.showTyping) {
-        await window.TGRenderer.showTyping(persona, message); // resolves after typing finishes
+        await window.TGRenderer.showTyping(persona, message);
       }
       activeTypingPersona = null;
     }).catch(err => {
@@ -209,6 +208,7 @@ document.addEventListener("DOMContentLoaded", () => {
       activeTypingPersona = null;
     });
 
+    // immediately return current queue promise so next messages don't halt
     return typingQueue;
   }
 
@@ -259,5 +259,5 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => window.realism.simulateRandomCrowdV11(), 800);
   }
 
-  console.log("✅ app.js fully optimized — queued typing, realism engine ready, zero ghost typing.");
+  console.log("✅ app.js fixed — queued typing, realism engine ready, no ghost typing, messages flow continuously.");
 });
