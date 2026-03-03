@@ -1,4 +1,4 @@
-// realism-engine-v11-human-fixed-sync-integrated.js — FULLY FIXED & QUEUE TYPING READY
+// realism-engine-v11-integrated.js — FULLY INTEGRATED WITH INTERACTIONS & APP (Queued Typing Ready)
 (function(){
 
 /* =====================================================
@@ -74,12 +74,7 @@ const EMOJIS = [
 function random(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function maybe(p){ return Math.random() < p; }
 function rand(max=9999){ return Math.floor(Math.random()*max); }
-
-function hash(str){
-  let h = 5381;
-  for(let i=0;i<str.length;i++) h = ((h<<5)+h)+str.charCodeAt(i);
-  return (h>>>0).toString(36);
-}
+function hash(str){ let h=5381; for(let i=0;i<str.length;i++) h=((h<<5)+h)+str.charCodeAt(i); return (h>>>0).toString(36); }
 
 /* =====================================================
    DEDUPE & POOL
@@ -95,9 +90,7 @@ function mark(text){
   if(GENERATED.has(fp)) return false;
   GENERATED.add(fp);
   QUEUE.push(fp);
-  while(QUEUE.length > 50000){
-    GENERATED.delete(QUEUE.shift());
-  }
+  while(QUEUE.length > 50000) GENERATED.delete(QUEUE.shift());
   return true;
 }
 
@@ -111,49 +104,34 @@ function ensurePool(min=2000){
 /* =====================================================
    COMMENT GENERATION
 ===================================================== */
-function generateTimestamp(days=120){
-  return new Date(Date.now() - Math.random()*days*86400000);
-}
+function generateTimestamp(days=120){ return new Date(Date.now() - Math.random()*days*86400000); }
 
 function generateComment(){
   const templates = [
-    () => `Guys, ${random(TESTIMONIALS)}`,
-    () => `Anyone trading ${random(ASSETS)} on ${random(BROKERS)}?`,
-    () => `Signal for ${random(ASSETS)} ${random(TIMEFRAMES)} is ${random(RESULT_WORDS)}`,
-    () => `Abrox alerted ${random(ASSETS)} ${random(TIMEFRAMES)} — ${random(RESULT_WORDS)}`,
-    () => `Closed ${random(ASSETS)} on ${random(TIMEFRAMES)} — ${random(RESULT_WORDS)}`,
-    () => `Scalped ${random(ASSETS)} on ${random(BROKERS)}, result ${random(RESULT_WORDS)}`,
-    () => `Testimonial: ${random(TESTIMONIALS)}`
+    ()=>`Guys, ${random(TESTIMONIALS)}`,
+    ()=>`Anyone trading ${random(ASSETS)} on ${random(BROKERS)}?`,
+    ()=>`Signal for ${random(ASSETS)} ${random(TIMEFRAMES)} is ${random(RESULT_WORDS)}`,
+    ()=>`Abrox alerted ${random(ASSETS)} ${random(TIMEFRAMES)} — ${random(RESULT_WORDS)}`,
+    ()=>`Closed ${random(ASSETS)} on ${random(TIMEFRAMES)} — ${random(RESULT_WORDS)}`,
+    ()=>`Scalped ${random(ASSETS)} on ${random(BROKERS)}, result ${random(RESULT_WORDS)}`,
+    ()=>`Testimonial: ${random(TESTIMONIALS)}`
   ];
 
   let text = random(templates)();
-
-  if(maybe(0.35)){
-    const extras = ["good execution","tight stop","wide stop","no slippage","perfect timing","partial TP hit"];
-    text += " — " + random(extras);
-  }
-
-  if(maybe(0.45)) text += " " + random(EMOJIS);
-
-  let tries = 0;
-  while(!mark(text) && tries < 30){
-    text += " " + rand(999);
-    tries++;
-  }
-
+  if(maybe(0.35)){ const extras=["good execution","tight stop","wide stop","no slippage","perfect timing","partial TP hit"]; text+=" — "+random(extras); }
+  if(maybe(0.45)) text+=" "+random(EMOJIS);
+  let tries=0; while(!mark(text)&&tries<30){ text+=" "+rand(999); tries++; }
   return { text, timestamp: generateTimestamp() };
 }
 
 /* =====================================================
-   QUEUED TYPING HELPER
+   QUEUED TYPING HELPER (SYNCED)
 ===================================================== */
 async function queuedTyping(persona, message){
   if(!persona?.name || !window.TGRenderer?.showTyping) return Promise.resolve();
-
   const duration = window.TGRenderer.calculateTypingDuration
                     ? window.TGRenderer.calculateTypingDuration(message)
                     : 1200;
-
   await window.TGRenderer.showTyping(persona, message, duration);
   window.TGRenderer.hideTyping(persona.name);
 }
@@ -208,10 +186,10 @@ function getRandomExistingMessage(){
 /* =====================================================
    CROWD SIMULATION
 ===================================================== */
-async function simulateCrowd(count = 60, minDelay=400, maxDelay=1200){
+async function simulateCrowd(count=60,minDelay=400,maxDelay=1200){
   ensurePool(count);
   for(let i=0;i<count;i++){
-    const item = POOL.shift();
+    const item=POOL.shift();
     if(!item) break;
     await postMessage(item);
     const pause = minDelay + Math.random()*(maxDelay-minDelay);
@@ -224,8 +202,7 @@ async function simulateCrowd(count = 60, minDelay=400, maxDelay=1200){
 ===================================================== */
 let started=false;
 function schedule(){
-  const min=20000;
-  const max=90000;
+  const min=20000,max=90000;
   const interval = min + Math.random()*(max-min);
   setTimeout(async ()=>{
     await simulateCrowd(1);
@@ -244,9 +221,7 @@ function simulate(){
    SAFE APPEND
 ===================================================== */
 function appendSafe(persona,text,opts={}){
-  if(window.TGRenderer?.appendMessage){
-    return window.TGRenderer.appendMessage(persona,text,opts);
-  }
+  if(window.TGRenderer?.appendMessage) return window.TGRenderer.appendMessage(persona,text,opts);
   return null;
 }
 
