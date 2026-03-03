@@ -1,4 +1,4 @@
-// interactions.js — Telegram 2026 interactions with ultra-real typing + reply preview + pinned view (Fixed)
+// interactions.js — Telegram 2026 interactions with ultra-real typing + reply preview + pinned view (Fully Fixed)
 (function () {
   'use strict';
 
@@ -47,6 +47,25 @@
   }
 
   /* ===============================
+     ULTRA-HUMANIZED TYPING (CONFIRMED)
+  =============================== */
+  function queuedTyping(persona, message) {
+    if (!persona?.name || !window.TGRenderer?.showTyping) return Promise.resolve();
+
+    window.TGRenderer.showTyping(persona, message);
+
+    const min=600, perChar=35, max=8000;
+    const delay = Math.min(max, min + (message?.length||10)*perChar + Math.random()*400);
+
+    return new Promise(resolve => {
+      setTimeout(() => {
+        window.TGRenderer.hideTyping(persona.name);
+        resolve();
+      }, delay);
+    });
+  }
+
+  /* ===============================
      SEND MESSAGE
   =============================== */
   function sendMessage() {
@@ -84,14 +103,8 @@
   });
 
   /* ===============================
-     REALISM ENGINE HOOK (FIXED)
+     REALISM ENGINE HOOK
   =============================== */
-  function queuedTyping(persona, message) {
-    if (!persona?.name || !window.TGRenderer?.showTyping) return Promise.resolve();
-    window.TGRenderer.showTyping(persona, message); // show typing
-    return Promise.resolve(); // immediately resolves, non-blocking
-  }
-
   async function simulateRealisticResponse(userText) {
     if (!window.RealismEngine || !window.identityPool) return;
 
@@ -100,31 +113,25 @@
 
     document.dispatchEvent(new CustomEvent('headerTyping', { detail: { name: persona.name } }));
 
-    const delay = getTypingDelay(userText);
+    const reply = window.RealismEngine.generateReply?.(userText, persona)
+      || generateFallbackReply(userText);
 
-    setTimeout(async () => {
-      const reply = window.RealismEngine.generateReply?.(userText, persona)
-        || generateFallbackReply(userText);
+    // ✅ realistic typing before posting
+    await queuedTyping(persona, reply);
 
-      // ✅ show typing non-blocking
-      await queuedTyping(persona, reply);
+    const bubbleEl = window.TGRenderer?.appendMessage(persona, reply, {
+      type: 'incoming',
+      timestamp: new Date()
+    });
 
-      // ✅ append message and immediately clear typing
-      const bubbleEl = window.TGRenderer?.appendMessage(persona, reply, {
-        type: 'incoming',
-        timestamp: new Date()
-      });
-      window.TGRenderer?.hideTyping(persona.name);
+    attachReplyPreview(bubbleEl, reply);
 
-      attachReplyPreview(bubbleEl, reply);
-
-      const atBottom = (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 50);
-      if (!atBottom) {
-        unseenCount++;
-        updateJump();
-        showJump();
-      }
-    }, delay);
+    const atBottom = (container.scrollTop + container.clientHeight) >= (container.scrollHeight - 50);
+    if (!atBottom) {
+      unseenCount++;
+      updateJump();
+      showJump();
+    }
   }
 
   function generateFallbackReply(text) {
@@ -218,6 +225,6 @@
     try { window.lucide.createIcons(); } catch (e) {}
   }
 
-  console.log('interactions.js fully integrated with bubble-renderer, realism engine (typing fix applied), new message pill, reply preview, and View Pinned button');
+  console.log('interactions.js fully integrated with bubble-renderer and realism engine — typing fix applied.');
 
 })();
