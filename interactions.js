@@ -1,4 +1,4 @@
-// interactions-v11-full-sync.js — Telegram 2026 interactions fully integrated with Realism Engine
+// interactions-v11-full-sync.js — Telegram 2026 interactions fully integrated with Realism Engine (header-only typing)
 (function () {
   'use strict';
 
@@ -36,15 +36,19 @@
   updateInputState();
 
   /* ===============================
-     QUEUED TYPING (SYNCED WITH REALISM ENGINE)
+     QUEUED HEADER TYPING ONLY
   =============================== */
+  const typingQueue = Promise.resolve();
+
   async function queuedTyping(persona, message) {
-    if (!persona?.name || !window.TGRenderer?.showTyping) return Promise.resolve();
-    const duration = window.TGRenderer.calculateTypingDuration
-                      ? window.TGRenderer.calculateTypingDuration(message)
-                      : 1200;
-    await window.TGRenderer.showTyping(persona, message, duration);
-    window.TGRenderer.hideTyping(persona.name);
+    if (!persona?.name) return Promise.resolve();
+
+    // Dispatch header typing event
+    document.dispatchEvent(new CustomEvent('headerTyping', { detail: { name: persona.name } }));
+
+    // Simulate typing duration (no bubble)
+    const duration = window.TGRenderer?.calculateTypingDuration?.(message) || 1200;
+    return new Promise((resolve) => setTimeout(resolve, duration));
   }
 
   /* ===============================
@@ -91,14 +95,12 @@
     const persona = window.identityPool.getRandomPersona?.();
     if (!persona) return;
 
-    document.dispatchEvent(new CustomEvent('headerTyping', { detail: { name: persona.name } }));
+    // Queued header-only typing
+    await queuedTyping(persona, userText);
 
     // Generate reply using realism engine or fallback
-    const reply = window.realism.generateReply?.(userText, persona) 
+    const reply = window.realism.generateReply?.(userText, persona)
                   || generateFallbackReply(userText);
-
-    // queued typing ensures the bubble appears only after typing ends
-    await queuedTyping(persona, reply);
 
     const bubbleEl = window.TGRenderer?.appendMessage(persona, reply, {
       type: 'incoming',
@@ -205,5 +207,5 @@
     try { window.lucide.createIcons(); } catch (e) {}
   }
 
-  console.log('interactions.js fully synced with Realism Engine V11 — messages only appear after typing ends, ultra-humanized flow.');
+  console.log('✅ interactions.js — header-only typing fully synced with Realism Engine V11');
 })();
