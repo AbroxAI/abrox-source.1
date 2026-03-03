@@ -1,4 +1,4 @@
-// app-fixed.js — Telegram 2026 final integration (fully queued typing + realism engine ready + fixed)
+// app-fixed.js — Telegram 2026 final integration (HEADER-ONLY typing + fully synced)
 document.addEventListener("DOMContentLoaded", () => {
 
 const pinBanner = document.getElementById("tg-pin-banner");
@@ -43,7 +43,7 @@ function appendSafe(persona, text, opts = {}) {
 }
 
 /* ===============================
-HEADER TYPING MANAGER
+HEADER TYPING MANAGER (FIXED)
 =============================== */
 const typingPersons = new Map();
 
@@ -51,14 +51,16 @@ document.addEventListener("headerTyping", (ev) => {
   const name = ev.detail?.name;
   if (!name) return;
 
-  if (typingPersons.has(name)) clearTimeout(typingPersons.get(name));  
+  if (typingPersons.has(name)) {
+    clearTimeout(typingPersons.get(name));
+  }
 
-  const timeout = setTimeout(() => {  
-    typingPersons.delete(name);  
-    updateHeaderTyping();  
-  }, 7000);  
+  const timeout = setTimeout(() => {
+    typingPersons.delete(name);
+    updateHeaderTyping();
+  }, 5000); // header typing auto clears
 
-  typingPersons.set(name, timeout);  
+  typingPersons.set(name, timeout);
   updateHeaderTyping();
 });
 
@@ -66,10 +68,10 @@ document.addEventListener("messageAppended", (ev) => {
   const persona = ev.detail?.persona;
   if (!persona?.name) return;
 
-  if (typingPersons.has(persona.name)) {  
-    clearTimeout(typingPersons.get(persona.name));  
-    typingPersons.delete(persona.name);  
-    updateHeaderTyping();  
+  if (typingPersons.has(persona.name)) {
+    clearTimeout(typingPersons.get(persona.name));
+    typingPersons.delete(persona.name);
+    updateHeaderTyping();
   }
 });
 
@@ -77,15 +79,16 @@ function updateHeaderTyping() {
   if (!headerMeta) return;
   const names = Array.from(typingPersons.keys());
 
-  if (names.length === 0) {  
-    headerMeta.textContent = 
-      `${window.MEMBER_COUNT?.toLocaleString?.() || "0"} members, ` +  
-      `${window.ONLINE_COUNT?.toLocaleString?.() || "0"} online`;  
-  } else if (names.length === 1) {  
-    headerMeta.textContent = `${names[0]} is typing…`;  
-  } else {  
-    headerMeta.textContent = 
-      `${names.slice(0, 2).join(" & ")} are typing…`;  
+  if (names.length === 0) {
+    headerMeta.textContent =
+      `${window.MEMBER_COUNT?.toLocaleString?.() || "0"} members, ` +
+      `${window.ONLINE_COUNT?.toLocaleString?.() || "0"} online`;
+  } 
+  else if (names.length === 1) {
+    headerMeta.textContent = `${names[0]} is typing…`;
+  } 
+  else {
+    headerMeta.textContent = `${names.slice(0, 2).join(" & ")} are typing…`;
   }
 }
 
@@ -122,15 +125,15 @@ function postAdminBroadcast() {
 
 ✅ To verify or contact admin, use the Contact Admin button below.`;
 
-  const image = "assets/broadcast.jpg";  
-  const timestamp = new Date(2025, 2, 14, 10, 0, 0);  
+  const image = "assets/broadcast.jpg";
+  const timestamp = new Date(2025, 2, 14, 10, 0, 0);
 
-  const id = appendSafe(admin, "", {  
-    timestamp,  
-    type: "incoming",  
-    image,  
-    caption  
-  });  
+  const id = appendSafe(admin, "", {
+    timestamp,
+    type: "incoming",
+    image,
+    caption
+  });
 
   return { id, image };
 }
@@ -138,38 +141,38 @@ function postAdminBroadcast() {
 function showPinBanner(image, pinnedMessageId) {
   if (!pinBanner) return;
 
-  pinBanner.innerHTML = "";  
+  pinBanner.innerHTML = "";
 
-  const img = document.createElement("img");  
-  img.src = image;  
-  img.onerror = () => (img.src = "assets/admin.jpg");  
+  const img = document.createElement("img");
+  img.src = image;
+  img.onerror = () => (img.src = "assets/admin.jpg");
 
-  const text = document.createElement("div");  
-  text.className = "tg-pin-text";  
-  text.textContent = "📌 Group Rules";  
+  const text = document.createElement("div");
+  text.className = "tg-pin-text";
+  text.textContent = "📌 Group Rules";
 
-  const blueBtn = document.createElement("button");  
-  blueBtn.className = "pin-btn";  
-  blueBtn.textContent = "View Pinned";  
-  blueBtn.onclick = () => pinnedMessageId && safeJumpById(pinnedMessageId);  
+  const blueBtn = document.createElement("button");
+  blueBtn.className = "pin-btn";
+  blueBtn.textContent = "View Pinned";
+  blueBtn.onclick = () => pinnedMessageId && safeJumpById(pinnedMessageId);
 
-  const adminBtn = document.createElement("a");  
-  adminBtn.className = "glass-btn";  
-  adminBtn.href = window.CONTACT_ADMIN_LINK || "https://t.me/";  
-  adminBtn.target = "_blank";  
-  adminBtn.rel = "noopener";  
-  adminBtn.textContent = "Contact Admin";  
+  const adminBtn = document.createElement("a");
+  adminBtn.className = "glass-btn";
+  adminBtn.href = window.CONTACT_ADMIN_LINK || "https://t.me/";
+  adminBtn.target = "_blank";
+  adminBtn.rel = "noopener";
+  adminBtn.textContent = "Contact Admin";
 
-  const btnContainer = document.createElement("div");  
-  btnContainer.className = "pin-btn-container";  
-  btnContainer.appendChild(blueBtn);  
-  btnContainer.appendChild(adminBtn);  
+  const btnContainer = document.createElement("div");
+  btnContainer.className = "pin-btn-container";
+  btnContainer.appendChild(blueBtn);
+  btnContainer.appendChild(adminBtn);
 
-  pinBanner.appendChild(img);  
-  pinBanner.appendChild(text);  
-  pinBanner.appendChild(btnContainer);  
+  pinBanner.appendChild(img);
+  pinBanner.appendChild(text);
+  pinBanner.appendChild(btnContainer);
 
-  pinBanner.classList.remove("hidden");  
+  pinBanner.classList.remove("hidden");
   requestAnimationFrame(() => pinBanner.classList.add("show"));
 }
 
@@ -188,20 +191,24 @@ setTimeout(() => {
 }, 1200);
 
 /* ===============================
-TYPING QUEUE SYSTEM (FULLY FIXED)
+HEADER-ONLY TYPING QUEUE (NO CHAT BUBBLES)
 =============================== */
 let typingQueue = Promise.resolve();
 
-async function queuedTyping(persona, message) {
+function queuedTyping(persona, message) {
   if (!persona?.name) return Promise.resolve();
 
-  typingQueue = typingQueue.then(async () => {  
-    if (window.TGRenderer?.showTyping) {  
-      await window.TGRenderer.showTyping(persona, message);  
-    }  
-  }).catch(err => {  
-    console.error("Typing queue error:", err);  
-  });  
+  typingQueue = typingQueue.then(() => {
+    document.dispatchEvent(
+      new CustomEvent("headerTyping", { detail: { name: persona.name } })
+    );
+
+    const duration = window.TGRenderer?.calculateTypingDuration?.(message) || 1200;
+
+    return new Promise(resolve => setTimeout(resolve, duration));
+  }).catch(err => {
+    console.error("Typing queue error:", err);
+  });
 
   return typingQueue;
 }
@@ -213,16 +220,12 @@ document.addEventListener("sendMessage", async (ev) => {
   const text = ev.detail?.text || "";
   const admin = window.identity?.Admin || { name: "Admin", avatar: "assets/admin.jpg" };
 
-  document.dispatchEvent(
-    new CustomEvent("headerTyping", { detail: { name: admin.name } })
-  );  
-
-  await queuedTyping(admin, text);  
+  await queuedTyping(admin, text);
 
   appendSafe(
-    admin,  
-    "Please use the Contact Admin button in the pinned banner above.",  
-    { timestamp: new Date(), type: "incoming" }  
+    admin,
+    "Please use the Contact Admin button in the pinned banner above.",
+    { timestamp: new Date(), type: "incoming" }
   );
 });
 
@@ -233,16 +236,12 @@ document.addEventListener("autoReply", async (ev) => {
   const { parentText, persona, text } = ev.detail || {};
   if (!persona || !text) return;
 
-  document.dispatchEvent(
-    new CustomEvent("headerTyping", { detail: { name: persona.name } })
-  );  
-
-  await queuedTyping(persona, text);  
+  await queuedTyping(persona, text);
 
   appendSafe(persona, text, {
-    timestamp: new Date(),  
-    type: "incoming",  
-    replyToText: parentText  
+    timestamp: new Date(),
+    type: "incoming",
+    replyToText: parentText
   });
 });
 
@@ -253,5 +252,5 @@ if (window.realism?.simulateRandomCrowdV11) {
   setTimeout(() => window.realism.simulateRandomCrowdV11(), 800);
 }
 
-console.log("✅ app.js fixed — queued typing, realism engine ready, no ghost typing, messages flow continuously.");
+console.log("✅ app.js fully fixed — header-only typing, no chat bubble typing, no ghost typing, multi-person safe.");
 });
