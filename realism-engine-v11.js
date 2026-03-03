@@ -1,4 +1,4 @@
-// realism-engine-v11-human-fixed-sync.js — ULTRA-REALISM ENGINE V11 (fully queued typing + staggered crowd + self-replies + humanized typing)
+// realism-engine-v11-human-fixed-sync.js — ULTRA-REALISM ENGINE V11 (fully queued typing + staggered crowd + self-replies + ultra-human typing)
 (function(){
 
 /* =====================================================
@@ -150,21 +150,25 @@ function generateComment(){
 }
 
 /* =====================================================
-   HUMANIZED TYPING QUEUE
+   ULTRA-HUMANIZED TYPING QUEUE
 ===================================================== */
 
 let typingQueue = Promise.resolve();
 
 function humanTypingDuration(message){
   if(!message) return 400;
-  const len = message.length;
   let duration = 0;
+  const len = message.length;
 
-  if(len <= 5) duration = 300 + Math.random()*200;
-  else if(len <= 20) duration = 500 + len*50 + Math.random()*200;
-  else duration = 1000 + len*35 + Math.random()*400;
+  // Base timing with punctuation awareness
+  const punct = (message.match(/[.,!?]/g) || []).length;
+  const emojiCount = (message.match(/[\u{1F300}-\u{1F6FF}]/gu) || []).length;
+  duration = 200 + len*35 + punct*150 - emojiCount*30 + Math.random()*500;
 
-  if(duration>7000) duration=7000;
+  if(len>50) duration += 300 + Math.random()*700; // extra thinking on long messages
+  if(duration>7500) duration=7500;
+  if(duration<400) duration=400;
+
   return Math.floor(duration);
 }
 
@@ -176,7 +180,6 @@ function queuedTyping(persona,message){
   return typingQueue;
 }
 
-// ✅ clear typing immediately after persona sends a message
 document.addEventListener("messageAppended", (ev)=>{
   const persona = ev.detail?.persona;
   if(persona?.name){
@@ -186,16 +189,13 @@ document.addEventListener("messageAppended", (ev)=>{
 });
 
 /* =====================================================
-   POST MESSAGE (FULLY QUEUED SELF-REPLIES)
+   POST MESSAGE
 ===================================================== */
 
 async function postMessage(item){
   const persona = item.persona || window.identity?.getRandomPersona?.() || { name:"User", avatar:`https://ui-avatars.com/api/?name=U` };
-
-  // Determine if self-reply and queue typing
   let replyData = {};
 
-  // Check for self-reply
   if(maybe(0.12)){
     const selfMessages = Array.from(document.querySelectorAll('.tg-bubble'))
       .filter(b=>b.dataset.persona===persona.name);
@@ -206,19 +206,14 @@ async function postMessage(item){
     }
   }
 
-  // Check for reply to existing message
   if(maybe(0.28)){
     const existing = getRandomExistingMessage();
     if(existing) replyData = existing;
   }
 
-  // Trigger typing for this persona
   document.dispatchEvent(new CustomEvent('headerTyping',{ detail:{ name: persona.name } }));
-
-  // ✅ queue typing even for self-replies
   await queuedTyping(persona, item.text);
 
-  // Append the message
   appendSafe(persona, item.text, {
     timestamp: item.timestamp,
     type: "incoming",
@@ -284,7 +279,7 @@ function simulate(){
 
 function appendSafe(persona,text,opts={}){
   if(window.TGRenderer?.appendMessage){
-    if(persona?.name) window.TGRenderer.hideTyping(persona.name); // clear typing for this persona
+    if(persona?.name) window.TGRenderer.hideTyping(persona.name);
     return window.TGRenderer.appendMessage(persona,text,opts);
   }
   return null;
@@ -298,7 +293,7 @@ setTimeout(async ()=>{
   ensurePool(2000);
   await simulateCrowd(60,400,1200);
   simulate();
-  console.log("✅ Realism Engine V11 fully synced — humanized typing, queued, self-replies included, messages follow typing.");
+  console.log("✅ Realism Engine V11 fully synced — ultra-human typing, queued, self-replies included, timers fixed, context-aware typing.");
 },900);
 
 })();
