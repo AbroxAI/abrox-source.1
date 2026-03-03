@@ -173,10 +173,9 @@ function humanTypingDuration(message){
 
 function queuedTyping(persona,message){
   typingQueue = typingQueue.then(()=>{
-    // ✅ FIX: message appended only after typing bubble removed
     return new Promise(resolve => {
+      // ✅ FIX: wait for showTyping to finish before appending
       window.TGRenderer?.showTyping?.(persona,message)?.then(() => {
-        window.TGRenderer?.hideTyping(persona.name);
         resolve();
       });
     });
