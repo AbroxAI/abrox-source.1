@@ -1,4 +1,4 @@
-// realism-engine-v11-fixed.js — FULLY INTEGRATED WITH FIXED BUBBLE RENDERER
+// realism-engine-v11-human-fixed-sync-integrated.js — FULLY INTEGRATED WITH BUBBLE RENDERER (FIXED)
 (function(){
 
 /* =====================================================
@@ -84,7 +84,7 @@ function hash(str){
 }
 
 /* =====================================================
-   DEDUPE & QUEUE
+   DEDUPE & POOL
 ===================================================== */
 
 const GENERATED = new Set();
@@ -150,19 +150,14 @@ function generateComment(){
 }
 
 /* =====================================================
-   ULTRA-HUMANIZED TYPING QUEUE (NON-BLOCKING)
+   ULTRA-HUMANIZED TYPING (FIXED)
 ===================================================== */
 
-let typingQueue = Promise.resolve();
-
 function queuedTyping(persona,message){
-  // Queue waits for showTyping but does NOT block next message
-  typingQueue = typingQueue.then(()=>{
-    return new Promise(resolve => {
-      window.TGRenderer?.showTyping?.(persona,message)?.then(resolve);
-    });
-  });
-  return typingQueue;
+  // ✅ Fire typing, do NOT block message append
+  if(!persona?.name || !window.TGRenderer?.showTyping) return Promise.resolve();
+  window.TGRenderer.showTyping(persona,message); // show typing visually
+  return Promise.resolve(); // immediately resolve so message can post
 }
 
 /* =====================================================
@@ -190,7 +185,7 @@ async function postMessage(item){
 
   document.dispatchEvent(new CustomEvent('headerTyping',{ detail:{ name: persona.name } }));
 
-  // ✅ Wait for showTyping but allow next message to queue independently
+  // ✅ Show typing, message posts immediately
   await queuedTyping(persona, item.text);
 
   appendSafe(persona, item.text, {
@@ -272,7 +267,7 @@ setTimeout(async ()=>{
   ensurePool(2000);
   await simulateCrowd(60,400,1200);
   simulate();
-  console.log("✅ Realism Engine V11 fully synced — ultra-human typing, queued, non-blocking messages, self-replies included.");
+  console.log("✅ Realism Engine V11 fully synced — ultra-human typing, queued, self-replies included, continuous chat.");
 },900);
 
 })();
