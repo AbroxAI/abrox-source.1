@@ -1,302 +1,303 @@
-// bubble-renderer-fixed.js — Telegram 2026 Renderer (fully fixed + queued typing sync + realism ready)
+// bubble-renderer-fixed.js — FINAL CLEAN (Header-only typing architecture)
 (function () {
 'use strict';
 
 function init() {
-const container = document.getElementById('tg-comments-container');
-const jumpIndicator = document.getElementById('tg-jump-indicator');
-const jumpText = document.getElementById('tg-jump-text');
-if (!container) { console.error('bubble-renderer: container missing'); return; }
 
-let unseenCount = 0;  
-let lastDateKey = null;  
-const MESSAGE_MAP = new Map();  
-let PINNED_MESSAGE_ID = null;  
+  const container = document.getElementById('tg-comments-container');
+  const jumpIndicator = document.getElementById('tg-jump-indicator');
+  const jumpText = document.getElementById('tg-jump-text');
 
-const activeTypingTimers = new Map();  
+  if (!container) {
+    console.error('bubble-renderer: container missing');
+    return;
+  }
 
-/* ===============================  
-   DATE STICKERS  
-=============================== */  
-function formatDateKey(date) {  
-  const d = new Date(date);  
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;  
-}  
+  let unseenCount = 0;
+  let lastDateKey = null;
+  const MESSAGE_MAP = new Map();
+  let PINNED_MESSAGE_ID = null;
 
-function insertDateSticker(date) {  
-  const key = formatDateKey(date);  
-  if (key === lastDateKey) return;  
-  lastDateKey = key;  
+  /* =====================================================
+     DATE STICKERS
+  ===================================================== */
+  function formatDateKey(date) {
+    const d = new Date(date);
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  }
 
-  const sticker = document.createElement('div');  
-  sticker.className = 'tg-date-sticker';  
-  sticker.textContent = new Date(date).toLocaleDateString([], {  
-    year: 'numeric', month: 'short', day: 'numeric'  
-  });  
+  function insertDateSticker(date) {
+    const key = formatDateKey(date);
+    if (key === lastDateKey) return;
 
-  container.appendChild(sticker);  
-}  
+    lastDateKey = key;
 
-/* ===============================  
-   PERSONA COLOR ASSIGNMENT  
-=============================== */  
-const personaColorMap = new Map();  
-const personaColors = [  
-  "1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"  
-];  
+    const sticker = document.createElement('div');
+    sticker.className = 'tg-date-sticker';
+    sticker.textContent = new Date(date).toLocaleDateString([], {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
 
-function getPersonaColor(personaName) {  
-  if (!personaName) return "1";  
-  if (!personaColorMap.has(personaName)) {  
-    const assigned = personaColors[personaColorMap.size % personaColors.length];  
-    personaColorMap.set(personaName, assigned);  
-  }  
-  return personaColorMap.get(personaName);  
-}  
+    container.appendChild(sticker);
+  }
 
-/* ===============================  
-   CREATE BUBBLE  
-=============================== */  
-function createBubble(persona, text, opts = {}) {  
-  const id = opts.id || ('m_' + Date.now() + '_' + Math.floor(Math.random() * 9999));  
-  const type = opts.type === 'outgoing' ? 'outgoing' : 'incoming';  
-  const timestamp = opts.timestamp || new Date();  
-  const replyToId = opts.replyToId || null;  
-  const replyToText = opts.replyToText || null;  
-  const image = opts.image || null;  
-  const caption = opts.caption || null;  
+  /* =====================================================
+     PERSONA COLORS
+  ===================================================== */
+  const personaColorMap = new Map();
+  const personaColors = [
+    "1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"
+  ];
 
-  insertDateSticker(timestamp);  
+  function getPersonaColor(name) {
+    if (!name) return "1";
 
-  const wrapper = document.createElement('div');  
-  wrapper.className = `tg-bubble ${type}`;  
-  wrapper.dataset.id = id;  
-  wrapper.dataset.persona = persona?.name || 'User';  
+    if (!personaColorMap.has(name)) {
+      const assigned =
+        personaColors[personaColorMap.size % personaColors.length];
+      personaColorMap.set(name, assigned);
+    }
 
-  const avatar = document.createElement('img');  
-  avatar.className = 'tg-bubble-avatar';  
-  avatar.alt = persona?.name || 'User';  
-  avatar.src = persona?.avatar ||  
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;  
-  avatar.onerror = () =>  
-    avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;  
+    return personaColorMap.get(name);
+  }
 
-  const content = document.createElement('div');  
-  content.className = 'tg-bubble-content';  
+  /* =====================================================
+     CREATE BUBBLE
+  ===================================================== */
+  function createBubble(persona, text, opts = {}) {
 
-  const sender = document.createElement('div');  
-  sender.className = 'tg-bubble-sender';  
-  sender.textContent = persona?.name || 'User';  
-  sender.dataset.color = getPersonaColor(persona?.name || 'User');  
-  content.appendChild(sender);  
+    const id =
+      opts.id ||
+      ('m_' + Date.now() + '_' + Math.floor(Math.random() * 9999));
 
-  if (replyToText || replyToId) {  
-    const replyPreview = document.createElement('div');  
-    replyPreview.className = 'tg-reply-preview';  
-    replyPreview.textContent = replyToText  
-      ? (replyToText.length > 120  
-          ? replyToText.slice(0, 117) + '...'  
-          : replyToText)  
-      : 'Reply';  
+    const type = opts.type === 'outgoing' ? 'outgoing' : 'incoming';
+    const timestamp = opts.timestamp || new Date();
+    const replyToId = opts.replyToId || null;
+    const replyToText = opts.replyToText || null;
+    const image = opts.image || null;
+    const caption = opts.caption || null;
 
-    replyPreview.addEventListener('click', () => {  
-      if (!replyToId) return;  
-      const target = MESSAGE_MAP.get(replyToId);  
-      if (!target) return;  
-      target.el.scrollIntoView({ behavior: 'smooth', block: 'center' });  
-      target.el.classList.add('tg-highlight');  
-      setTimeout(() => target.el.classList.remove('tg-highlight'), 2600);  
-    });  
+    insertDateSticker(timestamp);
 
-    content.appendChild(replyPreview);  
-  }  
+    const wrapper = document.createElement('div');
+    wrapper.className = `tg-bubble ${type}`;
+    wrapper.dataset.id = id;
+    wrapper.dataset.persona = persona?.name || 'User';
 
-  if (image) {  
-    const img = document.createElement('img');  
-    img.className = 'tg-bubble-image';  
-    img.src = image;  
-    img.style.width = '100%';  
-    img.style.borderRadius = '12px';  
-    img.onerror = () => img.remove();  
-    content.appendChild(img);  
-  }  
+    const avatar = document.createElement('img');
+    avatar.className = 'tg-bubble-avatar';
+    avatar.alt = persona?.name || 'User';
+    avatar.src =
+      persona?.avatar ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
 
-  const finalText = caption || text;  
+    avatar.onerror = () =>
+      avatar.src =
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(persona?.name || 'U')}`;
 
-  if (finalText) {  
-    const textEl = document.createElement('div');  
-    textEl.className = 'tg-bubble-text';  
-    textEl.style.whiteSpace = 'pre-line';  
-    textEl.textContent = finalText;  
-    content.appendChild(textEl);  
+    const content = document.createElement('div');
+    content.className = 'tg-bubble-content';
 
-    if (caption) PINNED_MESSAGE_ID = id;  
-  }  
+    /* Sender */
+    const sender = document.createElement('div');
+    sender.className = 'tg-bubble-sender';
+    sender.textContent = persona?.name || 'User';
+    sender.dataset.color =
+      getPersonaColor(persona?.name || 'User');
+    content.appendChild(sender);
 
-  if (persona?.isAdmin) {  
-    const adminBtn = document.createElement('a');  
-    adminBtn.className = 'glass-btn';  
-    adminBtn.href = window.CONTACT_ADMIN_LINK || 'https://t.me/';  
-    adminBtn.target = '_blank';  
-    adminBtn.textContent = 'Contact Admin';  
-    adminBtn.style.marginTop = '8px';  
-    content.appendChild(adminBtn);  
-  }  
+    /* Reply preview */
+    if (replyToText || replyToId) {
 
-  const meta = document.createElement('div');  
-  meta.className = 'tg-bubble-meta';  
-  meta.textContent = new Date(timestamp).toLocaleTimeString([], {  
-    hour: '2-digit',  
-    minute: '2-digit'  
-  });  
-  content.appendChild(meta);  
+      const replyPreview = document.createElement('div');
+      replyPreview.className = 'tg-reply-preview';
 
-  if (type === 'incoming') {  
-    wrapper.appendChild(avatar);  
-    wrapper.appendChild(content);  
-  } else {  
-    wrapper.style.flexDirection = 'row-reverse';  
-    wrapper.appendChild(avatar);  
-    wrapper.appendChild(content);  
-  }  
+      replyPreview.textContent = replyToText
+        ? (replyToText.length > 120
+            ? replyToText.slice(0, 117) + '...'
+            : replyToText)
+        : 'Reply';
 
-  MESSAGE_MAP.set(id, { el: wrapper, text: finalText, persona, timestamp });  
+      replyPreview.addEventListener('click', () => {
+        if (!replyToId) return;
 
-  return { el: wrapper, id };  
-}  
+        const target = MESSAGE_MAP.get(replyToId);
+        if (!target) return;
 
-/* ===============================  
-   MESSAGE APPEND  
-=============================== */  
-function appendMessage(persona, text, opts = {}) {  
-  const result = createBubble(persona, text, opts);  
-  container.appendChild(result.el);  
+        target.el.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
 
-  hideTyping(persona.name); // removes typing immediately when message appears  
+        target.el.classList.add('tg-highlight');
+        setTimeout(() =>
+          target.el.classList.remove('tg-highlight'),
+          2600
+        );
+      });
 
-  const atBottom =  
-    container.scrollTop + container.clientHeight >=  
-    container.scrollHeight - 80;  
+      content.appendChild(replyPreview);
+    }
 
-  if (atBottom) container.scrollTop = container.scrollHeight;  
-  else {  
-    unseenCount++;  
-    updateJump();  
-    showJump();  
-  }  
+    /* Image */
+    if (image) {
+      const img = document.createElement('img');
+      img.className = 'tg-bubble-image';
+      img.src = image;
+      img.style.width = '100%';
+      img.style.borderRadius = '12px';
+      img.onerror = () => img.remove();
+      content.appendChild(img);
+    }
 
-  return result.id;  
-}  
+    /* Text / Caption */
+    const finalText = caption || text;
 
-function updateJump() {  
-  if (!jumpText) return;  
-  jumpText.textContent =  
-    unseenCount > 1  
-      ? `New messages · ${unseenCount}`  
-      : 'New messages';  
-}  
+    if (finalText) {
+      const textEl = document.createElement('div');
+      textEl.className = 'tg-bubble-text';
+      textEl.style.whiteSpace = 'pre-line';
+      textEl.textContent = finalText;
+      content.appendChild(textEl);
 
-function showJump() { jumpIndicator?.classList.remove('hidden'); }  
-function hideJump() {  
-  unseenCount = 0;  
-  updateJump();  
-  jumpIndicator?.classList.add('hidden');  
-}  
+      if (caption) PINNED_MESSAGE_ID = id;
+    }
 
-jumpIndicator?.addEventListener('click', () => {  
-  container.scrollTop = container.scrollHeight;  
-  hideJump();  
-});  
+    /* Admin button */
+    if (persona?.isAdmin) {
+      const adminBtn = document.createElement('a');
+      adminBtn.className = 'glass-btn';
+      adminBtn.href = window.CONTACT_ADMIN_LINK || 'https://t.me/';
+      adminBtn.target = '_blank';
+      adminBtn.textContent = 'Contact Admin';
+      adminBtn.style.marginTop = '8px';
+      content.appendChild(adminBtn);
+    }
 
-container.addEventListener('scroll', () => {  
-  const distanceFromBottom =  
-    container.scrollHeight - container.scrollTop - container.clientHeight;  
-  if (distanceFromBottom < 80) hideJump();  
-});  
+    /* Time */
+    const meta = document.createElement('div');
+    meta.className = 'tg-bubble-meta';
+    meta.textContent =
+      new Date(timestamp).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
 
-/* ===============================  
-   TYPING SYSTEM (PROMISE + QUEUE FIX)  
-=============================== */  
-const activeTyping = new Map();  
+    content.appendChild(meta);
 
-function calculateTypingDuration(message) {  
-  if (!message) return 1200;  
-  const baseSpeed = 45;  
-  const minTime = 1000;  
-  const maxTime = 6000;  
-  let duration = message.length * baseSpeed;  
-  duration += Math.random() * 800;  
-  if (duration < minTime) duration = minTime;  
-  if (duration > maxTime) duration = maxTime;  
-  return Math.floor(duration);  
-}  
+    if (type === 'incoming') {
+      wrapper.appendChild(avatar);
+      wrapper.appendChild(content);
+    } else {
+      wrapper.style.flexDirection = 'row-reverse';
+      wrapper.appendChild(avatar);
+      wrapper.appendChild(content);
+    }
 
-function showTyping(persona, message = "", customDuration = null) {  
-  if (!persona?.name || !container) return Promise.resolve();  
-  const duration = customDuration || calculateTypingDuration(message);  
+    MESSAGE_MAP.set(id, {
+      el: wrapper,
+      text: finalText,
+      persona,
+      timestamp
+    });
 
-  return new Promise((resolve) => {  
-    hideTyping(persona.name);  
+    return { el: wrapper, id };
+  }
 
-    const typingBubble = document.createElement('div');  
-    typingBubble.className = 'tg-bubble incoming tg-typing';  
-    typingBubble.dataset.typing = persona.name;  
+  /* =====================================================
+     APPEND MESSAGE
+  ===================================================== */
+  function appendMessage(persona, text, opts = {}) {
 
-    const avatar = document.createElement('img');  
-    avatar.className = 'tg-bubble-avatar';  
-    avatar.src = persona.avatar;  
-    avatar.alt = persona.name;  
+    const result = createBubble(persona, text, opts);
+    container.appendChild(result.el);
 
-    const content = document.createElement('div');  
-    content.className = 'tg-bubble-content';  
+    const atBottom =
+      container.scrollTop + container.clientHeight >=
+      container.scrollHeight - 80;
 
-    const sender = document.createElement('div');  
-    sender.className = 'tg-bubble-sender';  
-    sender.dataset.color = getPersonaColor(persona.name);  
-    sender.textContent = persona.name;  
+    if (atBottom) {
+      container.scrollTop = container.scrollHeight;
+    } else {
+      unseenCount++;
+      updateJump();
+      showJump();
+    }
 
-    const dots = document.createElement('div');  
-    dots.className = 'tg-typing-dots';  
-    dots.textContent = 'typing…';  
+    return result.id;
+  }
 
-    content.appendChild(sender);  
-    content.appendChild(dots);  
-    typingBubble.appendChild(avatar);  
-    typingBubble.appendChild(content);  
-    container.appendChild(typingBubble);  
-    container.scrollTop = container.scrollHeight;  
+  /* =====================================================
+     JUMP INDICATOR
+  ===================================================== */
+  function updateJump() {
+    if (!jumpText) return;
 
-    const timer = setTimeout(() => {  
-      hideTyping(persona.name);  
-      resolve();  
-    }, duration);  
+    jumpText.textContent =
+      unseenCount > 1
+        ? `New messages · ${unseenCount}`
+        : 'New messages';
+  }
 
-    activeTyping.set(persona.name, timer);  
-  });  
-}  
+  function showJump() {
+    jumpIndicator?.classList.remove('hidden');
+  }
 
-function hideTyping(personaName) {  
-  const existing = container.querySelector(`[data-typing="${personaName}"]`);  
-  if (existing) existing.remove();  
-  if (activeTyping.has(personaName)) {  
-    clearTimeout(activeTyping.get(personaName));  
-    activeTyping.delete(personaName);  
-  }  
-}  
+  function hideJump() {
+    unseenCount = 0;
+    updateJump();
+    jumpIndicator?.classList.add('hidden');
+  }
 
-window.TGRenderer = {  
-  appendMessage,  
-  showTyping,  
-  hideTyping,  
-  getPinnedMessageId: () => PINNED_MESSAGE_ID,  
-  calculateTypingDuration  
-};  
+  jumpIndicator?.addEventListener('click', () => {
+    container.scrollTop = container.scrollHeight;
+    hideJump();
+  });
 
-console.log('✅ bubble-renderer FIXED — queued typing + realism ready');
+  container.addEventListener('scroll', () => {
+    const distance =
+      container.scrollHeight -
+      container.scrollTop -
+      container.clientHeight;
+
+    if (distance < 80) hideJump();
+  });
+
+  /* =====================================================
+     TYPING DURATION (SHARED CALCULATION ONLY)
+  ===================================================== */
+  function calculateTypingDuration(message) {
+    if (!message) return 1200;
+
+    const baseSpeed = 45;
+    const minTime = 1000;
+    const maxTime = 6000;
+
+    let duration = message.length * baseSpeed;
+    duration += Math.random() * 800;
+
+    if (duration < minTime) duration = minTime;
+    if (duration > maxTime) duration = maxTime;
+
+    return Math.floor(duration);
+  }
+
+  /* =====================================================
+     PUBLIC API
+  ===================================================== */
+  window.TGRenderer = {
+    appendMessage,
+    getPinnedMessageId: () => PINNED_MESSAGE_ID,
+    calculateTypingDuration
+  };
+
+  console.log('✅ bubble-renderer FINAL — header-only architecture, no chat typing system.');
 }
 
 document.readyState === 'loading'
-? document.addEventListener('DOMContentLoaded', init)
-: init();
+  ? document.addEventListener('DOMContentLoaded', init)
+  : init();
 
 })();
