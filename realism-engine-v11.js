@@ -1,8 +1,8 @@
-// realism-engine-v11-integrated-full-sync.js — FULLY FIXED & STABLE
+// realism-engine-v11-integrated-full-sync.js — FULL HEADER-ONLY FIXED VERSION
 (function(){
 
   /* =====================================================
-     DATA POOLS (UNCHANGED)
+     DATA POOLS (FULL ORIGINAL)
   ==================================================== */
   const ASSETS = ["EUR/USD","USD/JPY","GBP/USD","AUD/USD","BTC/USD","ETH/USD","USD/CHF","EUR/JPY","NZD/USD",
                   "US30","NAS100","SPX500","DAX30","FTSE100","GOLD","SILVER","WTI","BRENT",
@@ -49,14 +49,10 @@
   function rand(max=9999){ return Math.floor(Math.random()*max); }
   function hash(str){ let h=5381; for(let i=0;i<str.length;i++) h=((h<<5)+h)+str.charCodeAt(i); return (h>>>0).toString(36); }
 
-  /* =====================================================
-     POOL MANAGEMENT
-  ==================================================== */
   const GENERATED = new Set();
   const QUEUE = [];
   const POOL = [];
   window.realismEngineV11Pool = POOL;
-  window.realismEngineV11EMOJIS = EMOJIS;
 
   function mark(text){
     const fp = hash(text.toLowerCase());
@@ -90,11 +86,8 @@
     ];
 
     let text = random(templates)();
-    if(maybe(0.35)){
-      const extras=["good execution","tight stop","wide stop","no slippage","perfect timing","partial TP hit"];
-      text+=" — "+random(extras);
-    }
-    if(maybe(0.45)) text+=" "+random(EMOJIS);
+    if(maybe(0.35)) text += " — " + random(["good execution","tight stop","wide stop","no slippage","perfect timing","partial TP hit"]);
+    if(maybe(0.45)) text += " " + random(EMOJIS);
 
     let tries=0;
     while(!mark(text)&&tries<30){
@@ -106,30 +99,23 @@
   }
 
   /* =====================================================
-     FIXED TYPING (NO HEADER EVENTS)
+     HEADER-ONLY TYPING (FIXED)
   ==================================================== */
   async function performTyping(persona,message){
+    if(!persona?.name) return;
 
-    if(!persona?.name || !window.TGRenderer?.showTyping){
-      return;
-    }
+    document.dispatchEvent(
+      new CustomEvent("headerTyping", { detail: { name: persona.name } })
+    );
 
-    const duration = window.TGRenderer.calculateTypingDuration
-        ? window.TGRenderer.calculateTypingDuration(message)
-        : 1200;
+    const duration = window.TGRenderer?.calculateTypingDuration?.(message) || 1200;
 
-    try{
-      await window.TGRenderer.showTyping(persona,message,duration);
-    } finally {
-      // Guaranteed clear AFTER typing resolves
-      if(window.TGRenderer.hideTyping){
-        window.TGRenderer.hideTyping(persona.name);
-      }
-    }
+    await new Promise(resolve => setTimeout(resolve, duration));
+    // DO NOT manually clear typing
   }
 
   /* =====================================================
-     POST MESSAGE (STRICT ORDER)
+     MESSAGE POSTING
   ==================================================== */
   async function postMessage(item){
 
@@ -140,37 +126,21 @@
 
     let replyData={};
 
-    if(maybe(0.12)){
-      const selfMessages = Array.from(document.querySelectorAll('.tg-bubble'))
-        .filter(b=>b.dataset.persona===persona.name);
-
-      if(selfMessages.length){
-        const selfTarget = selfMessages[Math.floor(Math.random()*selfMessages.length)];
-        const selfText = selfTarget.querySelector('.tg-bubble-text')?.textContent;
-        if(selfText){
-          replyData={
-            replyToId:selfTarget.dataset.id,
-            replyToText:selfText.slice(0,120)
-          };
-        }
-      }
-    }
-
     if(maybe(0.28)){
       const existing = getRandomExistingMessage();
       if(existing) replyData = existing;
     }
 
-    // WAIT FOR TYPING TO FINISH
     await performTyping(persona,item.text);
 
-    // THEN append message
-    appendSafe(persona,item.text,{
-      timestamp:item.timestamp,
-      type:"incoming",
-      id:`realism_${Date.now()}_${rand(9999)}`,
-      ...replyData
-    });
+    if(window.TGRenderer?.appendMessage){
+      window.TGRenderer.appendMessage(persona,item.text,{
+        timestamp:item.timestamp,
+        type:"incoming",
+        id:`realism_${Date.now()}_${rand(9999)}`,
+        ...replyData
+      });
+    }
   }
 
   function getRandomExistingMessage(){
@@ -180,13 +150,9 @@
     const target = messages[Math.floor(Math.random()*messages.length)];
     const id = target.dataset.id;
     const text = target.querySelector('.tg-bubble-text')?.textContent;
-
     if(!id || !text) return null;
 
-    return {
-      replyToId:id,
-      replyToText:text.slice(0,120)
-    };
+    return { replyToId:id, replyToText:text.slice(0,120) };
   }
 
   async function simulateCrowd(count=60,minDelay=400,maxDelay=1200){
@@ -218,28 +184,17 @@
   function simulate(){
     if(started) return;
     started=true;
-
     simulateCrowd(60,400,1200);
     schedule();
   }
 
-  function appendSafe(persona,text,opts={}){
-    if(window.TGRenderer?.appendMessage){
-      return window.TGRenderer.appendMessage(persona,text,opts);
-    }
-    return null;
-  }
-
-  /* =====================================================
-     START ENGINE
-  ==================================================== */
   setTimeout(async ()=>{
     ensurePool(2000);
     await simulateCrowd(60,400,1200);
     simulate();
-    console.log("✅ Realism Engine V11 FULLY FIXED — typing & messages 100% synchronized.");
+    console.log("✅ Realism Engine V11 — FULLY FIXED & HEADER-COMPATIBLE.");
   },900);
 
-  window.realism = { simulateCrowd, postMessage, simulate, appendSafe };
+  window.realism = { simulateCrowd, postMessage, simulate };
 
 })();
